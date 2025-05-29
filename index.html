@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Picking by Box</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+
+  <body class="p-4">
+    <div class="container-fluid">
+      <h1 class="mb-4">📦 Picking by Box</h1>
+
+      <div class="row">
+        <!-- Coluna 1: Bipagem -->
+        <div class="col-md-4">
+          <div class="input-group mb-3">
+            <span class="input-group-text">Romaneio</span>
+            <input
+              type="text"
+              id="romaneioInput"
+              class="form-control"
+              placeholder="Digite o romaneio"
+            />
+            <button id="btnIniciar" class="btn btn-primary">
+              Iniciar Conferência
+            </button>
+          </div>
+
+          <div class="input-group mb-3 d-none">
+            <input
+              id="skuInput"
+              type="text"
+              class="form-control"
+              placeholder="Digite ou bip o SKU/EAN"
+            />
+            <button class="btn btn-success" id="btnBipar">
+              ✔️ Bipar Produto
+            </button>
+          </div>
+
+          <button id="btnFinalizar" class="btn btn-outline-danger mb-3 d-none">
+            🔁 Finalizar Romaneio
+          </button>
+
+          <button id="btnLimparRomaneio" class="btn btn-warning mb-3 d-none">
+            🧹 Limpar Bipagem do Romaneio
+          </button>
+
+          <div id="feedback" class="mb-3 fw-bold"></div>
+          <div id="cardAtual"></div>
+
+          <h5 class="mt-4">📋 Histórico</h5>
+          <ul id="listaHistorico" class="list-group small d-none"></ul>
+        </div>
+
+        <!-- Coluna 2: Boxes -->
+        <div class="col-md-8">
+          <h4 class="mb-3">📦 Boxes Atuais</h4>
+          <div class="d-flex flex-wrap g-2" id="boxContainer"></div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
