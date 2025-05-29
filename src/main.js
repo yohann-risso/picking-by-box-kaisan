@@ -7,6 +7,7 @@ let historico = [];
 let caixas = {};
 let imagensRef = {};
 let codNfeMap = {};
+let pendentes = [];
 
 async function carregarRefs() {
   const { data, error } = await supabase
@@ -23,14 +24,12 @@ async function carregarRefs() {
 document.addEventListener("DOMContentLoaded", async () => {
   await carregarRefs();
 
-  // Enter no campo de romaneio → iniciar conferência
   document.getElementById("romaneioInput").addEventListener("keypress", (e) => {
     if (e.key === "Enter") {
       document.getElementById("btnIniciar").click();
     }
   });
 
-  // Enter no campo de SKU → bipar produto
   document.getElementById("skuInput").addEventListener("keypress", (e) => {
     if (e.key === "Enter") {
       document.getElementById("btnBipar").click();
@@ -43,6 +42,7 @@ function renderBoxCards() {
   boxContainer.innerHTML = "";
 
   Object.entries(caixas)
+    .filter(([, info]) => info.bipado > 0)
     .sort(([, a], [, b]) => {
       const numA = parseInt((a.box || "").replace(/\D/g, ""), 10);
       const numB = parseInt((b.box || "").replace(/\D/g, ""), 10);
@@ -94,6 +94,48 @@ function renderHistorico() {
     });
 }
 
+function renderPendentes() {
+  const lista = document.getElementById("listaPendentes");
+  if (!lista) return;
+  lista.innerHTML = "";
+
+  const agrupados = {};
+  pendentes.forEach(({ sku, pedido, qtd, endereco }) => {
+    const key = sku || "SEM SKU";
+    if (!agrupados[key]) {
+      agrupados[key] = { sku: key, qtd: 0, enderecos: new Set() };
+    }
+    agrupados[key].qtd += qtd;
+    agrupados[key].enderecos.add(endereco || "SEM LOCAL");
+  });
+
+  const listaOrdenada = Object.values(agrupados).sort((a, b) => {
+    const isAsemLocal = [...a.enderecos].some((e) => e.includes("SEM LOCAL"));
+    const isBsemLocal = [...b.enderecos].some((e) => e.includes("SEM LOCAL"));
+    if (isAsemLocal && !isBsemLocal) return 1;
+    if (!isAsemLocal && isBsemLocal) return -1;
+
+    const ea = [...a.enderecos][0].match(/\d+/g)?.map(Number) || [];
+    const eb = [...b.enderecos][0].match(/\d+/g)?.map(Number) || [];
+    for (let i = 0; i < Math.max(ea.length, eb.length); i++) {
+      const diff = (ea[i] || 0) - (eb[i] || 0);
+      if (diff !== 0) return diff;
+    }
+    return a.sku.localeCompare(b.sku);
+  });
+
+  listaOrdenada.forEach((item) => {
+    const li = document.createElement("li");
+    li.className = "list-group-item small";
+    li.innerHTML = `<strong>SKU:</strong> ${
+      item.sku
+    } | <strong>Qtde:</strong> ${item.qtd} | <strong>Endereço:</strong> ${[
+      ...item.enderecos,
+    ].join(" • ")}`;
+    lista.appendChild(li);
+  });
+}
+
 function renderCardProduto(result) {
   const area = document.getElementById("cardAtual");
   if (result.status === "erro") {
@@ -116,7 +158,7 @@ function renderCardProduto(result) {
         <img src="${imagemURL}" alt="Imagem do Produto" class="img-produto" />
       </div>
       <div>
-        <span class="badge bg-primary fs-6">${result.box}</span>
+        <span class="badge bg-primary fs-1">${result.box}</span>
       </div>
     </div>`;
 }
@@ -129,12 +171,13 @@ async function carregarBipagemAnterior(romaneio) {
 
   caixas = JSON.parse(localStorage.getItem(`caixas-${romaneio}`)) || {};
   historico = [];
+  pendentes = [];
 
   const pedidoIds = pedidos.map((p) => p.id);
 
   const { data: produtos } = await supabase
     .from("produtos_pedido")
-    .select("pedido_id, sku, qtd, qtd_bipada, box")
+    .select("pedido_id, sku, qtd, qtd_bipada, box, endereco")
     .in("pedido_id", pedidoIds);
 
   const { data: nfeData } = await supabase
@@ -148,7 +191,14 @@ async function carregarBipagemAnterior(romaneio) {
   });
 
   produtos.forEach((p) => {
-    if (p.qtd_bipada === 0 || !p.box) return;
+    if ((p.qtd_bipada === 0 || !p.box) && p.qtd > 0) {
+      pendentes.push({
+        sku: p.sku,
+        pedido: p.pedido_id,
+        qtd: p.qtd,
+        endereco: p.endereco || "SEM LOCAL",
+      });
+    }
 
     if (!caixas[p.pedido_id]) {
       caixas[p.pedido_id] = { box: p.box, bipado: 0, total: 0 };
@@ -158,7 +208,9 @@ async function carregarBipagemAnterior(romaneio) {
     caixas[p.pedido_id].total += p.qtd;
     caixas[p.pedido_id].bipado += p.qtd_bipada;
 
-    historico.push({ sku: p.sku, box: p.box, pedido: p.pedido_id });
+    if (p.qtd_bipada > 0) {
+      historico.push({ sku: p.sku, box: p.box, pedido: p.pedido_id });
+    }
   });
 
   localStorage.setItem(`historico-${romaneio}`, JSON.stringify(historico));
@@ -172,6 +224,7 @@ async function carregarBipagemAnterior(romaneio) {
 
   renderBoxCards();
   renderHistorico();
+  renderPendentes();
 }
 
 document.getElementById("btnIniciar").addEventListener("click", async () => {
