@@ -100,23 +100,21 @@ function renderPendentes() {
   lista.innerHTML = "";
 
   const agrupados = {};
-  pendentes.forEach(({ sku, pedido, qtd, endereco }) => {
+  pendentes.forEach(({ sku, qtd, endereco }) => {
     const key = sku || "SEM SKU";
-    if (!agrupados[key]) {
-      agrupados[key] = { sku: key, qtd: 0, enderecos: new Set() };
+    const loc = endereco || "SEM LOCAL";
+    const agrupamento = `${key}|${loc}`;
+    if (!agrupados[agrupamento]) {
+      agrupados[agrupamento] = { sku: key, qtd: 0, endereco: loc };
     }
-    agrupados[key].qtd += qtd;
-    agrupados[key].enderecos.add(endereco || "SEM LOCAL");
+    agrupados[agrupamento].qtd += qtd;
   });
 
   const listaOrdenada = Object.values(agrupados).sort((a, b) => {
-    const isAsemLocal = [...a.enderecos].some((e) => e.includes("SEM LOCAL"));
-    const isBsemLocal = [...b.enderecos].some((e) => e.includes("SEM LOCAL"));
-    if (isAsemLocal && !isBsemLocal) return 1;
-    if (!isAsemLocal && isBsemLocal) return -1;
-
-    const ea = [...a.enderecos][0].match(/\d+/g)?.map(Number) || [];
-    const eb = [...b.enderecos][0].match(/\d+/g)?.map(Number) || [];
+    if (a.endereco.includes("SEM LOCAL")) return 1;
+    if (b.endereco.includes("SEM LOCAL")) return -1;
+    const ea = a.endereco.match(/\d+/g)?.map(Number) || [];
+    const eb = b.endereco.match(/\d+/g)?.map(Number) || [];
     for (let i = 0; i < Math.max(ea.length, eb.length); i++) {
       const diff = (ea[i] || 0) - (eb[i] || 0);
       if (diff !== 0) return diff;
@@ -127,11 +125,7 @@ function renderPendentes() {
   listaOrdenada.forEach((item) => {
     const li = document.createElement("li");
     li.className = "list-group-item small";
-    li.innerHTML = `<strong>SKU:</strong> ${
-      item.sku
-    } | <strong>Qtde:</strong> ${item.qtd} | <strong>Endereço:</strong> ${[
-      ...item.enderecos,
-    ].join(" • ")}`;
+    li.innerHTML = `<strong>SKU:</strong> ${item.sku} | <strong>Qtde:</strong> ${item.qtd} | <strong>Endereço:</strong> ${item.endereco}`;
     lista.appendChild(li);
   });
 }
@@ -169,7 +163,7 @@ async function carregarBipagemAnterior(romaneio) {
     .select("id")
     .eq("romaneio", romaneio);
 
-  caixas = JSON.parse(localStorage.getItem(`caixas-${romaneio}`)) || {};
+  caixas = {}; // Reset para evitar duplicidade
   historico = [];
   pendentes = [];
 
