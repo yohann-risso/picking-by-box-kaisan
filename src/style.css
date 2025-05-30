@@ -165,33 +165,37 @@ body {
 
 .box-wrapper {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  width: 120px;
-  min-height: 120px;
-  position: relative;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 10px;
+  width: 260px;
+  border-radius: 8px;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.1);
 }
 
 /* card de info (pedido + qtde + link) */
 .info-card {
-  width: 100%;
-  padding: 8px;
-  border-radius: 8px;
-  text-align: center;
-  font-size: 0.85rem;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  flex: 1;
+  padding: 0;
+  text-align: left;
+  box-shadow: none;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
 }
 
 /* estreito e alto, só para o número */
 .number-card {
-  margin-top: 6px;
-  padding: 6px 12px;
-  border-radius: 20px;
+  width: 44px;
+  height: 44px;
   font-size: 1.1rem;
   font-weight: bold;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  display: inline-block;
-  text-align: center;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* estilo base do “btn-undo-simple” */
@@ -256,6 +260,19 @@ body {
   font-size: 1.5rem;  /* ajuste conforme preferir */
   font-weight: bold;
 }
+
+.btn-pesado {
+  background-color: #0d6efd;
+  color: white;
+  border: none;
+  font-weight: bold;
+  cursor: default;
+}
+.btn-pesado:hover {
+  background-color: #0d6efd;
+  text-decoration: none;
+}
+
 
 /* se você está usando IDs #colInputs e #colBoxes do Bootstrap */
 #colInputs {

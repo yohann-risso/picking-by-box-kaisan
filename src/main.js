@@ -364,8 +364,14 @@ function renderBoxCards() {
           <span class="badge bg-dark">${bipado}/${total}</span>
         </small>
         <div class="text-center mt-2">
-          <button class="btn-undo-simple btn-transparent btn-pesar" data-pedido="${pedidoRef}" data-codnfe="${codNfe}">
-            <i class="bi bi-balance-scale"></i> PESAR PEDIDO
+          <button
+            class="btn-undo-simple ${isPesado ? 'btn-pesado' : 'btn-transparent btn-pesar'}"
+            ${isPesado ? 'disabled' : ''}
+            data-pedido="${pedidoRef}"
+            data-codnfe="${codNfe}"
+            tabindex="0"
+          >
+            <i class="bi bi-balance-scale"></i> ${isPesado ? 'PESADO ✅' : 'PESAR PEDIDO'}
           </button>
         </div>
       `;
@@ -379,26 +385,21 @@ function renderBoxCards() {
       boxContainer.appendChild(wrapper);
     });
 
-  // Delegação: adicionar evento aos botões de pesar
-  boxContainer.querySelectorAll(".btn-pesar").forEach((btn) => {
+  // Eventos dos botões "PESAR PEDIDO"
+  document.querySelectorAll(".btn-pesar").forEach((btn) => {
     btn.addEventListener("click", (e) => {
-      const pedido = btn.dataset.pedido;
+      e.preventDefault();
       const codNfe = btn.dataset.codnfe;
+      const url = `https://ge.kaisan.com.br/index2.php?page=meta/view&id_view=nfe_pedido_conf&acao_view=cadastra&cod_del=${codNfe}&where=cod_nfe_pedido=${codNfe}`;
+      window.open(url, "_blank");
+      btn.focus();
+    });
 
-      // Marca como pesado
-      if (caixas[pedido]) {
-        caixas[pedido].pesado = true;
-        btn.innerHTML = "✅ PESADO";
-        btn.disabled = true;
-        localStorage.setItem(`caixas-${romaneio}`, JSON.stringify(caixas));
-        renderBoxCards();
+    btn.addEventListener("keydown", (e) => {
+      if (e.key === " " || e.key === "Enter") {
+        e.preventDefault();
+        btn.click();
       }
-
-      // Abre o link
-      window.open(
-        `https://ge.kaisan.com.br/index2.php?page=meta/view&id_view=nfe_pedido_conf&acao_view=cadastra&cod_del=${codNfe}&where=cod_nfe_pedido=${codNfe}#prodweightsomaproduto`,
-        "_blank"
-      );
     });
   });
 }
