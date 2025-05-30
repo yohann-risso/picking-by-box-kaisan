@@ -973,13 +973,26 @@ document
   });
 
 document.getElementById("btnPrintPendentes")?.addEventListener("click", () => {
-  if (!window.pendentes || pendentes.length === 0)
+  if (!window.pendentes || pendentes.length === 0) {
     return alert("Nenhum pendente encontrado.");
+  }
 
-  // Filtrar os que têm endereço válido
-  const comEndereco = pendentes.filter(
-    (p) => p.endereco && !p.endereco.includes("SEM LOCAL")
-  );
+  // Captura operador e romaneio do HTML
+  const operadorLogado =
+    document.getElementById("operadorLogado")?.textContent || "Desconhecido";
+  const romaneioAtivo =
+    document.getElementById("romaneioInput")?.value || "Não informado";
+  const dataHoraAtual = new Date().toLocaleString("pt-BR");
+
+  // Filtra apenas os que têm ao menos um endereço válido
+  const comEndereco = pendentes.filter((p) => {
+    const enderecos = (p.endereco || "").split("•").map((e) => e.trim());
+    return enderecos.some((e) => e && e.toUpperCase() !== "SEM LOCAL");
+  });
+
+  if (comEndereco.length === 0) {
+    return alert("Nenhum pendente com endereço válido encontrado.");
+  }
 
   // Agrupar por SKU
   const agrupado = {};
@@ -988,19 +1001,18 @@ document.getElementById("btnPrintPendentes")?.addEventListener("click", () => {
     agrupado[sku] += qtd;
   });
 
-  // Criar HTML de impressão
   const linhas = Object.entries(agrupado)
-    .map(([sku, qtd]) => {
-      return `<tr><td>${sku}</td><td>${qtd}</td></tr>`;
-    })
+    .map(([sku, qtd]) => `<tr><td>${sku}</td><td>${qtd}</td></tr>`)
     .join("");
 
   const htmlImpressao = `
     <html>
       <head>
-        <title>Lista de Pendentes</title>
+        <title>Pendentes com Endereço</title>
         <style>
           body { font-family: sans-serif; padding: 20px; }
+          h2, h4 { margin-bottom: 8px; }
+          .info { margin-bottom: 16px; }
           table { width: 100%; border-collapse: collapse; }
           th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
           th { background-color: #f5f5f5; }
@@ -1008,6 +1020,11 @@ document.getElementById("btnPrintPendentes")?.addEventListener("click", () => {
       </head>
       <body>
         <h2>Lista de Pendentes com Endereço</h2>
+        <div class="info">
+          <strong>Operador:</strong> ${operadorLogado}<br/>
+          <strong>Romaneio:</strong> ${romaneioAtivo}<br/>
+          <strong>Data:</strong> ${dataHoraAtual}
+        </div>
         <table>
           <thead>
             <tr>
