@@ -397,8 +397,8 @@ function renderBoxCards() {
 
       // Define conteúdo do botão de acordo com o status
       const botaoClasse = isPesado
-        ? `btn-undo-simple btn-pesado btn-sem-borda ${solid}`
-        : `btn-undo-simple btn-pesar btn-sem-borda ${solid}`;
+        ? `btn-undo-simple btn-pesado ${solid}`
+        : `btn-undo-simple btn-pesar ${solid}`;
 
       const botaoHtml = isPesado
         ? `<button class="${botaoClasse}" style="border: none; box-shadow: none;" disabled tabindex="0">
