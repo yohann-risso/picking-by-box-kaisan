@@ -1238,3 +1238,20 @@ function renderProductMap() {
     gallery.appendChild(card);
   });
 }
+
+// Mostrar/ocultar modal flutuante do cronômetro
+document.addEventListener("DOMContentLoaded", () => {
+  const modal = document.getElementById("cronometroModal");
+  const btn = document.getElementById("btnCronometroFloating");
+
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    modal.style.display = modal.style.display === "block" ? "none" : "block";
+  });
+
+  // Fecha o modal se clicar fora dele
+  document.addEventListener("click", (e) => {
+    const isInside = modal.contains(e.target) || btn.contains(e.target);
+    if (!isInside) modal.style.display = "none";
+  });
+});
