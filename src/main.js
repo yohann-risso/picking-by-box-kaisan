@@ -209,6 +209,24 @@ document.addEventListener("DOMContentLoaded", async () => {
     .addEventListener("click", gerarPdfResumo);
 });
 
+async function carregarCodNfeMap(pedidoIds) {
+  const { data, error } = await supabase
+    .from("pedidos_nfe")
+    .select("pedido, cod_nfe")
+    .in("pedido", pedidoIds);
+
+  if (error) {
+    console.error("Erro ao carregar cod_nfe dos pedidos:", error);
+    return;
+  }
+
+  data.forEach(({ pedido, cod_nfe }) => {
+    codNfeMap[pedido] = cod_nfe;
+  });
+
+  console.log("✅ codNfeMap atualizado:", codNfeMap);
+}
+
 function renderBoxCards() {
   const boxContainer = document.getElementById("boxContainer");
   boxContainer.innerHTML = "";
@@ -509,6 +527,8 @@ async function carregarBipagemAnterior(romaneio) {
 
   const pedidoIds = pedidos.map((p) => p.id);
 
+  await carregarCodNfeMap(pedidoIds);
+
   // 3) fetch de produtos
   const { data: produtos } = await supabase
     .from("produtos_pedido")
@@ -587,6 +607,8 @@ document.getElementById("btnIniciar").addEventListener("click", async () => {
     .select("id")
     .eq("romaneio", romaneio);
   const pedidoIds = pedidos.map((p) => p.id);
+
+  await carregarCodNfeMap(pedidoIds);
 
   const { data: produtos } = await supabase
     .from("produtos_pedido")
