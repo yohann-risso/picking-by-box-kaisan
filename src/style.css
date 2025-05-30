@@ -1,47 +1,174 @@
+/* Reset básico e fontes */
 body {
+  margin: 0;
+  padding: 0;
   background-color: #f8f9fa;
   font-family: "Segoe UI", sans-serif;
 }
 
-.card-produto {
-  border-left: 5px solid #0d6efd;
-  background-color: #eaf2ff;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-}
-
+/* Cartão de erro */
 .card-erro {
   background-color: #ffecec;
   border: 2px dashed #dc3545;
   color: #dc3545;
-}
-
-.box-card {
-  font-size: 0.85rem;
-  padding: 0.75rem;
-  min-height: 120px;
+  padding: 1rem;
   border-radius: 8px;
+  margin-bottom: 1rem;
 }
 
-.box-card .badge {
-  font-size: 0.8rem;
+/* Wrapper principal: info-card + number-card */
+.card-produto {
+  display: flex;
+  align-items: stretch;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
 }
 
-.box-card .emoji {
-  font-size: 1.5rem;
+/* Card de informação (texto + imagem) */
+.card-produto .card-info {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  background-color: #eaf4ff;
+  border-radius: 8px;
+  padding: 1rem;
+  gap: 1rem;
+  position: relative;
 }
 
-.list-group-item {
+/* Container dos textos dentro do info-card */
+.card-info .details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* Título e referência */
+.card-info .details .title {
+  font-size: 1.2rem;
+  font-weight: bold;
+  margin: 0;
+}
+
+/* Linha divisória */
+.card-info .details hr {
+  border: none;
+  border-top: 1px solid #bbb;
+  margin: 0.25rem 0 0.5rem;
+}
+
+/* SKU */
+.card-info .details .sku {
+  font-size: 1rem;
+  color: #0d6efd;
+  font-weight: bold;
+}
+
+/* Pedido + botão “DESFAZER” */
+.card-info .details .pedido-undo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   font-size: 0.9rem;
 }
-
-#boxContainer > div {
-  flex: 0 0 20%;
-  max-width: 20%;
+.card-info .details .btn-undo-simple {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  border: 1px solid #000;
+  background: transparent;
+  padding: 0.3rem 0.6rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.card-info .details .btn-undo-simple:hover {
+  background-color: rgba(0, 0, 0, 0.05);
 }
 
-.img-produto {
-  max-height: 70px;
-  max-width: 100px;
+/* Imagem dentro do info-card */
+.card-info .image-container {
+  width: 20%;
+  height: 100%;
+  border: 3px solid #0d6efd;
+  border-radius: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.card-info .image-container img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Card do número da box */
+.card-produto .card-number {
+  width: 60px;
+  background-color: #0d6efd;
+  color: #fff;
+  font-size: 2rem;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  flex-shrink: 0;
+  margin-left: -5px;
+}
+
+#boxContainer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+}
+
+.box-wrapper {
+  display: flex;
+  align-items: stretch;
+}
+
+/* card de info (pedido + qtde + link) */
+.info-card {
+  flex: 1;
+  padding: .5rem;
+  border-radius: .25rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  font-size: .85rem;
+}
+
+/* estreito e alto, só para o número */
+.number-card {
+  width: 3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: .25rem;
+  font-size: 1.2rem;
+  margin-left: -2px;
+}
+
+/* estilo base do “btn-undo-simple” */
+.btn-undo-simple {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
   border-radius: 4px;
-  box-shadow: 0 0 4px rgba(0, 0, 0, 0.2);
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+/* fundo transparente e borda sutil */
+.btn-transparent {
+  background-color: transparent;
+  border: 1px solid #ccc;
+  color: inherit;           /* herda a cor do texto */
+}
+
+/* hover opcional, para dar feedback */
+.btn-transparent:hover {
+  background-color: rgba(255, 255, 255, 0.8);
 }

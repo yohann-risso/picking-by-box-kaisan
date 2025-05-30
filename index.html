@@ -21,7 +21,7 @@
 
       <div class="row">
         <!-- Coluna 1: Bipagem -->
-        <div class="col-md-4">
+        <div id="colInputs" class="col-md-4 col-12">
           <div class="input-group mb-3">
             <span class="input-group-text">Romaneio</span>
             <input
@@ -55,19 +55,29 @@
             🧹 Limpar Bipagem do Romaneio
           </button>
 
+          <button
+            id="btnToggleBoxes"
+            class="btn btn-sm btn-outline-secondary mb-2"
+          >
+            🔽 Ocultar Boxes
+          </button>
+
+          <button id="btnGerarPdf" class="btn btn-sm btn-outline-primary mb-3">
+            🖨️ Gerar PDF
+          </button>
+
           <div id="feedback" class="mb-3 fw-bold"></div>
           <div id="cardAtual"></div>
 
           <h5 class="mt-4">📋 Histórico</h5>
-          <ul id="listaHistorico" class="list-group small d-none"></ul>
+          <ul id="listaHistorico" class="list-group mb-3"></ul>
 
           <h5 class="mt-4">📦 Pendentes</h5>
           <ul id="listaPendentes" class="list-group small"></ul>
-
         </div>
 
         <!-- Coluna 2: Boxes -->
-        <div class="col-md-8">
+        <div id="colBoxes" class="col-md-8">
           <h4 class="mb-3">📦 Boxes Atuais</h4>
           <div class="d-flex flex-wrap g-2" id="boxContainer"></div>
         </div>

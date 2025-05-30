@@ -32,7 +32,7 @@ export async function biparProduto(skuOuEan, romaneio) {
   const produtoElegivel = produtos.find((p) => p.qtd_bipada < p.qtd);
 
   if (!produtoElegivel) {
-    return { status: "erro", msg: "Todos os produtos já foram bipados" };
+    return { status: "erro", msg: "Produto não encontrado ou já distribuído!" };
   }
 
   const pedidoId = produtoElegivel.pedido_id;
@@ -64,9 +64,12 @@ export async function biparProduto(skuOuEan, romaneio) {
   return {
     status: "ok",
     msg: `✅ SKU ${produtoElegivel.sku} bipado! Pedido ${pedidoId} → Box ${box}`,
+    id: produtoElegivel.id,
     pedido_id: pedidoId,
     box,
     sku: produtoElegivel.sku,
+    endereco:   produtoElegivel.endereco,
+    descricao: produtoElegivel.descricao || "-",
     qtd_bipada: totalBipado,
     total: totalPedido,
   };
