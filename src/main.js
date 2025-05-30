@@ -106,13 +106,18 @@ async function gerarPdfResumo() {
   const romaneioAtivo = romaneio || "Não informado";
   const dataHoraAtual = new Date().toLocaleString("pt-BR");
 
-  const boxTableRows = Object.entries(caixas)
-    .sort((a, b) => {
-      const boxA = caixas[a[0]].box ?? 0;
-      const boxB = caixas[b[0]].box ?? 0;
-      return boxA - boxB;
-    })
+  // Ordenar caixas: primeiro as com número, depois as sem
+  const caixasOrdenadas = Object.entries(caixas)
     .slice(0, 50)
+    .sort((a, b) => {
+      const aBox = caixas[a[0]].box ?? "-";
+      const bBox = caixas[b[0]].box ?? "-";
+      if (aBox === "-" && bBox !== "-") return 1;
+      if (bBox === "-" && aBox !== "-") return -1;
+      return Number(aBox) - Number(bBox);
+    });
+
+  const boxTableRows = caixasOrdenadas
     .map(([pedido, info]) => {
       const box = info.box ?? "-";
       const bipado = info.bipado ?? 0;
@@ -134,7 +139,7 @@ async function gerarPdfResumo() {
     })
     .join("");
 
-  // Pendentes
+  // Relatório de NL
   const { data: pedidosData } = await supabase
     .from("pedidos")
     .select("id, cliente")
@@ -170,17 +175,18 @@ async function gerarPdfResumo() {
       <head>
         <title>Resumo de Boxes e NL</title>
         <style>
-          body { font-family: sans-serif; padding: 20px; }
+          body { font-family: sans-serif; padding: 20px; margin: 0; }
           h2 { margin-bottom: 10px; }
           .info { margin-bottom: 12px; }
-          table { width: 100%; border-collapse: collapse; font-size: 11px; page-break-inside: avoid; }
+          table { width: 100%; border-collapse: collapse; font-size: 11px; }
           th, td { border: 1px solid #ccc; padding: 6px; text-align: left; }
           th { background-color: #000; color: white; }
           .page-break { page-break-before: always; }
+          tr { page-break-inside: avoid; }
         </style>
       </head>
       <body>
-        <!-- CABEÇALHO + TABELA BOXES -->
+        <!-- Página 1: Resumo de Boxes -->
         <div>
           <h2>Resumo de Boxes</h2>
           <div class="info">
@@ -204,10 +210,8 @@ async function gerarPdfResumo() {
           </table>
         </div>
 
-        <!-- QUEBRA DE PÁGINA -->
+        <!-- Página 2: Relatório de NL -->
         <div class="page-break"></div>
-
-        <!-- RELATÓRIO DE NL -->
         <h2>Relatório de NL</h2>
         <table>
           <thead>
@@ -1205,7 +1209,6 @@ document.getElementById("btnPrintBoxes")?.addEventListener("click", () => {
     win.document.close();
   }
 });
-
 
 function renderProductMap() {
   const gallery = document.getElementById("productGallery");
