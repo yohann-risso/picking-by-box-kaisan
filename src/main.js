@@ -388,6 +388,8 @@ function renderBoxCards() {
       // Marca como pesado
       if (caixas[pedido]) {
         caixas[pedido].pesado = true;
+        btn.innerHTML = "✅ PESADO";
+        btn.disabled = true;
         localStorage.setItem(`caixas-${romaneio}`, JSON.stringify(caixas));
         renderBoxCards();
       }
@@ -969,6 +971,67 @@ document
     document.getElementById("romaneioInput").focus();
     renderProgressoConferencia();
   });
+
+document.getElementById("btnPrintPendentes")?.addEventListener("click", () => {
+  if (!window.pendentes || pendentes.length === 0)
+    return alert("Nenhum pendente encontrado.");
+
+  // Filtrar os que têm endereço válido
+  const comEndereco = pendentes.filter(
+    (p) => p.endereco && !p.endereco.includes("SEM LOCAL")
+  );
+
+  // Agrupar por SKU
+  const agrupado = {};
+  comEndereco.forEach(({ sku, qtd }) => {
+    if (!agrupado[sku]) agrupado[sku] = 0;
+    agrupado[sku] += qtd;
+  });
+
+  // Criar HTML de impressão
+  const linhas = Object.entries(agrupado)
+    .map(([sku, qtd]) => {
+      return `<tr><td>${sku}</td><td>${qtd}</td></tr>`;
+    })
+    .join("");
+
+  const htmlImpressao = `
+    <html>
+      <head>
+        <title>Lista de Pendentes</title>
+        <style>
+          body { font-family: sans-serif; padding: 20px; }
+          table { width: 100%; border-collapse: collapse; }
+          th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+          th { background-color: #f5f5f5; }
+        </style>
+      </head>
+      <body>
+        <h2>Lista de Pendentes com Endereço</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>SKU</th>
+              <th>Quantidade</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${linhas}
+          </tbody>
+        </table>
+        <script>
+          window.onload = () => { window.print(); window.close(); }
+        </script>
+      </body>
+    </html>
+  `;
+
+  const janela = window.open("", "_blank");
+  if (janela) {
+    janela.document.write(htmlImpressao);
+    janela.document.close();
+  }
+});
 
 function renderProductMap() {
   const gallery = document.getElementById("productGallery");

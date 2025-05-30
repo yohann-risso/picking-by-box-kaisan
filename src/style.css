@@ -187,8 +187,11 @@ body {
   margin-top: 6px;
   padding: 6px 12px;
   border-radius: 20px;
+  font-size: 1.1rem;
   font-weight: bold;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  display: inline-block;
+  text-align: center;
 }
 
 /* estilo base do “btn-undo-simple” */
