@@ -359,3 +359,8 @@ tbody td {
   transform-origin: top left;
   border: none;
 }
+
+.card-produto:hover {
+  transform: scale(1.02);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+}
