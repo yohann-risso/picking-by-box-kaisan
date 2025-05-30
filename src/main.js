@@ -1131,8 +1131,8 @@ document.getElementById("btnPrintBoxes")?.addEventListener("click", () => {
     return alert("Nenhum box encontrado para impressão.");
   }
 
-  const colEsq = ordenados.slice(0, 25);
-  const colDir = ordenados.slice(25, 50);
+  const colEsq = boxList.slice(0, 25);
+  const colDir = boxList.slice(25, 50);
 
   let linhas = "";
 
