@@ -986,10 +986,10 @@ document.getElementById("btnPrintPendentes")?.addEventListener("click", () => {
 
   // Filtra pendentes com pelo menos um endereço válido
   const comEndereco = pendentes.filter((p) => {
-    const enderecos = (p.endereco || "").split("•").map((e) => e.trim());
-    return enderecos.some((e) => e && e.toUpperCase() !== "SEM LOCAL");
+    if (!p.endereco || typeof p.endereco !== "string") return false;
+    const enderecos = (p.endereco || "").split("•").map(e => e.trim());
+    return enderecos.some(e => e && e.toUpperCase() !== "SEM LOCAL");
   });
-
   if (comEndereco.length === 0) {
     return alert("Nenhum pendente com endereço válido encontrado.");
   }
