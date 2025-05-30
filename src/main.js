@@ -421,7 +421,7 @@ function renderBoxCards() {
 
       const wrapper = document.createElement("div");
       wrapper.className = "card-produto";
-      wrapper.style.boxShadow = `0 0 10px 2px ${shadowColor}`;
+      wrapper.style.boxShadow = `0 0 0 2px ${shadowColor}`;
 
       const infoCard = document.createElement("div");
       infoCard.className = `card-info ${light}`;
