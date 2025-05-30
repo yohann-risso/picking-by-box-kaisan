@@ -165,8 +165,8 @@ tbody td {
   border-radius: 8px;
   flex-shrink: 0;
   margin-left: -6px;
-  box-shadow: #0d6efd 0 0 5px;
-  text-shadow: #0d6efd 0 0 5px;
+  box-shadow: #313131 0 0 5px;
+  text-shadow: #313131 0 0 5px;
   transition: transform 0.2s ease;
 }
 
