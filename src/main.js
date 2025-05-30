@@ -258,20 +258,16 @@ function toggleBoxes() {
   if (isHidden) {
     // Mostrar os boxes
     boxArea.classList.remove("d-none");
-    boxArea.classList.add("col-md-8");
-
     inputArea.classList.remove("col-12");
     inputArea.classList.add("col-md-4");
-
+    boxArea.classList.add("col-md-8");
     btnToggle.textContent = "Ocultar Boxes";
   } else {
     // Ocultar os boxes
     boxArea.classList.add("d-none");
     boxArea.classList.remove("col-md-8");
-
     inputArea.classList.remove("col-md-4");
     inputArea.classList.add("col-12");
-
     btnToggle.textContent = "Mostrar Boxes";
   }
 }
@@ -321,6 +317,21 @@ document.addEventListener("DOMContentLoaded", async () => {
   document
     .getElementById("btnGerarPdf")
     .addEventListener("click", gerarPdfResumo);
+
+  // ✅ Ajuste inicial para layout sem boxes
+  const boxArea = document.getElementById("colBoxes");
+  const inputArea = document.getElementById("colInputs");
+  const btnToggle = document.getElementById("btnToggleBoxes");
+
+  if (boxArea && inputArea && btnToggle) {
+    boxArea.classList.add("d-none");
+    boxArea.classList.remove("col-md-8");
+
+    inputArea.classList.remove("col-md-4");
+    inputArea.classList.add("col-12");
+
+    btnToggle.textContent = "Mostrar Boxes";
+  }
 });
 
 async function carregarCodNfeMap(pedidoIds) {
