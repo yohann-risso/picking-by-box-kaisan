@@ -973,23 +973,28 @@ document
   });
 
 document.getElementById("btnPrintPendentes")?.addEventListener("click", () => {
+  // ✅ LOG 1: verificar se pendentes estão carregados corretamente
+  console.log("📦 PENDENTES ORIGINAIS:", pendentes);
+
   if (!window.pendentes || pendentes.length === 0) {
     return alert("Nenhum pendente encontrado.");
   }
 
-  // Captura operador e romaneio do HTML
-  const operadorLogado =
-    document.getElementById("operadorLogado")?.textContent || "Desconhecido";
-  const romaneioAtivo =
-    document.getElementById("romaneioInput")?.value || "Não informado";
-  const dataHoraAtual = new Date().toLocaleString("pt-BR");
+  // ✅ LOG 2: verificar conteúdo de cada pendente individual
+  pendentes.forEach((p, i) => {
+    console.log(`#${i}`, { sku: p.sku, qtd: p.qtd, endereco: p.endereco });
+  });
 
-  // Filtra pendentes com pelo menos um endereço válido
+  // Filtra pendentes com endereço válido
   const comEndereco = pendentes.filter((p) => {
     if (!p.endereco || typeof p.endereco !== "string") return false;
-    const enderecos = (p.endereco || "").split("•").map(e => e.trim());
-    return enderecos.some(e => e && e.toUpperCase() !== "SEM LOCAL");
+    const enderecos = p.endereco.split("•").map((e) => e.trim());
+    return enderecos.some((e) => e && e.toUpperCase() !== "SEM LOCAL");
   });
+
+  // ✅ LOG 3: resultado do filtro
+  console.log("✅ PENDENTES COM ENDEREÇO:", comEndereco);
+
   if (comEndereco.length === 0) {
     return alert("Nenhum pendente com endereço válido encontrado.");
   }
