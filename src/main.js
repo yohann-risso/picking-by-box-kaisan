@@ -364,6 +364,7 @@ function renderBoxCards() {
       const { bipado, total, pedidos, codNfes } = agrupado[boxNum];
       const pedidoRef = pedidos[0];
       const codNfe = codNfes[0] || "";
+      const isPesado = pedidos.every((p) => caixas[p]?.pesado);
       const isIncompleto = bipado < total;
       const status = isPesado
         ? (isIncompleto ? "Pesado Incompleto" : "Pesado")
