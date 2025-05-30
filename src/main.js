@@ -335,16 +335,15 @@ function renderBoxCards() {
   Object.keys(agrupado)
     .sort((a, b) => Number(a) - Number(b))
     .forEach((boxNum) => {
-      const { bipado, total, pedidos, codNfes, pedidosPesados } =
-        agrupado[boxNum];
+      const { bipado, total, pedidos, codNfes } = agrupado[boxNum];
       const pedidoRef = pedidos[0];
       const codNfe = codNfes[0] || "";
       const isPesado = pedidos.every((p) => caixas[p]?.pesado);
 
       let light, solid;
       if (isPesado) {
-        light = "bg-primary-subtle text-dark"; // azul claro
-        solid = "bg-primary text-white"; // azul forte
+        light = "bg-primary-subtle text-dark";
+        solid = "bg-primary text-white";
       } else if (bipado >= total) {
         light = "bg-success-subtle text-dark";
         solid = "bg-success text-white";
@@ -354,38 +353,44 @@ function renderBoxCards() {
       }
 
       const wrapper = document.createElement("div");
-      wrapper.className = "box-wrapper";
+      wrapper.className = "card-produto"; // mesma estrutura do produto
 
       const infoCard = document.createElement("div");
-      infoCard.className = `info-card ${light}`;
+      infoCard.className = `card-info ${light}`;
       infoCard.innerHTML = `
-        <strong class="fs-6 d-block text-center">${pedidoRef}</strong>
-        <small class="d-block text-center">
-          <span class="badge bg-dark">${bipado}/${total}</span>
-        </small>
-        <div class="text-center mt-2">
-          <button
-            class="btn-undo-simple ${isPesado ? 'btn-pesado' : 'btn-transparent btn-pesar'}"
-            ${isPesado ? 'disabled' : ''}
-            data-pedido="${pedidoRef}"
-            data-codnfe="${codNfe}"
-            tabindex="0"
-          >
-            <i class="bi bi-balance-scale"></i> ${isPesado ? 'PESADO ✅' : 'PESAR PEDIDO'}
-          </button>
+        <div class="details text-center w-100">
+          <div class="fs-6 fw-bold">${pedidoRef}</div>
+          <div>
+            <span class="badge bg-dark">${bipado}/${total}</span>
+          </div>
+          <div class="mt-2">
+            <button
+              class="btn-undo-simple ${
+                isPesado ? "btn-pesado" : "btn-transparent btn-pesar"
+              }"
+              ${isPesado ? "disabled" : ""}
+              data-pedido="${pedidoRef}"
+              data-codnfe="${codNfe}"
+              tabindex="0"
+            >
+              <i class="bi bi-balance-scale"></i> ${
+                isPesado ? "PESADO ✅" : "PESAR PEDIDO"
+              }
+            </button>
+          </div>
         </div>
       `;
       wrapper.appendChild(infoCard);
 
       const numCard = document.createElement("div");
-      numCard.className = `number-card ${solid}`;
-      numCard.innerHTML = `<strong>${boxNum}</strong>`;
+      numCard.className = `card-number ${solid}`;
+      numCard.innerHTML = `<div>${boxNum}</div>`;
       wrapper.appendChild(numCard);
 
       boxContainer.appendChild(wrapper);
     });
 
-  // Eventos dos botões "PESAR PEDIDO"
+  // Eventos de clique/teclado para botões "PESAR PEDIDO"
   document.querySelectorAll(".btn-pesar").forEach((btn) => {
     btn.addEventListener("click", (e) => {
       e.preventDefault();
