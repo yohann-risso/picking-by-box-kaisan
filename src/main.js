@@ -43,17 +43,17 @@ async function gerarPdfResumo() {
 
   const gerarQRCode = async (pedido) => {
     const cod_nfe = codNfeMap[pedido];
-    if (!cod_nfe) return null; // previne erro se não tiver cod_nfe
+    if (!cod_nfe) return null;
 
     const url = `https://api.qrserver.com/v1/create-qr-code/?size=60x60&data=https://ge.kaisan.com.br/index2.php?page=meta/view&id_view=nfe_pedido_conf&acao_view=cadastra&cod_del=${cod_nfe}&where=cod_nfe_pedido=${cod_nfe}`;
-    const img = new Image();
-    img.src = url;
 
-    await new Promise((resolve) => {
-      img.onload = resolve;
+    const response = await fetch(url);
+    const blob = await response.blob();
+    return await new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result); // ← Data URL
+      reader.readAsDataURL(blob);
     });
-
-    return img;
   };
   for (const [pedido, info] of Object.entries(caixas)) {
     const finalizado = info.bipado >= info.total;
