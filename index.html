@@ -44,8 +44,8 @@
         <div id="colInputs" class="col-md-4 col-12 mb-4">
           <div class="row gx-2 gy-2 align-items-center mb-3">
             <!-- Romaneio + Iniciar -->
-            <div class="col-auto">
-              <div class="input-group">
+            <div class="col-12">
+              <div class="input-group w-100">
                 <span class="input-group-text">Romaneio</span>
                 <input
                   type="text"
@@ -60,8 +60,8 @@
             </div>
 
             <!-- SKU/EAN + Bipar -->
-            <div class="col-auto">
-              <div class="input-group">
+            <div class="col-12 mt-2">
+              <div class="input-group w-100">
                 <input
                   type="text"
                   id="skuInput"
@@ -74,37 +74,22 @@
               </div>
             </div>
 
-            <div class="col-auto ms-auto">
-              <button
-                id="btnToggleBoxes"
-                class="btn btn-outline-secondary"
-                title="Mostrar ou ocultar boxes"
-              >
-                <i class="bi bi-grid-3x3-gap"></i> Mostrar Boxes
-              </button>
-              <button
-                id="btnGerarPdf"
-                class="btn btn-outline-primary ms-2"
-                title="Gerar PDF"
-              >
-                <i class="bi bi-printer"></i> PDF
-              </button>
-              <button
-                id="btnLimparRomaneio"
-                class="btn btn-warning"
-                title="Limpar bipagem"
-              >
-                <i class="bi bi-trash"></i> Limpar
-              </button>
-              <button
-                id="btnFinalizar"
-                class="btn btn-outline-danger ms-2"
-                title="Finalizar romaneio"
-              >
-                <i class="bi bi-flag-fill"></i> Finalizar
-              </button>
+            <div class="col-12 mt-3">
+              <div class="d-flex justify-content-center flex-wrap gap-2">
+                <button id="btnToggleBoxes" class="btn btn-outline-secondary">
+                  <i class="bi bi-grid-3x3-gap"></i> Mostrar Boxes
+                </button>
+                <button id="btnGerarPdf" class="btn btn-outline-primary">
+                  <i class="bi bi-printer"></i> PDF
+                </button>
+                <button id="btnLimparRomaneio" class="btn btn-warning">
+                  <i class="bi bi-trash"></i> Limpar
+                </button>
+                <button id="btnFinalizar" class="btn btn-outline-danger">
+                  <i class="bi bi-flag-fill"></i> Finalizar
+                </button>
+              </div>
             </div>
-          </div>
 
           <div id="feedback" class="mb-3 fw-bold"></div>
           <div class="progress my-3" style="height: 25px;">
