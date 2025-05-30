@@ -16,6 +16,19 @@
   </head>
 
   <body class="p-4">
+    <div id="loginArea" class="container mt-5">
+      <h4 class="mb-3">Login do Operador</h4>
+      <input type="text" id="inputLogin" class="form-control mb-2" placeholder="Usuário" />
+      <input type="password" id="inputSenha" class="form-control mb-2" placeholder="Senha" />
+      <button id="btnLogin" class="btn btn-primary w-100">Entrar</button>
+    </div>
+
+    <!-- Container principal oculto até login -->
+    <div id="mainApp" style="display:none;">
+      <div class="text-end text-muted small mb-2" id="operadorLogado"></div>
+    <div><button id="btnLogout" class="btn btn-sm btn-outline-secondary">Sair</button></div>
+
+      
     <div class="container-fluid">
       <div class="header-container mb-4 text-center">
         <img

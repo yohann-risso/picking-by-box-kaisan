@@ -88,6 +88,42 @@ body {
   background-color: rgba(0, 0, 0, 0.05);
 }
 
+/* Cores de status */
+.bg-success-subtle {
+  background-color: #d4edda;
+}
+.bg-success {
+  background-color: #28a745 !important;
+  color: white;
+}
+.bg-danger-subtle {
+  background-color: #f8d7da;
+}
+.bg-danger {
+  background-color: #dc3545 !important;
+  color: white;
+}
+.bg-primary-subtle {
+  background-color: #cfe2ff;
+}
+.bg-primary {
+  background-color: #007bff !important;
+  color: white;
+}
+
+/* Botão pesar */
+.btn-pesar {
+  font-size: 0.85rem;
+  color: #007bff;
+  text-decoration: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+.btn-pesar:hover {
+  text-decoration: underline;
+}
+
 /* Imagem dentro do info-card */
 .card-info .image-container {
   width: 20%;
@@ -129,31 +165,30 @@ body {
 
 .box-wrapper {
   display: flex;
-  align-items: stretch;
+  flex-direction: column;
+  align-items: center;
+  width: 120px;
+  min-height: 120px;
+  position: relative;
 }
 
 /* card de info (pedido + qtde + link) */
 .info-card {
-  flex: 1;
-  padding: .5rem;
-  border-radius: .25rem;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  font-size: .85rem;
-  box-shadow: rgba(36, 42, 49, 0.5);
+  width: 100%;
+  padding: 8px;
+  border-radius: 8px;
+  text-align: center;
+  font-size: 0.85rem;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
 /* estreito e alto, só para o número */
 .number-card {
-  width: 3rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: .25rem;
-  font-size: 1.2rem;
-  margin-left: -2px;
-  box-shadow: rgba(36, 42, 49, 0.5) 0 0 5px;
+  margin-top: 6px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-weight: bold;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 /* estilo base do “btn-undo-simple” */
@@ -232,4 +267,8 @@ body {
 #listaHistorico {
   max-height: 400px; /* ajuste conforme o layout */
   overflow-y: auto;
+}
+
+.badge-endereco {
+  user-select: none;
 }

@@ -11,25 +11,98 @@ let imagensRef = {};
 let codNfeMap = {};
 let pendentes = [];
 let currentProduto = null;
+let operador = null;
+
+// Login do operador
+document.getElementById("btnLogin").addEventListener("click", async () => {
+  const login = document.getElementById("inputLogin").value.trim();
+  const senha = document.getElementById("inputSenha").value.trim();
+
+  if (!login || !senha) {
+    alert("Digite login e senha.");
+    return;
+  }
+
+  const { data, error } = await supabase
+    .from("usuarios")
+    .select("*")
+    .eq("login_usuario", login)
+    .eq("senha_usuario", senha)
+    .single();
+
+  if (error || !data) {
+    alert("Login ou senha incorretos.");
+    return;
+  }
+
+  operador = data.nome_completo || data.login_usuario;
+  localStorage.setItem("operador", operador);
+  document.getElementById("loginArea").style.display = "none";
+  document.getElementById("mainApp").style.display = "block";
+  document.getElementById(
+    "operadorLogado"
+  ).textContent = `Operador: ${operador}`;
+});
+
+// Carregar operador salvo
+window.addEventListener("load", () => {
+  const salvo = localStorage.getItem("operador");
+  if (salvo) {
+    operador = salvo;
+    document.getElementById("loginArea").style.display = "none";
+    document.getElementById("mainApp").style.display = "block";
+    document.getElementById(
+      "operadorLogado"
+    ).textContent = `Operador: ${operador}`;
+  }
+});
+
+document.getElementById("btnLogout").addEventListener("click", () => {
+  localStorage.removeItem("operador");
+  location.reload();
+});
+
+async function verificarRomaneioEmUso(romaneio) {
+  const { data, error } = await supabase
+    .from("romaneios_em_uso")
+    .select("*")
+    .eq("romaneio", romaneio)
+    .single();
+
+  if (data) {
+    if (data.operador !== operador) {
+      return {
+        emUso: true,
+        por: data.operador,
+      };
+    } else {
+      // o próprio operador retomando
+      return { emUso: false };
+    }
+  }
+
+  // Registra como em uso
+  const { error: insertError } = await supabase
+    .from("romaneios_em_uso")
+    .insert([{ romaneio, operador }]);
+
+  if (insertError) {
+    return { emUso: true, por: "desconhecido" };
+  }
+
+  return { emUso: false };
+}
 
 async function gerarPdfResumo() {
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-  const pageWidth = doc.internal.pageSize.getWidth();
   const margin = 10;
-  const boxesPorLinha = 5;
-  const linhasPorPagina = 10;
-  const padding = 4;
-  const larguraBox =
-    (pageWidth - margin * 2 - (boxesPorLinha - 1) * padding) / boxesPorLinha;
-  const alturaBox = 30;
+  const pageWidth = doc.internal.pageSize.getWidth();
 
   // Cabeçalho
   doc.setFillColor(0, 0, 0);
   doc.setTextColor(255);
-  doc.rect(margin, margin, pageWidth - margin * 2, 10, "F");
-  doc.text("CONTROLE DE CONFERÊNCIA DE ROMANEIOS", pageWidth / 2, margin + 7, {
-    align: "center",
-  });
+  doc.rect(margin, margin, pageWidth - 2 * margin, 10, "F");
+  doc.text("RESUMO DE BOXES", pageWidth / 2, margin + 7, { align: "center" });
 
   doc.setTextColor(0);
   doc.setFontSize(10);
@@ -40,91 +113,72 @@ async function gerarPdfResumo() {
     margin + 16
   );
 
-  // Função auxiliar para gerar QRCode como base64
-  const gerarQRCode = async (pedido) => {
-    const cod_nfe = codNfeMap[pedido];
-    if (!cod_nfe) return null;
-
-    const url = `https://api.qrserver.com/v1/create-qr-code/?size=60x60&data=https://ge.kaisan.com.br/index2.php?page=meta/view&id_view=nfe_pedido_conf&acao_view=cadastra&cod_del=${cod_nfe}&where=cod_nfe_pedido=${cod_nfe}`;
-    try {
-      const response = await fetch(url);
-      const blob = await response.blob();
-      return await new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result);
-        reader.readAsDataURL(blob);
-      });
-    } catch (error) {
-      console.warn(`❌ Erro ao gerar QR para pedido ${pedido}`);
-      return null;
-    }
-  };
-
-  // Renderização dos boxes
-  let x = margin;
-  let y = margin + 20;
-  let count = 1;
-  for (const [pedido, info] of Object.entries(caixas)) {
-    if (!info || info.total === 0) continue;
-    if (count > 50) break;
-
-    const finalizado = info.bipado >= info.total;
-    const corFundo = finalizado
-      ? [212, 237, 218]
-      : info.bipado === 0
-      ? [230, 230, 230]
-      : [255, 230, 230];
-
-    doc.setFillColor(...corFundo);
-    doc.rect(x, y, larguraBox, alturaBox, "F");
-    doc.setTextColor(0);
-    doc.setFontSize(8);
-
-    if (info.bipado > 0) doc.text(`BOX ${count}`, x + 2, y + 6);
-    doc.text(`PEDIDO: ${pedido}`, x + 2, y + 12);
-    doc.text(`QTDE: ${info.bipado} / ${info.total}`, x + 2, y + 18);
-    doc.text("Observação:", x + 2, y + 24);
-
-    if (info.bipado > 0 && codNfeMap[pedido]) {
-      const qrImg = await gerarQRCode(pedido);
-      if (qrImg) {
-        doc.addImage(qrImg, "PNG", x + larguraBox - 18, y + 4, 14, 14);
-      }
-    }
-
-    if (count % boxesPorLinha === 0) {
-      x = margin;
-      y += alturaBox + padding;
-    } else {
-      x += larguraBox + padding;
-    }
-
-    count++;
-  }
-
-  // Página 2 – Relatório de NL
-  doc.addPage("a4", "portrait");
-  doc.setFontSize(14);
-  doc.text("Relatório de NL", pageWidth / 2, margin, { align: "center" });
-
   const { data: pedidosData } = await supabase
     .from("pedidos")
     .select("id, cliente")
     .eq("romaneio", romaneio);
 
+  const clienteMap = {};
+  pedidosData.forEach((p) => (clienteMap[p.id] = p.cliente || "-"));
+
+  const body = [];
+
+  Object.entries(caixas)
+    .slice(0, 50)
+    .forEach(([pedido, info]) => {
+      const cliente = clienteMap[pedido] || "-";
+      const qtde = info.total || 0;
+      const bipado = info.bipado || 0;
+
+      let status = "❌ Incompleto";
+      let color = "red";
+
+      if (info.pesado) {
+        status = "✔️ Pesado";
+        color = "blue";
+      } else if (bipado >= qtde && qtde > 0) {
+        status = "🟩 Completo";
+        color = "green";
+      }
+
+      body.push([
+        pedido,
+        cliente,
+        `${bipado}`,
+        `${qtde}`,
+        { content: status, styles: { textColor: color } },
+      ]);
+    });
+
+  autoTable(doc, {
+    startY: margin + 20,
+    head: [["Pedido", "Cliente", "Qtde bipada", "Qtde total", "Status"]],
+    body,
+    styles: { fontSize: 9 },
+    headStyles: { fillColor: [0, 0, 0], textColor: 255, halign: "center" },
+    columnStyles: {
+      0: { cellWidth: 35 },
+      1: { cellWidth: 50 },
+      2: { cellWidth: 25, halign: "center" },
+      3: { cellWidth: 25, halign: "center" },
+      4: { cellWidth: 40, halign: "center" },
+    },
+  });
+
+  // Página 2 – Pendentes
+  doc.addPage("a4", "portrait");
+  doc.setFontSize(14);
+  doc.text("Relatório de NL", pageWidth / 2, margin, { align: "center" });
+
   const pedidosMap = {};
-
   pendentes.forEach((p) => {
-    const cliente =
-      pedidosData.find((item) => item.id == p.pedido)?.cliente || "-";
-    const descricao = p.descricao || "-";
-    const linha = [p.pedido, cliente, descricao, p.sku, p.qtd, "", ""];
-
+    const cliente = clienteMap[p.pedido] || "-";
+    const linha = [p.pedido, cliente, p.descricao || "-", p.sku, p.qtd, "", ""];
     if (!pedidosMap[p.pedido]) pedidosMap[p.pedido] = [];
     pedidosMap[p.pedido].push(linha);
   });
 
-  const linhas = Object.values(pedidosMap).flat();
+  const linhasNL = Object.values(pedidosMap).flat();
 
   autoTable(doc, {
     head: [
@@ -138,7 +192,7 @@ async function gerarPdfResumo() {
         "Finalizando",
       ],
     ],
-    body: linhas,
+    body: linhasNL,
     startY: margin + 5,
     styles: { fontSize: 8 },
     headStyles: { fillColor: [0, 0, 0], textColor: 255, halign: "center" },
@@ -246,70 +300,69 @@ function renderBoxCards() {
   const boxContainer = document.getElementById("boxContainer");
   boxContainer.innerHTML = "";
 
-  // 1) filtra só boxes válidas (box != null e bipado > 0)
   const entradas = Object.entries(caixas).filter(
     ([_, info]) => info.box != null && Number(info.bipado) > 0
   );
   if (!entradas.length) return;
 
-  // 2) agrupa por número de box
   const agrupado = {};
   for (const [pedido, info] of entradas) {
     const boxNum = String(info.box);
     if (!agrupado[boxNum]) {
-      agrupado[boxNum] = { bipado: 0, total: 0, pedidos: [], codNfes: [] };
+      agrupado[boxNum] = {
+        bipado: 0,
+        total: 0,
+        pedidos: [],
+        codNfes: [],
+        pedidosPesados: [],
+      };
     }
     agrupado[boxNum].bipado += Number(info.bipado);
     agrupado[boxNum].total += Number(info.total);
     agrupado[boxNum].pedidos.push(pedido);
+    if (info.pesado) agrupado[boxNum].pedidosPesados.push(pedido);
     if (codNfeMap[pedido]) agrupado[boxNum].codNfes.push(codNfeMap[pedido]);
   }
 
-  // 3) renderiza em ordem crescente
   Object.keys(agrupado)
     .sort((a, b) => Number(a) - Number(b))
     .forEach((boxNum) => {
-      const { bipado, total, pedidos, codNfes } = agrupado[boxNum];
-      const completo = bipado >= total;
-      const light = completo
-        ? "bg-success-subtle text-dark"
-        : "bg-danger-subtle text-dark";
-      const solid = completo ? "bg-success text-white" : "bg-danger text-white";
+      const { bipado, total, pedidos, codNfes, pedidosPesados } =
+        agrupado[boxNum];
       const pedidoRef = pedidos[0];
       const codNfe = codNfes[0] || "";
+      const isPesado = pedidos.every((p) => caixas[p]?.pesado);
 
-      // wrapper
+      let light, solid;
+      if (isPesado) {
+        light = "bg-primary-subtle text-dark"; // azul claro
+        solid = "bg-primary text-white"; // azul forte
+      } else if (bipado >= total) {
+        light = "bg-success-subtle text-dark";
+        solid = "bg-success text-white";
+      } else {
+        light = "bg-danger-subtle text-dark";
+        solid = "bg-danger text-white";
+      }
+
       const wrapper = document.createElement("div");
       wrapper.className = "box-wrapper";
 
-      // info-card
       const infoCard = document.createElement("div");
       infoCard.className = `info-card ${light}`;
       infoCard.innerHTML = `
-        <!-- Pedido maior e centralizado -->
         <strong class="fs-6 d-block text-center">${pedidoRef}</strong>
         <small class="d-block text-center">
-          <span class="badge bg-dark">
-            ${bipado}/${total}
-          </span>
+          <span class="badge bg-dark">${bipado}/${total}</span>
         </small>
-        <!-- Wrapper para centralizar o botão -->
         <div class="text-center mt-2">
-          <button
-            class="btn-undo-simple btn-transparent"
-            title="Pesar pedido"
-            onclick="window.open(
-              'https://ge.kaisan.com.br/index2.php?page=meta/view&id_view=nfe_pedido_conf&acao_view=cadastra&cod_del=${codNfe}&where=cod_nfe_pedido=${codNfe}#prodweightsomaproduto',
-              '_blank'
-            )"
-          >
+          <button class="btn-undo-simple btn-transparent btn-pesar" data-pedido="${pedidoRef}" data-codnfe="${codNfe}">
             <i class="bi bi-balance-scale"></i> PESAR PEDIDO
           </button>
         </div>
       `;
       wrapper.appendChild(infoCard);
 
-      // number-card
       const numCard = document.createElement("div");
       numCard.className = `number-card ${solid}`;
       numCard.innerHTML = `<strong>${boxNum}</strong>`;
@@ -317,6 +370,27 @@ function renderBoxCards() {
 
       boxContainer.appendChild(wrapper);
     });
+
+  // Delegação: adicionar evento aos botões de pesar
+  boxContainer.querySelectorAll(".btn-pesar").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      const pedido = btn.dataset.pedido;
+      const codNfe = btn.dataset.codnfe;
+
+      // Marca como pesado
+      if (caixas[pedido]) {
+        caixas[pedido].pesado = true;
+        localStorage.setItem(`caixas-${romaneio}`, JSON.stringify(caixas));
+        renderBoxCards();
+      }
+
+      // Abre o link
+      window.open(
+        `https://ge.kaisan.com.br/index2.php?page=meta/view&id_view=nfe_pedido_conf&acao_view=cadastra&cod_del=${codNfe}&where=cod_nfe_pedido=${codNfe}#prodweightsomaproduto`,
+        "_blank"
+      );
+    });
+  });
 }
 
 function renderHistorico() {
@@ -350,31 +424,18 @@ function renderPendentes() {
   if (!lista) return;
   lista.innerHTML = "";
 
-  const agrupados = {};
-  pendentes.forEach(({ sku, qtd, endereco, pedido }) => {
-    const key = sku || "SEM SKU";
-    const loc = (endereco || "SEM LOCAL").split(/\s*•\s*/)[0].trim();
-    const agrupaKey = `${key}|${loc}|${pedido}`;
-
-    if (!agrupados[agrupaKey]) {
-      agrupados[agrupaKey] = { sku: key, qtd: 0, endereco: loc, pedido };
-    }
-    agrupados[agrupaKey].qtd += qtd;
-  });
-
-  const listaOrdenada = Object.values(agrupados).sort((a, b) => {
-    if (a.endereco.includes("SEM LOCAL")) return 1;
-    if (b.endereco.includes("SEM LOCAL")) return -1;
-    const ea = a.endereco.match(/\d+/g)?.map(Number) || [];
-    const eb = b.endereco.match(/\d+/g)?.map(Number) || [];
+  const listaOrdenada = [...pendentes].sort((a, b) => {
+    const ea = (a.endereco || "SEM LOCAL").match(/\d+/g)?.map(Number) || [];
+    const eb = (b.endereco || "SEM LOCAL").match(/\d+/g)?.map(Number) || [];
+    if (a.endereco?.includes("SEM LOCAL")) return 1;
+    if (b.endereco?.includes("SEM LOCAL")) return -1;
     for (let i = 0; i < Math.max(ea.length, eb.length); i++) {
       const diff = (ea[i] || 0) - (eb[i] || 0);
       if (diff !== 0) return diff;
     }
-    return a.sku.localeCompare(b.sku);
+    return (a.sku || "").localeCompare(b.sku || "");
   });
 
-  // Cria a tabela Bootstrap com novo cabeçalho
   const table = document.createElement("table");
   table.className = "table table-bordered table-sm align-middle mb-0";
   table.innerHTML = `
@@ -391,13 +452,35 @@ function renderPendentes() {
 
   const tbody = table.querySelector("tbody");
 
-  listaOrdenada.forEach((item) => {
+  listaOrdenada.forEach(({ sku, qtd, pedido, endereco }) => {
+    const enderecos = (endereco || "SEM LOCAL")
+      .split(/\s*•\s*/)
+      .map((e) => e.trim())
+      .filter(Boolean);
+
+    const badgeEnderecos = enderecos
+      .map((end) => {
+        let badgeClass = "bg-info text-dark";
+        let badgeIcon = "📦";
+
+        if (end === "SEM LOCAL") {
+          badgeClass = "bg-danger";
+          badgeIcon = "❌";
+        } else if (end.toUpperCase() === "PRÉ-VENDA") {
+          badgeClass = "bg-warning text-dark";
+          badgeIcon = "⏳";
+        }
+
+        return `<span class="badge ${badgeClass} badge-endereco me-1" title="${end}">${badgeIcon} ${end}</span>`;
+      })
+      .join("");
+
     const row = document.createElement("tr");
     row.innerHTML = `
-      <td>${item.sku}</td>
-      <td><span class="badge bg-dark">${item.qtd}</span></td>
-      <td>${item.pedido}</td>
-      <td><span class="badge bg-info text-dark">${item.endereco}</span></td>
+      <td>${sku || "SEM SKU"}</td>
+      <td><span class="badge bg-dark">${qtd}</span></td>
+      <td>${pedido || "-"}</td>
+      <td>${badgeEnderecos}</td>
     `;
     tbody.appendChild(row);
   });
@@ -638,6 +721,12 @@ document.getElementById("btnIniciar").addEventListener("click", async () => {
   romaneio = input.value.trim();
   if (!romaneio) return alert("Digite o romaneio");
 
+  const status = await verificarRomaneioEmUso(romaneio);
+  if (status.emUso) {
+    alert(`Este romaneio está em uso por: ${status.por}`);
+    return;
+  }
+
   // 1) buscar todos os produtos desse romaneio
   const { data: pedidos } = await supabase
     .from("pedidos")
@@ -776,6 +865,8 @@ document.getElementById("btnFinalizar").addEventListener("click", async () => {
       .eq("pedido_id", parseInt(pedido));
   }
 
+  await supabase.from("romaneios_em_uso").delete().eq("romaneio", romaneio);
+
   localStorage.removeItem(`historico-${romaneio}`);
   localStorage.removeItem(`caixas-${romaneio}`);
 
@@ -820,6 +911,8 @@ document
 
     const listaPendentesEl = document.getElementById("listaPendentes");
     if (listaPendentesEl) listaPendentesEl.innerHTML = "";
+
+    await supabase.from("romaneios_em_uso").delete().eq("romaneio", romaneio);
 
     romaneio = "";
     const romaneioInput = document.getElementById("romaneioInput");
