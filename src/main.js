@@ -13,14 +13,17 @@ let pendentes = [];
 let currentProduto = null;
 
 async function gerarPdfResumo() {
-  const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
   const pageWidth = doc.internal.pageSize.getWidth();
   const margin = 10;
   const boxesPorLinha = 5;
+  const linhasPorPagina = 10;
+  const padding = 4;
   const larguraBox =
-    (pageWidth - margin * 2 - (boxesPorLinha - 1) * 4) / boxesPorLinha;
+    (pageWidth - margin * 2 - (boxesPorLinha - 1) * padding) / boxesPorLinha;
   const alturaBox = 30;
 
+  // Cabeçalho
   doc.setFillColor(0, 0, 0);
   doc.setTextColor(255);
   doc.rect(margin, margin, pageWidth - margin * 2, 10, "F");
@@ -37,25 +40,34 @@ async function gerarPdfResumo() {
     margin + 16
   );
 
-  let x = margin;
-  let y = margin + 20;
-  let count = 1;
-
+  // Função auxiliar para gerar QRCode como base64
   const gerarQRCode = async (pedido) => {
     const cod_nfe = codNfeMap[pedido];
     if (!cod_nfe) return null;
 
     const url = `https://api.qrserver.com/v1/create-qr-code/?size=60x60&data=https://ge.kaisan.com.br/index2.php?page=meta/view&id_view=nfe_pedido_conf&acao_view=cadastra&cod_del=${cod_nfe}&where=cod_nfe_pedido=${cod_nfe}`;
-
-    const response = await fetch(url);
-    const blob = await response.blob();
-    return await new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result); // ← Data URL
-      reader.readAsDataURL(blob);
-    });
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      return await new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.readAsDataURL(blob);
+      });
+    } catch (error) {
+      console.warn(`❌ Erro ao gerar QR para pedido ${pedido}`);
+      return null;
+    }
   };
+
+  // Renderização dos boxes
+  let x = margin;
+  let y = margin + 20;
+  let count = 1;
   for (const [pedido, info] of Object.entries(caixas)) {
+    if (!info || info.total === 0) continue;
+    if (count > 50) break;
+
     const finalizado = info.bipado >= info.total;
     const corFundo = finalizado
       ? [212, 237, 218]
@@ -78,17 +90,20 @@ async function gerarPdfResumo() {
       if (qrImg) {
         doc.addImage(qrImg, "PNG", x + larguraBox - 18, y + 4, 14, 14);
       }
-      count++;
     }
 
-    x += larguraBox + 4;
-    if (count > 50 || x + larguraBox > pageWidth - margin) {
+    if (count % boxesPorLinha === 0) {
       x = margin;
-      y += alturaBox + 4;
+      y += alturaBox + padding;
+    } else {
+      x += larguraBox + padding;
     }
+
+    count++;
   }
 
-  doc.addPage("a4", "landscape");
+  // Página 2 – Relatório de NL
+  doc.addPage("a4", "portrait");
   doc.setFontSize(14);
   doc.text("Relatório de NL", pageWidth / 2, margin, { align: "center" });
 
