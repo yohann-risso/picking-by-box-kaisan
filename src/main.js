@@ -13,6 +13,14 @@ let pendentes = [];
 let currentProduto = null;
 let operador = null;
 
+document.getElementById("inputLogin").addEventListener("keypress", (e) => {
+  if (e.key === "Enter") document.getElementById("btnLogin").click();
+});
+
+document.getElementById("inputSenha").addEventListener("keypress", (e) => {
+  if (e.key === "Enter") document.getElementById("btnLogin").click();
+});
+
 // Login do operador
 document.getElementById("btnLogin").addEventListener("click", async () => {
   const login = document.getElementById("inputLogin").value.trim();
