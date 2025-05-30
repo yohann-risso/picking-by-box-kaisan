@@ -106,7 +106,6 @@ async function gerarPdfResumo() {
   const romaneioAtivo = romaneio || "Não informado";
   const dataHoraAtual = new Date().toLocaleString("pt-BR");
 
-  // BOXES
   const boxTableRows = Object.entries(caixas)
     .sort((a, b) => {
       const boxA = caixas[a[0]].box ?? 0;
@@ -135,7 +134,7 @@ async function gerarPdfResumo() {
     })
     .join("");
 
-  // PENDENTES
+  // Pendentes
   const { data: pedidosData } = await supabase
     .from("pedidos")
     .select("id, cliente")
@@ -165,7 +164,7 @@ async function gerarPdfResumo() {
 
   const linhasNL = Object.values(pedidosMap).flat().join("");
 
-  // HTML
+  // HTML final
   const html = `
     <html>
       <head>
@@ -173,39 +172,42 @@ async function gerarPdfResumo() {
         <style>
           body { font-family: sans-serif; padding: 20px; }
           h2 { margin-bottom: 10px; }
-          .info { margin-bottom: 16px; }
+          .info { margin-bottom: 12px; }
           table { width: 100%; border-collapse: collapse; font-size: 11px; page-break-inside: avoid; }
           th, td { border: 1px solid #ccc; padding: 6px; text-align: left; }
           th { background-color: #000; color: white; }
           .page-break { page-break-before: always; }
-          td.center { text-align: center; }
         </style>
       </head>
       <body>
-        <!-- Página 1: Boxes -->
-        <h2>Resumo de Boxes</h2>
-        <div class="info">
-          <strong>Operador:</strong> ${operadorLogado}<br/>
-          <strong>Romaneio:</strong> ${romaneioAtivo}<br/>
-          <strong>Data:</strong> ${dataHoraAtual}
+        <!-- CABEÇALHO + TABELA BOXES -->
+        <div>
+          <h2>Resumo de Boxes</h2>
+          <div class="info">
+            <strong>Operador:</strong> ${operadorLogado}<br/>
+            <strong>Romaneio:</strong> ${romaneioAtivo}<br/>
+            <strong>Data:</strong> ${dataHoraAtual}
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Box</th>
+                <th>Pedido</th>
+                <th>Qtde. Conferida</th>
+                <th>Qtde. Total</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${boxTableRows}
+            </tbody>
+          </table>
         </div>
-        <table>
-          <thead>
-            <tr>
-              <th>Box</th>
-              <th>Pedido</th>
-              <th>Qtde. Conferida</th>
-              <th>Qtde. Total</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${boxTableRows}
-          </tbody>
-        </table>
 
-        <!-- Página 2: Pendentes -->
+        <!-- QUEBRA DE PÁGINA -->
         <div class="page-break"></div>
+
+        <!-- RELATÓRIO DE NL -->
         <h2>Relatório de NL</h2>
         <table>
           <thead>
@@ -1106,9 +1108,10 @@ document.getElementById("btnPrintBoxes")?.addEventListener("click", () => {
 
   const boxList = Object.entries(caixas)
     .filter(([_, info]) => info?.box && info.total > 0)
-    .map(([_, info]) => ({
+    .map(([pedido, info]) => ({
       box: info.box,
       total: info.total,
+      bipado: info.bipado,
       status: info.pesado
         ? "Pesado"
         : info.bipado >= info.total
@@ -1121,30 +1124,29 @@ document.getElementById("btnPrintBoxes")?.addEventListener("click", () => {
   }
 
   const agrupado = {};
-  boxList.forEach(({ box, total, status }) => {
-    agrupado[box] = { total, status };
+  boxList.forEach(({ box, total, bipado, status }) => {
+    agrupado[box] = { total, bipado, status };
   });
 
   const ordenados = Object.entries(agrupado)
     .sort((a, b) => Number(a[0]) - Number(b[0]))
     .slice(0, 50);
 
-  // Divide as colunas corretamente: esquerda (1–25), direita (26–50)
   const colEsq = ordenados.slice(0, 25);
   const colDir = ordenados.slice(25, 50);
 
   let linhas = "";
 
   for (let i = 0; i < 25; i++) {
-    const box1 = colEsq[i];
-    const box2 = colDir[i];
+    const b1 = colEsq[i];
+    const b2 = colDir[i];
 
-    const col1 = box1
-      ? `<td><strong style="color:white;">${box1[0]}</strong></td><td><strong>${box1[1].total}</strong></td><td>${box1[1].status}</td>`
+    const col1 = b1
+      ? `<td><strong style="color:white;">${b1[0]}</strong></td><td><strong>${b1[1].bipado}/${b1[1].total}</strong></td><td>${b1[1].status}</td>`
       : "<td></td><td></td><td></td>";
 
-    const col2 = box2
-      ? `<td><strong style="color:white;">${box2[0]}</strong></td><td><strong>${box2[1].total}</strong></td><td>${box2[1].status}</td>`
+    const col2 = b2
+      ? `<td><strong style="color:white;">${b2[0]}</strong></td><td><strong>${b2[1].bipado}/${b2[1].total}</strong></td><td>${b2[1].status}</td>`
       : "<td></td><td></td><td></td>";
 
     linhas += `<tr>${col1}<td class="spacer"></td>${col2}</tr>`;
@@ -1156,15 +1158,12 @@ document.getElementById("btnPrintBoxes")?.addEventListener("click", () => {
         <title>Resumo de Boxes</title>
         <style>
           body { font-family: sans-serif; padding: 20px; }
-          h2 { margin-bottom: 10px; }
           .info { margin-bottom: 16px; }
-          table { width: 100%; border-collapse: collapse; font-size: 12px; page-break-inside: avoid; }
+          h2 { margin-bottom: 12px; }
+          table { width: 100%; border-collapse: collapse; font-size: 12px; }
           th, td { border: 1px solid #ccc; padding: 6px; text-align: center; }
           th { background-color: #000; color: white; font-weight: bold; }
-          td.spacer { border: none; width: 20px; }
-          @media print {
-            tr { page-break-inside: avoid; }
-          }
+          td.spacer { border: none; width: 24px; }
         </style>
       </head>
       <body>
@@ -1177,9 +1176,9 @@ document.getElementById("btnPrintBoxes")?.addEventListener("click", () => {
         <table>
           <thead>
             <tr>
-              <th>Box</th><th>Qtd. Total</th><th>Status</th>
+              <th>Box</th><th>Qtd.</th><th>Status</th>
               <td class="spacer"></td>
-              <th>Box</th><th>Qtd. Total</th><th>Status</th>
+              <th>Box</th><th>Qtd.</th><th>Status</th>
             </tr>
           </thead>
           <tbody>
