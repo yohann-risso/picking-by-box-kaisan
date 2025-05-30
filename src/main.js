@@ -115,7 +115,9 @@ async function gerarPdfResumo() {
       bipado: info.bipado ?? 0,
       total: info.total ?? 0,
       status: info.pesado
-        ? "Pesado"
+        ? info.bipado < info.total
+          ? "Pesado Incompleto"
+          : "Pesado"
         : info.bipado >= info.total
         ? "Completo"
         : "Incompleto",
@@ -374,21 +376,6 @@ function renderBoxCards() {
         ? "Completo"
         : "Incompleto";
 
-      // Define conteúdo do botão de acordo com o status
-      const botaoClasse = isPesado
-        ? `btn-undo-simple btn-pesado ${solid}`
-        : `btn-undo-simple btn-pesar ${solid}`;
-      
-      const shadowColor = solid.includes("primary")
-        ? "#0d6efd" // azul
-        : solid.includes("success")
-        ? "#198754" // verde
-        : solid.includes("warning")
-        ? "#ffc107" // amarelo
-        : solid.includes("danger")
-        ? "#dc3545" // vermelho
-        : "#6c757d"; // fallback cinza  
-
       const botaoHtml = isPesado
         ? `<button class="${botaoClasse}" disabled tabindex="0">
             <i class="bi bi-check-circle-fill"></i> PESADO ✅
@@ -417,10 +404,25 @@ function renderBoxCards() {
         solid = "bg-danger text-white";
       }
 
+      // Define conteúdo do botão de acordo com o status
+      const botaoClasse = isPesado
+        ? `btn-undo-simple btn-pesado ${solid}`
+        : `btn-undo-simple btn-pesar ${solid}`;
+
+      const shadowColor = solid.includes("primary")
+        ? "#0d6efd" // azul
+        : solid.includes("success")
+        ? "#198754" // verde
+        : solid.includes("warning")
+        ? "#ffc107" // amarelo
+        : solid.includes("danger")
+        ? "#dc3545" // vermelho
+        : "#6c757d"; // fallback cinza
+
       const wrapper = document.createElement("div");
       wrapper.className = "card-produto";
       wrapper.style.boxShadow = `0 0 10px 2px ${shadowColor}`;
-      
+
       const infoCard = document.createElement("div");
       infoCard.className = `card-info ${light}`;
       infoCard.innerHTML = `
