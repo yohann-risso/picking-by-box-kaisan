@@ -76,7 +76,7 @@ async function gerarPdfResumo() {
     if (info.bipado > 0 && codNfeMap[pedido]) {
       const qrImg = await gerarQRCode(pedido);
       if (qrImg) {
-       doc.addImage(qrImg, "PNG", x + larguraBox - 18, y + 4, 14, 14);
+        doc.addImage(qrImg, "PNG", x + larguraBox - 18, y + 4, 14, 14);
       }
       count++;
     }
@@ -213,15 +213,15 @@ async function carregarCodNfeMap(pedidoIds) {
   const { data, error } = await supabase
     .from("pedidos_nfe")
     .select("pedido_id, cod_nfe")
-    .in("pedido", pedidoIds);
+    .in("pedido_id", pedidoIds); // ← aqui estava o erro
 
   if (error) {
     console.error("Erro ao carregar cod_nfe dos pedidos:", error);
     return;
   }
 
-  data.forEach(({ pedido, cod_nfe }) => {
-    codNfeMap[pedido] = cod_nfe;
+  data.forEach(({ pedido_id, cod_nfe }) => {
+    codNfeMap[pedido_id] = cod_nfe;
   });
 
   console.log("✅ codNfeMap atualizado:", codNfeMap);
