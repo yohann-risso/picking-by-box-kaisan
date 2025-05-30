@@ -401,7 +401,7 @@ function renderBoxCards() {
     btn.addEventListener("click", (e) => {
       e.preventDefault();
       const codNfe = btn.dataset.codnfe;
-      const url = `https://ge.kaisan.com.br/index2.php?page=meta/view&id_view=nfe_pedido_conf&acao_view=cadastra&cod_del=${codNfe}&where=cod_nfe_pedido=${codNfe}`;
+      const url = `https://ge.kaisan.com.br/index2.php?page=meta/view&id_view=nfe_pedido_conf&acao_view=cadastra&cod_del=${codNfe}&where=cod_nfe_pedido=${codNfe}#prodweightsomaproduto`;
       window.open(url, "_blank");
       btn.focus();
     });
@@ -1014,8 +1014,13 @@ document.getElementById("btnPrintPendentes")?.addEventListener("click", () => {
     agrupado[sku].qtd += qtd;
   });
 
-  // Monta linhas da tabela
+  // Gera e ordena os dados agrupados por endereço
   const linhas = Object.entries(agrupado)
+    .sort((a, b) => {
+      const enderecoA = a[1].endereco?.toUpperCase() || "";
+      const enderecoB = b[1].endereco?.toUpperCase() || "";
+      return enderecoA.localeCompare(enderecoB);
+    })
     .map(([sku, { qtd, endereco }]) => `
       <tr>
         <td>${sku}</td>
@@ -1079,30 +1084,58 @@ document.getElementById("btnPrintBoxes")?.addEventListener("click", () => {
 
   const boxList = Object.entries(caixas)
     .filter(([_, info]) => info?.box && info.total > 0)
-    .map(([pedido, info]) => ({
+    .map(([_, info]) => ({
       box: info.box,
       total: info.total,
+      status: info.pesado
+        ? "Pesado"
+        : info.bipado >= info.total
+        ? "Completo"
+        : "Incompleto",
     }));
 
   if (boxList.length === 0) {
     return alert("Nenhum box encontrado para impressão.");
   }
 
-  // Agrupa por número da box (soma total de itens por box)
+  // Agrupar por número do box e limitar a 50
   const agrupado = {};
-  boxList.forEach(({ box, total }) => {
-    if (!agrupado[box]) agrupado[box] = 0;
-    agrupado[box] += total;
+  boxList.forEach(({ box, total, status }) => {
+    if (!agrupado[box]) {
+      agrupado[box] = { total: 0, status };
+    }
+    agrupado[box].total += total;
   });
 
-  const linhas = Object.entries(agrupado)
+  const linhas = [];
+  const boxesOrdenados = Object.entries(agrupado)
     .sort((a, b) => a[0] - b[0])
-    .map(([box, total]) => `<tr><td>${box}</td><td>${total}</td></tr>`);
+    .slice(0, 50); // até 50 boxes
 
-  // Divide em 2 colunas
-  const metade = Math.ceil(linhas.length / 2);
-  const col1 = linhas.slice(0, metade).join("");
-  const col2 = linhas.slice(metade).join("");
+  for (let i = 0; i < 50; i += 5) {
+    const linha = boxesOrdenados.slice(i, i + 5);
+    const cols = ["Box", "Qtd. Total", "Status"];
+
+    // Cabeçalho de 5 blocos
+    linhas.push(
+      `<tr>${cols
+        .map(() => `<th>Box</th><th>Qtd. Total</th><th>Status</th>`)
+        .join("")}</tr>`
+    );
+
+    // Dados (1 linha por coluna tripla)
+    for (let j = 0; j < 5; j++) {
+      const cells = linha.map(([box, info], index) => {
+        if (index === j) {
+          const bg =
+            info.status === "Incompleto" ? "background-color:#eee;" : "";
+          return `<td style="${bg}">${box}</td><td style="${bg}">${info.total}</td><td style="${bg}">${info.status}</td>`;
+        }
+        return `<td></td><td></td><td></td>`;
+      });
+      linhas.push(`<tr>${cells.join("")}</tr>`);
+    }
+  }
 
   const htmlImpressao = `
     <html>
@@ -1110,11 +1143,10 @@ document.getElementById("btnPrintBoxes")?.addEventListener("click", () => {
         <title>Resumo de Boxes</title>
         <style>
           body { font-family: sans-serif; padding: 20px; }
-          .info { margin-bottom: 20px; }
-          table { width: 100%; border-collapse: collapse; }
-          th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
-          th { background-color: #f0f0f0; }
-          .coluna { width: 48%; display: inline-block; vertical-align: top; }
+          .info { margin-bottom: 16px; }
+          table { width: 100%; border-collapse: collapse; font-size: 12px; }
+          th, td { border: 1px solid #ccc; padding: 6px; text-align: center; }
+          th { background-color: #000; color: white; }
         </style>
       </head>
       <body>
@@ -1124,29 +1156,18 @@ document.getElementById("btnPrintBoxes")?.addEventListener("click", () => {
           <strong>Romaneio:</strong> ${romaneioAtivo}<br/>
           <strong>Data:</strong> ${dataHoraAtual}
         </div>
-        <div class="coluna">
-          <table>
-            <thead><tr><th>Box</th><th>Qtd. Total</th></tr></thead>
-            <tbody>${col1}</tbody>
-          </table>
-        </div>
-        <div class="coluna" style="float:right;">
-          <table>
-            <thead><tr><th>Box</th><th>Qtd. Total</th></tr></thead>
-            <tbody>${col2}</tbody>
-          </table>
-        </div>
-        <script>
-          window.onload = () => { window.print(); window.close(); }
-        </script>
+        <table>
+          ${linhas.join("")}
+        </table>
+        <script>window.onload = () => { window.print(); window.close(); }</script>
       </body>
     </html>
   `;
 
-  const janela = window.open("", "_blank");
-  if (janela) {
-    janela.document.write(htmlImpressao);
-    janela.document.close();
+  const win = window.open("", "_blank");
+  if (win) {
+    win.document.write(htmlImpressao);
+    win.document.close();
   }
 });
 
