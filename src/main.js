@@ -156,22 +156,35 @@ function toggleBoxes() {
   }
 }
 
-async function carregarRefs() {
-  const { data, error } = await supabase
-    .from("produtos_ref")
-    .select("sku, imagem");
+async function carregarRefs(skuList = []) {
+  let query = supabase.from("produtos_ref").select("sku, imagem");
 
-  if (!error && data) {
-    imagensRef = {};
-    data.forEach((item) => {
-      const sku = item.sku?.trim().toUpperCase();
-      if (sku) imagensRef[sku] = item.imagem;
-    });
+  // se veio lista de SKUs, filtra
+  if (skuList.length) {
+    // assumindo que no banco sku está em uppercase
+    query = query.in("sku", skuList);
   }
+
+  const { data, error } = await query;
+  if (error) {
+    console.error("Erro ao carregar referências:", error);
+    return;
+  }
+
+  imagensRef = {};
+  data.forEach((item) => {
+    const raw = item.sku?.trim().toUpperCase();
+    const url = item.imagem?.trim();
+    if (!raw || !url) return;
+    imagensRef[raw] = url;
+    // opcional: permitir lookup indiferente a maiúsc/minúsc
+    imagensRef[raw.toLowerCase()] = url;
+  });
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
   await carregarRefs();
+  console.log("Mapeamento de imagens:", imagensRef);
   renderProductMap();
 
   document.getElementById("romaneioInput").addEventListener("keypress", (e) => {
@@ -562,7 +575,27 @@ document.getElementById("btnIniciar").addEventListener("click", async () => {
   romaneio = input.value.trim();
   if (!romaneio) return alert("Digite o romaneio");
 
-  // carrega tudo
+  // 1) buscar todos os produtos desse romaneio
+  const { data: pedidos } = await supabase
+    .from("pedidos")
+    .select("id")
+    .eq("romaneio", romaneio);
+  const pedidoIds = pedidos.map((p) => p.id);
+
+  const { data: produtos } = await supabase
+    .from("produtos_pedido")
+    .select("sku")
+    .in("pedido_id", pedidoIds);
+
+  // 2) extrair lista única de SKUs
+  const skus = Array.from(
+    new Set(produtos.map((p) => p.sku?.trim().toUpperCase()).filter(Boolean))
+  );
+
+  // 3) carregar só as refs desses SKUs
+  await carregarRefs(skus);
+
+  // 4) agora sim carrega o restante do estado
   await carregarBipagemAnterior(romaneio);
 
   // limpa o cartão antes de liberar o bipar
