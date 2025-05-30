@@ -128,8 +128,8 @@ async function gerarPdfResumo() {
     })
     .slice(0, 50);
 
-  const colEsq = ordenados.slice(0, 25);
-  const colDir = ordenados.slice(25, 50);
+  const colEsq = boxList.slice(0, 25);
+  const colDir = boxList.slice(25, 50);
 
   let boxRows = "";
   for (let i = 0; i < 25; i++) {
@@ -1141,16 +1141,15 @@ document.getElementById("btnPrintBoxes")?.addEventListener("click", () => {
     const b2 = colDir[i];
 
     const col1 = b1
-      ? `<td><strong style="color:white;">${b1[0]}</strong></td><td><strong>${b1[1].bipado}/${b1[1].total}</strong></td><td>${b1[1].status}</td>`
+      ? `<td><strong style="color:white;">${b1.box}</strong></td><td><strong>${b1.bipado}/${b1.total}</strong></td><td>${b1.status}</td>`
       : "<td></td><td></td><td></td>";
 
     const col2 = b2
-      ? `<td><strong style="color:white;">${b2[0]}</strong></td><td><strong>${b2[1].bipado}/${b2[1].total}</strong></td><td>${b2[1].status}</td>`
+      ? `<td><strong style="color:white;">${b2.box}</strong></td><td><strong>${b2.bipado}/${b2.total}</strong></td><td>${b2.status}</td>`
       : "<td></td><td></td><td></td>";
 
     linhas += `<tr>${col1}<td class="spacer"></td>${col2}</tr>`;
 
-    // Quebra visual a cada 5 linhas
     if ((i + 1) % 5 === 0) {
       linhas += `<tr style="height:10px;"><td colspan="7" style="border:none;"></td></tr>`;
     }
