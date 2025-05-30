@@ -1021,13 +1021,15 @@ document.getElementById("btnPrintPendentes")?.addEventListener("click", () => {
       const enderecoB = b[1].endereco?.toUpperCase() || "";
       return enderecoA.localeCompare(enderecoB);
     })
-    .map(([sku, { qtd, endereco }]) => `
+    .map(
+      ([sku, { qtd, endereco }]) => `
       <tr>
         <td>${sku}</td>
         <td>${qtd}</td>
         <td>${endereco}</td>
       </tr>
-    `)
+    `
+    )
     .join("");
 
   // Gera o HTML para impressão
@@ -1098,7 +1100,7 @@ document.getElementById("btnPrintBoxes")?.addEventListener("click", () => {
     return alert("Nenhum box encontrado para impressão.");
   }
 
-  // Agrupar por número do box e limitar a 50
+  // Agrupar por número do box
   const agrupado = {};
   boxList.forEach(({ box, total, status }) => {
     if (!agrupado[box]) {
@@ -1107,33 +1109,26 @@ document.getElementById("btnPrintBoxes")?.addEventListener("click", () => {
     agrupado[box].total += total;
   });
 
-  const linhas = [];
   const boxesOrdenados = Object.entries(agrupado)
     .sort((a, b) => a[0] - b[0])
-    .slice(0, 50); // até 50 boxes
+    .slice(0, 50); // garantir no máximo 50
 
+  // Separar em colunas lado a lado (5 linhas cada)
+  let linhas = "";
   for (let i = 0; i < 50; i += 5) {
-    const linha = boxesOrdenados.slice(i, i + 5);
-    const cols = ["Box", "Qtd. Total", "Status"];
+    const colEsq = boxesOrdenados.slice(i, i + 5);
+    const colDir = boxesOrdenados.slice(i + 25, i + 30); // 25 boxes à frente
 
-    // Cabeçalho de 5 blocos
-    linhas.push(
-      `<tr>${cols
-        .map(() => `<th>Box</th><th>Qtd. Total</th><th>Status</th>`)
-        .join("")}</tr>`
-    );
-
-    // Dados (1 linha por coluna tripla)
     for (let j = 0; j < 5; j++) {
-      const cells = linha.map(([box, info], index) => {
-        if (index === j) {
-          const bg =
-            info.status === "Incompleto" ? "background-color:#eee;" : "";
-          return `<td style="${bg}">${box}</td><td style="${bg}">${info.total}</td><td style="${bg}">${info.status}</td>`;
-        }
-        return `<td></td><td></td><td></td>`;
-      });
-      linhas.push(`<tr>${cells.join("")}</tr>`);
+      const linhaEsq = colEsq[j]
+        ? `<td>${colEsq[j][0]}</td><td>${colEsq[j][1].total}</td><td>${colEsq[j][1].status}</td>`
+        : "<td></td><td></td><td></td>";
+
+      const linhaDir = colDir[j]
+        ? `<td>${colDir[j][0]}</td><td>${colDir[j][1].total}</td><td>${colDir[j][1].status}</td>`
+        : "<td></td><td></td><td></td>";
+
+      linhas += `<tr>${linhaEsq}${linhaDir}</tr>`;
     }
   }
 
@@ -1157,9 +1152,19 @@ document.getElementById("btnPrintBoxes")?.addEventListener("click", () => {
           <strong>Data:</strong> ${dataHoraAtual}
         </div>
         <table>
-          ${linhas.join("")}
+          <thead>
+            <tr>
+              <th>Box</th><th>Qtd. Total</th><th>Status</th>
+              <th>Box</th><th>Qtd. Total</th><th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${linhas}
+          </tbody>
         </table>
-        <script>window.onload = () => { window.print(); window.close(); }</script>
+        <script>
+          window.onload = () => { window.print(); window.close(); }
+        </script>
       </body>
     </html>
   `;
