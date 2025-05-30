@@ -463,11 +463,11 @@ function renderPendentes() {
   listaOrdenada.forEach(({ sku, qtd, pedido, endereco }) => {
     const enderecos = (endereco || "SEM LOCAL")
       .split(/\s*•\s*/)
-      .map(e => e.trim())
+      .map((e) => e.trim())
       .filter(Boolean);
 
     const primeiro = enderecos[0] || "SEM LOCAL";
-    const tooltip = enderecos.join(" • ");
+    const tooltip = enderecos.join(" • ").replace(/"/g, "&quot;");
 
     let badgeClass = "bg-info text-dark";
     let badgeIcon = "📦";
@@ -486,14 +486,25 @@ function renderPendentes() {
       <td><span class="badge bg-dark">${qtd}</span></td>
       <td>${pedido || "-"}</td>
       <td>
-        <span class="badge ${badgeClass} badge-endereco" title="${tooltip}">
+        <span class="badge ${badgeClass} badge-endereco"
+              data-bs-toggle="tooltip"
+              data-bs-placement="top"
+              title="${tooltip}">
           ${badgeIcon} ${primeiro}
         </span>
       </td>
     `;
     tbody.appendChild(row);
   });
-} 
+
+  lista.appendChild(table);
+
+  // Ativa os tooltips Bootstrap
+  const tooltipTriggerList = document.querySelectorAll(
+    '[data-bs-toggle="tooltip"]'
+  );
+  tooltipTriggerList.forEach((el) => new bootstrap.Tooltip(el));
+}
 
 function renderCardProduto(result) {
   const area = document.getElementById("cardAtual");
@@ -564,7 +575,6 @@ function renderProgressoConferencia() {
     barra.textContent = `${perc}% (${bipado}/${total})`;
   }
 }
-
 
 // delega o clique no botão “undo”
 document.getElementById("cardAtual").addEventListener("click", (e) => {
@@ -743,7 +753,6 @@ async function carregarBipagemAnterior(romaneio) {
   renderHistorico();
   renderPendentes();
   renderProgressoConferencia();
-
 }
 
 document.getElementById("btnIniciar").addEventListener("click", async () => {
@@ -872,7 +881,6 @@ document.getElementById("btnBipar").addEventListener("click", async () => {
     renderPendentes();
     renderHistorico();
     renderProgressoConferencia();
-
   } else {
     // 10) em caso de erro, zera para não poluir o histórico
     currentProduto = null;
