@@ -212,7 +212,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 async function carregarCodNfeMap(pedidoIds) {
   const { data, error } = await supabase
     .from("pedidos_nfe")
-    .select("pedido, cod_nfe")
+    .select("pedido_id, cod_nfe")
     .in("pedido", pedidoIds);
 
   if (error) {
