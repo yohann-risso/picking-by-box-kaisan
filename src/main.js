@@ -989,85 +989,54 @@ document.getElementById("btnPrintPendentes")?.addEventListener("click", () => {
   const romaneioAtivo = romaneio || "Não informado";
   const dataHoraAtual = new Date().toLocaleString("pt-BR");
 
-  // ✅ LOG 1: verificar se pendentes estão carregados corretamente
-  console.log("📦 PENDENTES ORIGINAIS:", pendentes);
-
-  if (!window.pendentes || pendentes.length === 0) {
+  if (!Array.isArray(pendentes) || pendentes.length === 0) {
     return alert("Nenhum pendente encontrado.");
   }
 
-  // ✅ LOG 2: verificar conteúdo de cada pendente individual
-  pendentes.forEach((p, i) => {
-    console.log(`📍 Pendente ${i}:`, {
-      sku: p.sku,
-      qtd: p.qtd,
-      endereco: p.endereco,
-      enderecoTipo: typeof p.endereco,
-    });
-  });
-
-  // Filtra pendentes com endereço válido
+  // Filtra os pendentes com endereço válido
   const comEndereco = pendentes.filter((p) => {
-    if (!p.endereco) return false;
-
-    let primeiroEndereco = "";
-
-    if (typeof p.endereco === "string") {
-      primeiroEndereco = p.endereco.split("•")[0]?.trim();
-    } else if (Array.isArray(p.endereco)) {
-      primeiroEndereco = String(p.endereco[0]).trim();
-    } else if (typeof p.endereco === "object") {
-      primeiroEndereco = String(Object.values(p.endereco)[0]).trim();
-    }
-
-    return primeiroEndereco && primeiroEndereco.toUpperCase() !== "SEM LOCAL";
+    if (!p.endereco || typeof p.endereco !== "string") return false;
+    const primeiro = p.endereco.split("•")[0]?.trim();
+    return primeiro && primeiro.toUpperCase() !== "SEM LOCAL";
   });
-
-  // ✅ LOG 3: resultado do filtro
-  console.log("✅ PENDENTES COM ENDEREÇO:", comEndereco);
 
   if (comEndereco.length === 0) {
     return alert("Nenhum pendente com endereço válido encontrado.");
   }
 
-  // Agrupar por SKU: somar qtds e armazenar endereços únicos
+  // Agrupar por SKU somando a quantidade e guardando o primeiro endereço
   const agrupado = {};
   comEndereco.forEach(({ sku, qtd, endereco }) => {
+    const primeiroEndereco = (endereco || "").split("•")[0]?.trim();
     if (!agrupado[sku]) {
-      agrupado[sku] = { qtd: 0, enderecos: new Set() };
+      agrupado[sku] = { qtd: 0, endereco: primeiroEndereco };
     }
     agrupado[sku].qtd += qtd;
-
-    const primeiroEndereco = (endereco || "").split("•")[0]?.trim();
-    if (primeiroEndereco && primeiroEndereco.toUpperCase() !== "SEM LOCAL") {
-      agrupado[sku].enderecos.add(primeiroEndereco);
-    }
   });
 
-  // Gerar linhas da tabela
+  // Monta linhas da tabela
   const linhas = Object.entries(agrupado)
-    .map(([sku, { qtd, enderecos }]) => {
-      const listaEnderecos = Array.from(enderecos).join(" • ");
-      return `<tr>
-                <td>${sku}</td>
-                <td>${qtd}</td>
-                <td>${listaEnderecos}</td>
-              </tr>`;
-    })
+    .map(([sku, { qtd, endereco }]) => `
+      <tr>
+        <td>${sku}</td>
+        <td>${qtd}</td>
+        <td>${endereco}</td>
+      </tr>
+    `)
     .join("");
 
-  // HTML de impressão
+  // Gera o HTML para impressão
   const htmlImpressao = `
     <html>
       <head>
         <title>Pendentes com Endereço</title>
         <style>
           body { font-family: sans-serif; padding: 20px; }
-          h2, h4 { margin-bottom: 8px; }
+          h2 { margin-bottom: 10px; }
           .info { margin-bottom: 16px; }
-          table { width: 100%; border-collapse: collapse; }
-          th, td { border: 1px solid #ccc; padding: 8px; text-align: left; vertical-align: top; }
-          th { background-color: #f5f5f5; }
+          table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+          th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+          th { background-color: #f0f0f0; }
         </style>
       </head>
       <body>
@@ -1082,7 +1051,7 @@ document.getElementById("btnPrintPendentes")?.addEventListener("click", () => {
             <tr>
               <th>SKU</th>
               <th>Quantidade</th>
-              <th>Endereço(s)</th>
+              <th>Endereço</th>
             </tr>
           </thead>
           <tbody>
@@ -1096,10 +1065,10 @@ document.getElementById("btnPrintPendentes")?.addEventListener("click", () => {
     </html>
   `;
 
-  const janela = window.open("", "_blank");
-  if (janela) {
-    janela.document.write(htmlImpressao);
-    janela.document.close();
+  const win = window.open("", "_blank");
+  if (win) {
+    win.document.write(htmlImpressao);
+    win.document.close();
   }
 });
 
