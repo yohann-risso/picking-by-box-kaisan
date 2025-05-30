@@ -493,6 +493,7 @@ function renderPendentes() {
     `;
     tbody.appendChild(row);
   });
+} 
 
 function renderCardProduto(result) {
   const area = document.getElementById("cardAtual");
@@ -544,6 +545,26 @@ function renderCardProduto(result) {
   const btn = area.querySelector(".btn-undo-simple");
   if (btn) btn.addEventListener("click", undoLastBipagem);
 }
+
+function renderProgressoConferencia() {
+  let total = 0;
+  let bipado = 0;
+
+  Object.values(caixas).forEach(({ total: t, bipado: b }) => {
+    total += t;
+    bipado += b;
+  });
+
+  const perc = total > 0 ? Math.round((bipado / total) * 100) : 0;
+  const barra = document.getElementById("progressoConferencia");
+
+  if (barra) {
+    barra.style.width = `${perc}%`;
+    barra.setAttribute("aria-valuenow", perc);
+    barra.textContent = `${perc}% (${bipado}/${total})`;
+  }
+}
+
 
 // delega o clique no botão “undo”
 document.getElementById("cardAtual").addEventListener("click", (e) => {
@@ -628,6 +649,7 @@ async function undoLastBipagem() {
   renderPendentes();
   renderBoxCards();
   renderHistorico();
+  renderProgressoConferencia();
 
   // 7) limpa card atual e ajusta ponteiro
   document.getElementById("cardAtual").innerHTML = "";
@@ -720,6 +742,8 @@ async function carregarBipagemAnterior(romaneio) {
   renderBoxCards();
   renderHistorico();
   renderPendentes();
+  renderProgressoConferencia();
+
 }
 
 document.getElementById("btnIniciar").addEventListener("click", async () => {
@@ -847,6 +871,8 @@ document.getElementById("btnBipar").addEventListener("click", async () => {
     renderBoxCards();
     renderPendentes();
     renderHistorico();
+    renderProgressoConferencia();
+
   } else {
     // 10) em caso de erro, zera para não poluir o histórico
     currentProduto = null;
@@ -889,6 +915,7 @@ document.getElementById("btnFinalizar").addEventListener("click", async () => {
   caixas = {};
   historico = [];
   romaneio = "";
+  renderProgressoConferencia();
 });
 
 document
@@ -932,6 +959,7 @@ document
     document.getElementById("btnIniciar").disabled = false;
 
     document.getElementById("romaneioInput").focus();
+    renderProgressoConferencia();
   });
 
 function renderProductMap() {
