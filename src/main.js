@@ -367,8 +367,12 @@ function renderBoxCards() {
       const isPesado = pedidos.every((p) => caixas[p]?.pesado);
       const isIncompleto = bipado < total;
       const status = isPesado
-        ? (isIncompleto ? "Pesado Incompleto" : "Pesado")
-        : (bipado >= total ? "Completo" : "Incompleto");
+        ? isIncompleto
+          ? "Pesado Incompleto"
+          : "Pesado"
+        : bipado >= total
+        ? "Completo"
+        : "Incompleto";
 
       // Define conteúdo do botão de acordo com o status
       const botaoHtml = isPesado
@@ -1150,9 +1154,13 @@ document.getElementById("btnPrintBoxes")?.addEventListener("click", () => {
       total: info.total,
       bipado: info.bipado,
       status: info.pesado
-        ? (info.bipado < info.total ? "Pesado Incompleto" : "Pesado")
-        : (info.bipado >= info.total ? "Completo" : "Incompleto"),
-          }))
+        ? info.bipado < info.total
+          ? "Pesado Incompleto"
+          : "Pesado"
+        : info.bipado >= info.total
+        ? "Completo"
+        : "Incompleto",
+    }))
     .sort((a, b) => a.box - b.box)
     .slice(0, 50);
 
