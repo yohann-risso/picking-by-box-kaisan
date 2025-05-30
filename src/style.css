@@ -318,24 +318,30 @@ tbody td {
   user-select: none;
 }
 
+/* Botão flutuante no canto superior direito */
 #btnCronometroFloating {
   position: fixed;
   top: 15px;
-  left: 15px;
+  right: 15px;
   z-index: 9999;
   background-color: #007bff;
   color: white;
-  font-size: 20px;
-  padding: 6px 10px;
+  font-size: 22px;
+  padding: 8px 12px;
   border-radius: 8px;
   cursor: pointer;
   box-shadow: 0 0 6px rgba(0,0,0,0.3);
 }
 
+#btnCronometroFloating i {
+  vertical-align: middle;
+}
+
+/* Modal flutuante */
 #cronometroModal {
   position: fixed;
   top: 60px;
-  left: 60px;
+  right: 15px;
   width: 400px;
   height: 500px;
   z-index: 9998;
@@ -345,8 +351,11 @@ tbody td {
   display: none;
 }
 
+/* Zoom simulado no iframe */
 #cronometroIframe {
-  width: 100%;
-  height: 100%;
+  width: 140%;
+  height: 140%;
+  transform: scale(0.7);
+  transform-origin: top left;
   border: none;
 }
