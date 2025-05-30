@@ -1019,7 +1019,6 @@ document.getElementById("btnPrintPendentes")?.addEventListener("click", () => {
     } else if (typeof p.endereco === "object") {
       enderecos = Object.values(p.endereco).map(e => String(e).trim());
     }
-    const enderecos = p.endereco.split("•").map((e) => e.trim());
     return enderecos.some((e) => e && e.toUpperCase() !== "SEM LOCAL");
   });
 
