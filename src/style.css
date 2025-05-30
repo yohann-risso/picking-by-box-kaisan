@@ -186,6 +186,11 @@ tbody td {
   transition: transform 0.2s ease;
 }
 
+.btn-sem-borda {
+  border: none !important;
+  box-shadow: none !important;
+}
+
 #boxContainer {
   display: flex;
   flex-wrap: wrap;
