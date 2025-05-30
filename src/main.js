@@ -106,38 +106,46 @@ async function gerarPdfResumo() {
   const romaneioAtivo = romaneio || "Não informado";
   const dataHoraAtual = new Date().toLocaleString("pt-BR");
 
-  // Ordenar caixas: primeiro as com número, depois as sem
-  const caixasOrdenadas = Object.entries(caixas)
-    .slice(0, 50)
-    .sort((a, b) => {
-      const aBox = caixas[a[0]].box ?? "-";
-      const bBox = caixas[b[0]].box ?? "-";
-      if (aBox === "-" && bBox !== "-") return 1;
-      if (bBox === "-" && aBox !== "-") return -1;
-      return Number(aBox) - Number(bBox);
-    });
-
-  const boxTableRows = caixasOrdenadas
-    .map(([pedido, info]) => {
-      const box = info.box ?? "-";
-      const bipado = info.bipado ?? 0;
-      const total = info.total ?? 0;
-      const status = info.pesado
+  const boxList = Object.entries(caixas)
+    .filter(([_, info]) => info?.box && info.total > 0)
+    .map(([pedido, info]) => ({
+      box: info.box,
+      pedido,
+      bipado: info.bipado ?? 0,
+      total: info.total ?? 0,
+      status: info.pesado
         ? "Pesado"
-        : bipado >= total
+        : info.bipado >= info.total
         ? "Completo"
-        : "Incompleto";
+        : "Incompleto",
+    }));
 
-      return `
-        <tr>
-          <td>${box}</td>
-          <td>${pedido}</td>
-          <td>${bipado}</td>
-          <td>${total}</td>
-          <td>${status}</td>
-        </tr>`;
+  const ordenados = boxList
+    .sort((a, b) => {
+      if (!a.box && b.box) return 1;
+      if (!b.box && a.box) return -1;
+      return Number(a.box) - Number(b.box);
     })
-    .join("");
+    .slice(0, 50);
+
+  const colEsq = ordenados.slice(0, 25);
+  const colDir = ordenados.slice(25, 50);
+
+  let boxRows = "";
+  for (let i = 0; i < 25; i++) {
+    const b1 = colEsq[i];
+    const b2 = colDir[i];
+
+    const col1 = b1
+      ? `<td><strong style="color:white;">${b1.box}</strong></td><td><strong>${b1.bipado}/${b1.total}</strong></td><td>${b1.status}</td>`
+      : "<td></td><td></td><td></td>";
+
+    const col2 = b2
+      ? `<td><strong style="color:white;">${b2.box}</strong></td><td><strong>${b2.bipado}/${b2.total}</strong></td><td>${b2.status}</td>`
+      : "<td></td><td></td><td></td>";
+
+    boxRows += `<tr>${col1}<td class="spacer"></td>${col2}</tr>`;
+  }
 
   // Relatório de NL
   const { data: pedidosData } = await supabase
@@ -169,7 +177,7 @@ async function gerarPdfResumo() {
 
   const linhasNL = Object.values(pedidosMap).flat().join("");
 
-  // HTML final
+  // HTML
   const html = `
     <html>
       <head>
@@ -177,40 +185,36 @@ async function gerarPdfResumo() {
         <style>
           body { font-family: sans-serif; padding: 20px; margin: 0; }
           h2 { margin-bottom: 10px; }
-          .info { margin-bottom: 12px; }
+          .info { margin-bottom: 16px; }
           table { width: 100%; border-collapse: collapse; font-size: 11px; }
-          th, td { border: 1px solid #ccc; padding: 6px; text-align: left; }
-          th { background-color: #000; color: white; }
+          th, td { border: 1px solid #ccc; padding: 6px; text-align: center; }
+          th { background-color: #000; color: white; font-weight: bold; }
+          td.spacer { border: none; width: 24px; }
           .page-break { page-break-before: always; }
-          tr { page-break-inside: avoid; }
         </style>
       </head>
       <body>
-        <!-- Página 1: Resumo de Boxes -->
-        <div>
-          <h2>Resumo de Boxes</h2>
-          <div class="info">
-            <strong>Operador:</strong> ${operadorLogado}<br/>
-            <strong>Romaneio:</strong> ${romaneioAtivo}<br/>
-            <strong>Data:</strong> ${dataHoraAtual}
-          </div>
-          <table>
-            <thead>
-              <tr>
-                <th>Box</th>
-                <th>Pedido</th>
-                <th>Qtde. Conferida</th>
-                <th>Qtde. Total</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${boxTableRows}
-            </tbody>
-          </table>
+        <!-- Resumo de Boxes -->
+        <h2>Resumo de Boxes</h2>
+        <div class="info">
+          <strong>Operador:</strong> ${operadorLogado}<br/>
+          <strong>Romaneio:</strong> ${romaneioAtivo}<br/>
+          <strong>Data:</strong> ${dataHoraAtual}
         </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Box</th><th>Qtd.</th><th>Status</th>
+              <td class="spacer"></td>
+              <th>Box</th><th>Qtd.</th><th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${boxRows}
+          </tbody>
+        </table>
 
-        <!-- Página 2: Relatório de NL -->
+        <!-- Relatório de NL -->
         <div class="page-break"></div>
         <h2>Relatório de NL</h2>
         <table>
@@ -230,9 +234,7 @@ async function gerarPdfResumo() {
           </tbody>
         </table>
 
-        <script>
-          window.onload = () => { window.print(); window.close(); }
-        </script>
+        <script>window.onload = () => { window.print(); window.close(); }</script>
       </body>
     </html>
   `;
