@@ -340,6 +340,24 @@ function renderBoxCards() {
       const codNfe = codNfes[0] || "";
       const isPesado = pedidos.every((p) => caixas[p]?.pesado);
 
+      // Define conteúdo do botão de acordo com o status
+      const botaoHtml = isPesado
+        ? `
+          <button class="btn-undo-simple btn-pesado" disabled tabindex="0">
+            <i class="bi bi-check-circle-fill"></i> PESADO ✅
+          </button>
+        `
+        : `
+          <button
+            class="btn-undo-simple btn-transparent btn-pesar"
+            data-pedido="${pedidoRef}"
+            data-codnfe="${codNfe}"
+            tabindex="0"
+          >
+            <i class="bi bi-balance-scale"></i> PESAR PEDIDO
+          </button>
+        `;
+
       let light, solid;
       if (isPesado) {
         light = "bg-primary-subtle text-dark";
@@ -364,19 +382,7 @@ function renderBoxCards() {
             <span class="badge bg-dark">${bipado}/${total}</span>
           </div>
           <div class="mt-2">
-            <button
-              class="btn-undo-simple ${
-                isPesado ? "btn-pesado" : "btn-transparent btn-pesar"
-              }"
-              ${isPesado ? "disabled" : ""}
-              data-pedido="${pedidoRef}"
-              data-codnfe="${codNfe}"
-              tabindex="0"
-            >
-              <i class="bi bi-balance-scale"></i> ${
-                isPesado ? "PESADO ✅" : "PESAR PEDIDO"
-              }
-            </button>
+            ${botaoHtml}
           </div>
         </div>
       `;
