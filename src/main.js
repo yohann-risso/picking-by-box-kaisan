@@ -376,6 +376,7 @@ function renderBoxCards() {
         : `<button
             class="btn-undo-simple btn-transparent btn-pesar"
             data-box="${boxNum}"
+            data-codnfe="${codNfe}"
             data-pedidos='${JSON.stringify(pedidos)}'
             tabindex="0">
             <i class="bi bi-balance-scale"></i> PESAR PEDIDO
@@ -447,6 +448,7 @@ function renderBoxCards() {
       }
     });
   });
+
 }
 
 function renderHistorico() {
