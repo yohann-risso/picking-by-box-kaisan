@@ -376,15 +376,6 @@ function renderBoxCards() {
         ? "Completo"
         : "Incompleto";
 
-      const botaoHtml = isPesado
-        ? `<button class="${botaoClasse}" disabled tabindex="0">
-            <i class="bi bi-check-circle-fill"></i> PESADO ✅
-          </button>`
-        : `<button class="${botaoClasse}" data-box="${boxNum}" data-codnfe="${codNfe}"
-            data-pedidos='${JSON.stringify(pedidos)}' tabindex="0">
-            <i class="bi bi-balance-scale"></i> PESAR PEDIDO
-          </button>`;
-
       let light, solid;
       if (isPesado && bipado < total) {
         // ⚠️ Pesado incompleto
@@ -408,6 +399,15 @@ function renderBoxCards() {
       const botaoClasse = isPesado
         ? `btn-undo-simple btn-pesado ${solid}`
         : `btn-undo-simple btn-pesar ${solid}`;
+
+      const botaoHtml = isPesado
+        ? `<button class="${botaoClasse}" disabled tabindex="0">
+            <i class="bi bi-check-circle-fill"></i> PESADO ✅
+          </button>`
+        : `<button class="${botaoClasse}" data-box="${boxNum}" data-codnfe="${codNfe}"
+            data-pedidos='${JSON.stringify(pedidos)}' tabindex="0">
+            <i class="bi bi-balance-scale"></i> PESAR PEDIDO
+          </button>`;  
 
       const shadowColor = solid.includes("primary")
         ? "#0d6efd" // azul
