@@ -1038,12 +1038,10 @@ document.getElementById("btnPrintPendentes")?.addEventListener("click", () => {
     }
     agrupado[sku].qtd += qtd;
 
-    const enderecos = (endereco || "")
-      .split("•")
-      .map((e) => e.trim())
-      .filter((e) => e && e.toUpperCase() !== "SEM LOCAL");
-
-    enderecos.forEach((e) => agrupado[sku].enderecos.add(e));
+    const primeiroEndereco = (endereco || "").split("•")[0]?.trim();
+    if (primeiroEndereco && primeiroEndereco.toUpperCase() !== "SEM LOCAL") {
+      agrupado[sku].enderecos.add(primeiroEndereco);
+    }
   });
 
   // Gerar linhas da tabela
