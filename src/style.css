@@ -34,6 +34,7 @@ body {
   padding: 1rem;
   gap: 1rem;
   position: relative;
+  box-shadow: rgba(36, 42, 49, 0.5) 0 0 5px;
 }
 
 /* Container dos textos dentro do info-card */
@@ -104,17 +105,20 @@ body {
 
 /* Card do número da box */
 .card-produto .card-number {
-  width: 60px;
+  width: 90px;
   background-color: #0d6efd;
   color: #fff;
-  font-size: 2rem;
+  font-size: 3.5rem;
   font-weight: bold;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 8px;
   flex-shrink: 0;
-  margin-left: -5px;
+  margin-left: -6px;
+  box-shadow: #0d6efd 0 0 5px;
+  text-shadow: #0d6efd 0 0 5px;
+  transition: transform 0.2s ease;
 }
 
 #boxContainer {
@@ -137,6 +141,7 @@ body {
   flex-direction: column;
   justify-content: center;
   font-size: .85rem;
+  box-shadow: rgba(36, 42, 49, 0.5);
 }
 
 /* estreito e alto, só para o número */
@@ -148,6 +153,7 @@ body {
   border-radius: .25rem;
   font-size: 1.2rem;
   margin-left: -2px;
+  box-shadow: rgba(36, 42, 49, 0.5) 0 0 5px;
 }
 
 /* estilo base do “btn-undo-simple” */
