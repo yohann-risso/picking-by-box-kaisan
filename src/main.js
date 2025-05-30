@@ -101,121 +101,99 @@ async function verificarRomaneioEmUso(romaneio) {
   return { emUso: false };
 }
 
-async function gerarPdfResumo() {
-  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-  const margin = 10;
-  const pageWidth = doc.internal.pageSize.getWidth();
+function gerarPdfResumo() {
+  const operadorLogado = operador || "Desconhecido";
+  const romaneioAtivo = romaneio || "Não informado";
+  const dataHoraAtual = new Date().toLocaleString("pt-BR");
 
-  // Cabeçalho
-  doc.setFillColor(0, 0, 0);
-  doc.setTextColor(255);
-  doc.rect(margin, margin, pageWidth - 2 * margin, 10, "F");
-  doc.text("RESUMO DE BOXES", pageWidth / 2, margin + 7, { align: "center" });
+  const boxList = Object.entries(caixas)
+    .filter(([_, info]) => info?.box && info.total > 0)
+    .map(([_, info]) => ({
+      box: info.box,
+      total: info.total,
+      status: info.pesado
+        ? "Pesado"
+        : info.bipado >= info.total
+        ? "Completo"
+        : "Incompleto",
+    }));
 
-  doc.setTextColor(0);
-  doc.setFontSize(10);
-  doc.text(`ROMANEIO: ${romaneio}`, margin, margin + 16);
-  doc.text(
-    `DATA: ${new Date().toLocaleDateString()}`,
-    pageWidth - margin - 30,
-    margin + 16
-  );
+  if (boxList.length === 0) {
+    return alert("Nenhum box encontrado para impressão.");
+  }
 
-  const { data: pedidosData } = await supabase
-    .from("pedidos")
-    .select("id, cliente")
-    .eq("romaneio", romaneio);
-
-  const clienteMap = {};
-  pedidosData.forEach((p) => (clienteMap[p.id] = p.cliente || "-"));
-
-  const body = [];
-
-  Object.entries(caixas)
-    .slice(0, 50)
-    .forEach(([pedido, info]) => {
-      const cliente = clienteMap[pedido] || "-";
-      const qtde = info.total || 0;
-      const bipado = info.bipado || 0;
-
-      let status = "Incompleto";
-      let color = "red";
-
-      if (info.pesado) {
-        status = "Pesado";
-        color = "blue";
-      } else if (bipado >= qtde && qtde > 0) {
-        status = "Completo";
-        color = "green";
-      }
-
-      body.push([
-        pedido,
-        cliente,
-        `${bipado}`,
-        `${qtde}`,
-        { content: status, styles: { textColor: color } },
-      ]);
-    });
-
-  autoTable(doc, {
-    startY: margin + 20,
-    head: [["Pedido", "Cliente", "Qtde bipada", "Qtde total", "Status"]],
-    body,
-    styles: { fontSize: 9 },
-    headStyles: { fillColor: [0, 0, 0], textColor: 255, halign: "center" },
-    columnStyles: {
-      0: { cellWidth: 35 },
-      1: { cellWidth: 50 },
-      2: { cellWidth: 25, halign: "center" },
-      3: { cellWidth: 25, halign: "center" },
-      4: { cellWidth: 40, halign: "center" },
-    },
+  const agrupado = {};
+  boxList.forEach(({ box, total, status }) => {
+    agrupado[box] = { total, status };
   });
 
-  // Página 2 – Pendentes
-  doc.addPage("a4", "portrait");
-  doc.setFontSize(14);
-  doc.text("Relatório de NL", pageWidth / 2, margin, { align: "center" });
+  const ordenados = Object.entries(agrupado)
+    .sort((a, b) => Number(a[0]) - Number(b[0]))
+    .slice(0, 50);
 
-  const pedidosMap = {};
-  pendentes.forEach((p) => {
-    const cliente = clienteMap[p.pedido] || "-";
-    const linha = [p.pedido, cliente, p.descricao || "-", p.sku, p.qtd, "", ""];
-    if (!pedidosMap[p.pedido]) pedidosMap[p.pedido] = [];
-    pedidosMap[p.pedido].push(linha);
-  });
+  let linhas = "";
+  for (let i = 0; i < 50; i += 5) {
+    for (let j = 0; j < 5; j++) {
+      const box1 = ordenados[i + j];
+      const box2 = ordenados[i + 25 + j];
 
-  const linhasNL = Object.values(pedidosMap).flat();
+      const col1 = box1
+        ? `<td>${box1[0]}</td><td>${box1[1].total}</td><td>${box1[1].status}</td>`
+        : "<td></td><td></td><td></td>";
 
-  autoTable(doc, {
-    head: [
-      [
-        "Pedido",
-        "Cliente",
-        "Desc. Produto",
-        "SKU",
-        "Qtde.",
-        "Completo",
-        "Finalizando",
-      ],
-    ],
-    body: linhasNL,
-    startY: margin + 5,
-    styles: { fontSize: 8 },
-    headStyles: { fillColor: [0, 0, 0], textColor: 255, halign: "center" },
-    columnStyles: {
-      0: { cellWidth: 30 },
-      1: { cellWidth: 40 },
-      2: { cellWidth: 85 },
-      3: { cellWidth: 25 },
-      4: { cellWidth: 10 },
-      5: { cellWidth: 20 },
-      6: { cellWidth: 20 },
-    },
-  });
+      const col2 = box2
+        ? `<td>${box2[0]}</td><td>${box2[1].total}</td><td>${box2[1].status}</td>`
+        : "<td></td><td></td><td></td>";
 
-  doc.save(`romaneio_${romaneio}_resumo.pdf`);
+      linhas += `<tr>${col1}${col2}</tr>`;
+    }
+    linhas += `<tr style="height: 10px;"><td colspan="6"></td></tr>`;
+  }
+
+  const html = `
+    <html>
+      <head>
+        <title>Resumo de Boxes</title>
+        <style>
+          body { font-family: sans-serif; padding: 20px; }
+          h2 { margin-bottom: 10px; }
+          .info { margin-bottom: 16px; }
+          table { width: 100%; border-collapse: collapse; font-size: 12px; page-break-inside: avoid; }
+          th, td { border: 1px solid #ccc; padding: 6px; text-align: center; }
+          th { background-color: #000; color: white; }
+          @media print {
+            tr { page-break-inside: avoid; }
+          }
+        </style>
+      </head>
+      <body>
+        <h2>Resumo de Boxes</h2>
+        <div class="info">
+          <strong>Operador:</strong> ${operadorLogado}<br/>
+          <strong>Romaneio:</strong> ${romaneioAtivo}<br/>
+          <strong>Data:</strong> ${dataHoraAtual}
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Box</th><th>Qtd. Total</th><th>Status</th>
+              <th>Box</th><th>Qtd. Total</th><th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${linhas}
+          </tbody>
+        </table>
+        <script>window.onload = () => { window.print(); window.close(); }</script>
+      </body>
+    </html>
+  `;
+
+  const win = window.open("", "_blank");
+  if (win) {
+    win.document.write(html);
+    win.document.close();
+  }
 }
 
 function toggleBoxes() {
@@ -1100,48 +1078,50 @@ document.getElementById("btnPrintBoxes")?.addEventListener("click", () => {
     return alert("Nenhum box encontrado para impressão.");
   }
 
-  // Agrupar por número do box
   const agrupado = {};
   boxList.forEach(({ box, total, status }) => {
-    if (!agrupado[box]) {
-      agrupado[box] = { total: 0, status };
-    }
-    agrupado[box].total += total;
+    agrupado[box] = { total, status };
   });
 
-  const boxesOrdenados = Object.entries(agrupado)
-    .sort((a, b) => a[0] - b[0])
-    .slice(0, 50); // garantir no máximo 50
+  const ordenados = Object.entries(agrupado)
+    .sort((a, b) => Number(a[0]) - Number(b[0]))
+    .slice(0, 50);
 
-  // Separar em colunas lado a lado (5 linhas cada)
-  let linhas = "";
+  // Quebra a cada 5 boxes
+  const linhas = [];
   for (let i = 0; i < 50; i += 5) {
-    const colEsq = boxesOrdenados.slice(i, i + 5);
-    const colDir = boxesOrdenados.slice(i + 25, i + 30); // 25 boxes à frente
-
     for (let j = 0; j < 5; j++) {
-      const linhaEsq = colEsq[j]
-        ? `<td>${colEsq[j][0]}</td><td>${colEsq[j][1].total}</td><td>${colEsq[j][1].status}</td>`
+      const box1 = ordenados[i + j];
+      const box2 = ordenados[i + 25 + j];
+
+      const col1 = box1
+        ? `<td>${box1[0]}</td><td>${box1[1].total}</td><td>${box1[1].status}</td>`
         : "<td></td><td></td><td></td>";
 
-      const linhaDir = colDir[j]
-        ? `<td>${colDir[j][0]}</td><td>${colDir[j][1].total}</td><td>${colDir[j][1].status}</td>`
+      const col2 = box2
+        ? `<td>${box2[0]}</td><td>${box2[1].total}</td><td>${box2[1].status}</td>`
         : "<td></td><td></td><td></td>";
 
-      linhas += `<tr>${linhaEsq}${linhaDir}</tr>`;
+      linhas.push(`<tr>${col1}${col2}</tr>`);
     }
+    // quebra visual após cada bloco de 5
+    linhas.push(`<tr style="height: 10px;"><td colspan="6"></td></tr>`);
   }
 
-  const htmlImpressao = `
+  const html = `
     <html>
       <head>
         <title>Resumo de Boxes</title>
         <style>
           body { font-family: sans-serif; padding: 20px; }
+          h2 { margin-bottom: 10px; }
           .info { margin-bottom: 16px; }
-          table { width: 100%; border-collapse: collapse; font-size: 12px; }
+          table { width: 100%; border-collapse: collapse; font-size: 12px; page-break-inside: avoid; }
           th, td { border: 1px solid #ccc; padding: 6px; text-align: center; }
           th { background-color: #000; color: white; }
+          @media print {
+            tr { page-break-inside: avoid; }
+          }
         </style>
       </head>
       <body>
@@ -1159,19 +1139,17 @@ document.getElementById("btnPrintBoxes")?.addEventListener("click", () => {
             </tr>
           </thead>
           <tbody>
-            ${linhas}
+            ${linhas.join("")}
           </tbody>
         </table>
-        <script>
-          window.onload = () => { window.print(); window.close(); }
-        </script>
+        <script>window.onload = () => { window.print(); window.close(); }</script>
       </body>
     </html>
   `;
 
   const win = window.open("", "_blank");
   if (win) {
-    win.document.write(htmlImpressao);
+    win.document.write(html);
     win.document.close();
   }
 });
