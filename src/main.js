@@ -336,15 +336,15 @@ function renderPendentes() {
   lista.innerHTML = "";
 
   const agrupados = {};
-  pendentes.forEach(({ sku, qtd, endereco }) => {
+  pendentes.forEach(({ sku, qtd, endereco, pedido }) => {
     const key = sku || "SEM SKU";
-    const raw = endereco || "SEM LOCAL";
-    const loc = raw.split(/\s*•\s*/)[0].trim();
-    const agrupamento = `${key}|${loc}`;
-    if (!agrupados[agrupamento]) {
-      agrupados[agrupamento] = { sku: key, qtd: 0, endereco: loc };
+    const loc = (endereco || "SEM LOCAL").split(/\s*•\s*/)[0].trim();
+    const agrupaKey = `${key}|${loc}|${pedido}`;
+
+    if (!agrupados[agrupaKey]) {
+      agrupados[agrupaKey] = { sku: key, qtd: 0, endereco: loc, pedido };
     }
-    agrupados[agrupamento].qtd += qtd;
+    agrupados[agrupaKey].qtd += qtd;
   });
 
   const listaOrdenada = Object.values(agrupados).sort((a, b) => {
@@ -359,14 +359,15 @@ function renderPendentes() {
     return a.sku.localeCompare(b.sku);
   });
 
-  // Cria tabela Bootstrap
+  // Cria a tabela Bootstrap com novo cabeçalho
   const table = document.createElement("table");
   table.className = "table table-bordered table-sm align-middle mb-0";
   table.innerHTML = `
     <thead class="table-light">
       <tr>
         <th>SKU</th>
-        <th>Qtde</th>
+        <th>Qtde.</th>
+        <th>Pedido</th>
         <th>Endereço</th>
       </tr>
     </thead>
@@ -374,11 +375,13 @@ function renderPendentes() {
   `;
 
   const tbody = table.querySelector("tbody");
+
   listaOrdenada.forEach((item) => {
     const row = document.createElement("tr");
     row.innerHTML = `
       <td>${item.sku}</td>
       <td><span class="badge bg-dark">${item.qtd}</span></td>
+      <td>${item.pedido}</td>
       <td><span class="badge bg-info text-dark">${item.endereco}</span></td>
     `;
     tbody.appendChild(row);
