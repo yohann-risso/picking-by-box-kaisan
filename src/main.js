@@ -433,17 +433,28 @@ function renderBoxCards() {
       e.preventDefault();
       const pedidos = JSON.parse(btn.dataset.pedidos || "[]");
       const codNfe = btn.dataset.codnfe;
+      const boxNum = btn.dataset.box;
+
+      const boxIncompleta = pedidos.some((pedidoId) => {
+        const info = caixas[pedidoId];
+        return info && info.bipado < info.total;
+      });
+
+      if (boxIncompleta) {
+        const confirmar = confirm(
+          `⚠️ Atenção!\n\nEsta box (${boxNum}) ainda não está completamente bipada.\n\nDeseja pesar assim mesmo?`
+        );
+        if (!confirmar) return;
+      }
 
       const url = `https://ge.kaisan.com.br/index2.php?page=meta/view&id_view=nfe_pedido_conf&acao_view=cadastra&cod_del=${codNfe}&where=cod_nfe_pedido=${codNfe}#prodweightsomaproduto`;
       window.open(url, "_blank");
 
-      // Depois que ele abriu a página da balança, troca o status para pesado:
       pedidos.forEach((pedidoId) => {
         if (!caixas[pedidoId]) return;
         caixas[pedidoId].pesado = true;
       });
 
-      // Persiste no localStorage e atualiza tela
       localStorage.setItem(`caixas-${romaneio}`, JSON.stringify(caixas));
       renderBoxCards();
     });
