@@ -984,7 +984,7 @@ document.getElementById("btnPrintPendentes")?.addEventListener("click", () => {
     document.getElementById("romaneioInput")?.value || "Não informado";
   const dataHoraAtual = new Date().toLocaleString("pt-BR");
 
-  // Filtra apenas os que têm ao menos um endereço válido
+  // Filtra pendentes com pelo menos um endereço válido
   const comEndereco = pendentes.filter((p) => {
     const enderecos = (p.endereco || "").split("•").map((e) => e.trim());
     return enderecos.some((e) => e && e.toUpperCase() !== "SEM LOCAL");
@@ -994,17 +994,35 @@ document.getElementById("btnPrintPendentes")?.addEventListener("click", () => {
     return alert("Nenhum pendente com endereço válido encontrado.");
   }
 
-  // Agrupar por SKU
+  // Agrupar por SKU: somar qtds e armazenar endereços únicos
   const agrupado = {};
-  comEndereco.forEach(({ sku, qtd }) => {
-    if (!agrupado[sku]) agrupado[sku] = 0;
-    agrupado[sku] += qtd;
+  comEndereco.forEach(({ sku, qtd, endereco }) => {
+    if (!agrupado[sku]) {
+      agrupado[sku] = { qtd: 0, enderecos: new Set() };
+    }
+    agrupado[sku].qtd += qtd;
+
+    const enderecos = (endereco || "")
+      .split("•")
+      .map((e) => e.trim())
+      .filter((e) => e && e.toUpperCase() !== "SEM LOCAL");
+
+    enderecos.forEach((e) => agrupado[sku].enderecos.add(e));
   });
 
+  // Gerar linhas da tabela
   const linhas = Object.entries(agrupado)
-    .map(([sku, qtd]) => `<tr><td>${sku}</td><td>${qtd}</td></tr>`)
+    .map(([sku, { qtd, enderecos }]) => {
+      const listaEnderecos = Array.from(enderecos).join(" • ");
+      return `<tr>
+                <td>${sku}</td>
+                <td>${qtd}</td>
+                <td>${listaEnderecos}</td>
+              </tr>`;
+    })
     .join("");
 
+  // HTML de impressão
   const htmlImpressao = `
     <html>
       <head>
@@ -1014,7 +1032,7 @@ document.getElementById("btnPrintPendentes")?.addEventListener("click", () => {
           h2, h4 { margin-bottom: 8px; }
           .info { margin-bottom: 16px; }
           table { width: 100%; border-collapse: collapse; }
-          th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+          th, td { border: 1px solid #ccc; padding: 8px; text-align: left; vertical-align: top; }
           th { background-color: #f5f5f5; }
         </style>
       </head>
@@ -1030,6 +1048,7 @@ document.getElementById("btnPrintPendentes")?.addEventListener("click", () => {
             <tr>
               <th>SKU</th>
               <th>Quantidade</th>
+              <th>Endereço(s)</th>
             </tr>
           </thead>
           <tbody>
