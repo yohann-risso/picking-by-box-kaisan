@@ -266,12 +266,16 @@ body {
   color: white;
   border: none;
   font-weight: bold;
+  padding: 6px 12px;
+  border-radius: 6px;
   cursor: default;
 }
 .btn-pesado:hover {
   background-color: #0d6efd;
+  color: white;
   text-decoration: none;
 }
+
 
 
 /* se você está usando IDs #colInputs e #colBoxes do Bootstrap */

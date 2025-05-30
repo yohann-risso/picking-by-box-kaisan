@@ -985,6 +985,10 @@ document
   });
 
 document.getElementById("btnPrintPendentes")?.addEventListener("click", () => {
+  const operadorLogado = operador || "Desconhecido";
+  const romaneioAtivo = romaneio || "Não informado";
+  const dataHoraAtual = new Date().toLocaleString("pt-BR");
+
   // ✅ LOG 1: verificar se pendentes estão carregados corretamente
   console.log("📦 PENDENTES ORIGINAIS:", pendentes);
 
