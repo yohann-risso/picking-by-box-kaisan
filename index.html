@@ -74,37 +74,22 @@
               </div>
             </div>
 
-            <div class="col-auto ms-auto">
-              <button
-                id="btnToggleBoxes"
-                class="btn btn-outline-secondary"
-                title="Mostrar ou ocultar boxes"
-              >
-                <i class="bi bi-grid-3x3-gap"></i> Mostrar Boxes
-              </button>
-              <button
-                id="btnGerarPdf"
-                class="btn btn-outline-primary ms-2"
-                title="Gerar PDF"
-              >
-                <i class="bi bi-printer"></i> PDF
-              </button>
-              <button
-                id="btnLimparRomaneio"
-                class="btn btn-warning"
-                title="Limpar bipagem"
-              >
-                <i class="bi bi-trash"></i> Limpar
-              </button>
-              <button
-                id="btnFinalizar"
-                class="btn btn-outline-danger ms-2"
-                title="Finalizar romaneio"
-              >
-                <i class="bi bi-flag-fill"></i> Finalizar
-              </button>
+            <div class="col-12 mt-3">
+              <div class="d-flex justify-content-center flex-wrap gap-2">
+                <button id="btnToggleBoxes" class="btn btn-outline-secondary">
+                  <i class="bi bi-grid-3x3-gap"></i> Mostrar Boxes
+                </button>
+                <button id="btnGerarPdf" class="btn btn-outline-primary">
+                  <i class="bi bi-printer"></i> PDF
+                </button>
+                <button id="btnLimparRomaneio" class="btn btn-warning">
+                  <i class="bi bi-trash"></i> Limpar
+                </button>
+                <button id="btnFinalizar" class="btn btn-outline-danger">
+                  <i class="bi bi-flag-fill"></i> Finalizar
+                </button>
+              </div>
             </div>
-          </div>
 
           <div id="feedback" class="mb-3 fw-bold"></div>
           <div class="progress my-3" style="height: 25px;">
@@ -143,7 +128,7 @@
           <div id="boxContainer" class="d-flex flex-wrap gap-2"></div>
         </div>
       </div>
-    </div>
+
 
     <!-- Botão flutuante com ícone do Bootstrap -->
     <div id="btnCronometroFloating" title="Abrir Cronômetro">
