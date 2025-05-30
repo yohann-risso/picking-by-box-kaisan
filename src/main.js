@@ -1002,7 +1002,7 @@ document.getElementById("btnPrintPendentes")?.addEventListener("click", () => {
       sku: p.sku,
       qtd: p.qtd,
       endereco: p.endereco,
-      enderecoTipo: typeof p.endereco
+      enderecoTipo: typeof p.endereco,
     });
   });
 
@@ -1010,16 +1010,17 @@ document.getElementById("btnPrintPendentes")?.addEventListener("click", () => {
   const comEndereco = pendentes.filter((p) => {
     if (!p.endereco) return false;
 
-    let enderecos = [];
+    let primeiroEndereco = "";
 
     if (typeof p.endereco === "string") {
-      enderecos = p.endereco.split("•").map(e => e.trim());
+      primeiroEndereco = p.endereco.split("•")[0]?.trim();
     } else if (Array.isArray(p.endereco)) {
-      enderecos = p.endereco.map(e => String(e).trim());
+      primeiroEndereco = String(p.endereco[0]).trim();
     } else if (typeof p.endereco === "object") {
-      enderecos = Object.values(p.endereco).map(e => String(e).trim());
+      primeiroEndereco = String(Object.values(p.endereco)[0]).trim();
     }
-    return enderecos.some((e) => e && e.toUpperCase() !== "SEM LOCAL");
+
+    return primeiroEndereco && primeiroEndereco.toUpperCase() !== "SEM LOCAL";
   });
 
   // ✅ LOG 3: resultado do filtro
