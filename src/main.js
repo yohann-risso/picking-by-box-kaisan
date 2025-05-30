@@ -397,15 +397,15 @@ function renderBoxCards() {
 
       // Define conteúdo do botão de acordo com o status
       const botaoClasse = isPesado
-        ? `btn-undo-simple btn-pesado ${solid}`
-        : `btn-undo-simple btn-pesar ${solid}`;
+        ? `btn-undo-simple btn-pesado btn-sem-borda ${solid}`
+        : `btn-undo-simple btn-pesar btn-sem-borda ${solid}`;
 
       const botaoHtml = isPesado
-        ? `<button class="${botaoClasse}" disabled tabindex="0">
+        ? `<button class="${botaoClasse}" style="border: none; box-shadow: none;" disabled tabindex="0">
             <i class="bi bi-check-circle-fill"></i> PESADO ✅
           </button>`
-        : `<button class="${botaoClasse}" data-box="${boxNum}" data-codnfe="${codNfe}"
-            data-pedidos='${JSON.stringify(pedidos)}' tabindex="0">
+        : `<button class="${botaoClasse}" style="border: none; box-shadow: none;" 
+            data-box="${boxNum}" data-codnfe="${codNfe}" data-pedidos='${JSON.stringify(pedidos)}' tabindex="0">
             <i class="bi bi-balance-scale"></i> PESAR PEDIDO
           </button>`;
 
