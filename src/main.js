@@ -253,16 +253,25 @@ function toggleBoxes() {
 
   if (!boxArea || !inputArea || !btnToggle) return;
 
-  if (boxArea.classList.contains("d-none")) {
+  const isHidden = boxArea.classList.contains("d-none");
+
+  if (isHidden) {
+    // Mostrar os boxes
     boxArea.classList.remove("d-none");
+    boxArea.classList.add("col-md-8");
+
     inputArea.classList.remove("col-12");
     inputArea.classList.add("col-md-4");
-    boxArea.classList.add("col-md-8");
+
     btnToggle.textContent = "Ocultar Boxes";
   } else {
+    // Ocultar os boxes
     boxArea.classList.add("d-none");
+    boxArea.classList.remove("col-md-8");
+
     inputArea.classList.remove("col-md-4");
     inputArea.classList.add("col-12");
+
     btnToggle.textContent = "Mostrar Boxes";
   }
 }
@@ -370,10 +379,10 @@ function renderBoxCards() {
 
       // Define conteúdo do botão de acordo com o status
       const botaoHtml = isPesado
-      ? `<button class="btn-undo-simple btn-pesado" disabled tabindex="0">
+        ? `<button class="btn-undo-simple btn-pesado" disabled tabindex="0">
           <i class="bi bi-check-circle-fill"></i> PESADO ✅
         </button>`
-      : `<button
+        : `<button
           class="btn-undo-simple btn-transparent btn-pesar"
           data-box="${boxNum}"
           data-pedidos='${JSON.stringify(pedidos)}'
@@ -447,7 +456,6 @@ function renderBoxCards() {
       }
     });
   });
-
 }
 
 function renderHistorico() {
