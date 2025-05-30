@@ -260,7 +260,7 @@ function renderBoxCards() {
             class="btn-undo-simple btn-transparent"
             title="Pesar pedido"
             onclick="window.open(
-              'https://ge.kaisan.com.br/index2.php?page=meta/view&id_view=nfe_pedido_conf&acao_view=cadastra&cod_del=${codNfe}&where=cod_nfe_pedido=${pedidoRef}',
+              'https://ge.kaisan.com.br/index2.php?page=meta/view&id_view=nfe_pedido_conf&acao_view=cadastra&cod_del=${codNfe}&where=cod_nfe_pedido=${codNfe}',
               '_blank'
             )"
           >
