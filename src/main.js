@@ -1108,7 +1108,7 @@ document.getElementById("btnPrintBoxes")?.addEventListener("click", () => {
 
   const boxList = Object.entries(caixas)
     .filter(([_, info]) => info?.box && info.total > 0)
-    .map(([pedido, info]) => ({
+    .map(([_, info]) => ({
       box: info.box,
       total: info.total,
       bipado: info.bipado,
@@ -1150,6 +1150,11 @@ document.getElementById("btnPrintBoxes")?.addEventListener("click", () => {
       : "<td></td><td></td><td></td>";
 
     linhas += `<tr>${col1}<td class="spacer"></td>${col2}</tr>`;
+
+    // Quebra visual a cada 5 linhas
+    if ((i + 1) % 5 === 0) {
+      linhas += `<tr style="height:10px;"><td colspan="7" style="border:none;"></td></tr>`;
+    }
   }
 
   const html = `
@@ -1157,13 +1162,17 @@ document.getElementById("btnPrintBoxes")?.addEventListener("click", () => {
       <head>
         <title>Resumo de Boxes</title>
         <style>
-          body { font-family: sans-serif; padding: 20px; }
+          body { font-family: sans-serif; padding: 20px; margin: 0; }
           .info { margin-bottom: 16px; }
           h2 { margin-bottom: 12px; }
           table { width: 100%; border-collapse: collapse; font-size: 12px; }
           th, td { border: 1px solid #ccc; padding: 6px; text-align: center; }
           th { background-color: #000; color: white; font-weight: bold; }
-          td.spacer { border: none; width: 24px; }
+          td.spacer { border: none; width: 20px; }
+          @media print {
+            body { margin: 0; }
+            tr { page-break-inside: avoid; }
+          }
         </style>
       </head>
       <body>
@@ -1185,9 +1194,7 @@ document.getElementById("btnPrintBoxes")?.addEventListener("click", () => {
             ${linhas}
           </tbody>
         </table>
-        <script>
-          window.onload = () => { window.print(); window.close(); }
-        </script>
+        <script>window.onload = () => { window.print(); window.close(); }</script>
       </body>
     </html>
   `;
@@ -1198,6 +1205,7 @@ document.getElementById("btnPrintBoxes")?.addEventListener("click", () => {
     win.document.close();
   }
 });
+
 
 function renderProductMap() {
   const gallery = document.getElementById("productGallery");
