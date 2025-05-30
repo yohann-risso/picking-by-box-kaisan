@@ -106,6 +106,7 @@ async function gerarPdfResumo() {
   const romaneioAtivo = romaneio || "Não informado";
   const dataHoraAtual = new Date().toLocaleString("pt-BR");
 
+  // Mapeia pedidos com box válida
   const boxList = Object.entries(caixas)
     .filter(([_, info]) => info?.box && info.total > 0)
     .map(([pedido, info]) => ({
@@ -121,15 +122,11 @@ async function gerarPdfResumo() {
     }));
 
   const ordenados = boxList
-    .sort((a, b) => {
-      if (!a.box && b.box) return 1;
-      if (!b.box && a.box) return -1;
-      return Number(a.box) - Number(b.box);
-    })
+    .sort((a, b) => Number(a.box) - Number(b.box))
     .slice(0, 50);
 
-  const colEsq = boxList.slice(0, 25);
-  const colDir = boxList.slice(25, 50);
+  const colEsq = ordenados.slice(0, 25);
+  const colDir = ordenados.slice(25, 50);
 
   let boxRows = "";
   for (let i = 0; i < 25; i++) {
@@ -137,17 +134,17 @@ async function gerarPdfResumo() {
     const b2 = colDir[i];
 
     const col1 = b1
-      ? `<td><strong style="color:white;">${b1.box}</strong></td><td><strong>${b1.bipado}/${b1.total}</strong></td><td>${b1.status}</td>`
+      ? `<td><strong>${b1.pedido}</strong></td><td><strong>${b1.bipado}/${b1.total}</strong></td><td>${b1.status}</td>`
       : "<td></td><td></td><td></td>";
 
     const col2 = b2
-      ? `<td><strong style="color:white;">${b2.box}</strong></td><td><strong>${b2.bipado}/${b2.total}</strong></td><td>${b2.status}</td>`
+      ? `<td><strong>${b2.pedido}</strong></td><td><strong>${b2.bipado}/${b2.total}</strong></td><td>${b2.status}</td>`
       : "<td></td><td></td><td></td>";
 
     boxRows += `<tr>${col1}<td class="spacer"></td>${col2}</tr>`;
   }
 
-  // Relatório de NL
+  // Mapeia clientes dos pedidos
   const { data: pedidosData } = await supabase
     .from("pedidos")
     .select("id, cliente")
@@ -158,6 +155,7 @@ async function gerarPdfResumo() {
     clienteMap[p.id] = p.cliente || "-";
   });
 
+  // Gera tabela de NL
   const pedidosMap = {};
   pendentes.forEach((p) => {
     const cliente = clienteMap[p.pedido] || "-";
@@ -177,7 +175,7 @@ async function gerarPdfResumo() {
 
   const linhasNL = Object.values(pedidosMap).flat().join("");
 
-  // HTML
+  // HTML final
   const html = `
     <html>
       <head>
@@ -204,9 +202,9 @@ async function gerarPdfResumo() {
         <table>
           <thead>
             <tr>
-              <th>Box</th><th>Qtd.</th><th>Status</th>
+              <th>Pedido</th><th>Qtd.</th><th>Status</th>
               <td class="spacer"></td>
-              <th>Box</th><th>Qtd.</th><th>Status</th>
+              <th>Pedido</th><th>Qtd.</th><th>Status</th>
             </tr>
           </thead>
           <tbody>
@@ -448,7 +446,6 @@ function renderBoxCards() {
       }
     });
   });
-
 }
 
 function renderHistorico() {
@@ -957,8 +954,16 @@ document.getElementById("btnFinalizar").addEventListener("click", async () => {
 
   await supabase.from("romaneios_em_uso").delete().eq("romaneio", romaneio);
 
+  // Limpeza do localStorage
   localStorage.removeItem(`historico-${romaneio}`);
   localStorage.removeItem(`caixas-${romaneio}`);
+  localStorage.removeItem(`pendentes-${romaneio}`);
+
+  // Reset de variáveis e campos
+  caixas = {};
+  historico = [];
+  pendentes = [];
+  romaneio = "";
 
   document.getElementById("romaneioInput").value = "";
   document.getElementById("romaneioInput").disabled = false;
@@ -968,14 +973,11 @@ document.getElementById("btnFinalizar").addEventListener("click", async () => {
   document.getElementById("cardAtual").innerHTML = "";
   document.getElementById("boxContainer").innerHTML = "";
   document.getElementById("listaHistorico").innerHTML = "";
+  document.getElementById("listaPendentes").innerHTML = "";
   document.getElementById("feedback").innerHTML = "";
 
-  caixas = {};
-  historico = [];
-  romaneio = "";
   renderProgressoConferencia();
 });
-
 document
   .getElementById("btnLimparRomaneio")
   .addEventListener("click", async () => {
