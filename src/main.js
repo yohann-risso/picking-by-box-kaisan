@@ -489,7 +489,7 @@ function renderPendentes() {
   const table = document.createElement("table");
   table.className = "table table-bordered table-sm align-middle mb-0";
   table.innerHTML = `
-    <thead class="table-light">
+    <thead class="table-light" style="text-align: center">
       <tr>
         <th>SKU</th>
         <th>Qtde.</th>
