@@ -364,7 +364,10 @@ function renderBoxCards() {
       const { bipado, total, pedidos, codNfes } = agrupado[boxNum];
       const pedidoRef = pedidos[0];
       const codNfe = codNfes[0] || "";
-      const isPesado = pedidos.every((p) => caixas[p]?.pesado);
+      const isIncompleto = bipado < total;
+      const status = isPesado
+        ? (isIncompleto ? "Pesado Incompleto" : "Pesado")
+        : (bipado >= total ? "Completo" : "Incompleto");
 
       // Define conteúdo do botão de acordo com o status
       const botaoHtml = isPesado
@@ -381,13 +384,20 @@ function renderBoxCards() {
           </button>`;
 
       let light, solid;
-      if (isPesado) {
+      if (isPesado && bipado < total) {
+        // ⚠️ Pesado incompleto
+        light = "bg-warning-subtle text-dark";
+        solid = "bg-warning text-dark fw-bold";
+      } else if (isPesado) {
+        // ✅ Pesado e completo
         light = "bg-primary-subtle text-dark";
         solid = "bg-primary text-white";
       } else if (bipado >= total) {
+        // 📦 Completo mas não pesado
         light = "bg-success-subtle text-dark";
         solid = "bg-success text-white";
       } else {
+        // 🔴 Incompleto e não pesado
         light = "bg-danger-subtle text-dark";
         solid = "bg-danger text-white";
       }
@@ -403,9 +413,8 @@ function renderBoxCards() {
           <div>
             <span class="badge bg-dark">${bipado}/${total}</span>
           </div>
-          <div class="mt-2">
-            ${botaoHtml}
-          </div>
+          <div class="mt-2">${botaoHtml}</div>
+          <div class="mt-1 small text-muted">${status}</div>
         </div>
       `;
       wrapper.appendChild(infoCard);
@@ -1129,11 +1138,9 @@ document.getElementById("btnPrintBoxes")?.addEventListener("click", () => {
       total: info.total,
       bipado: info.bipado,
       status: info.pesado
-        ? "Pesado"
-        : info.bipado >= info.total
-        ? "Completo"
-        : "Incompleto",
-    }))
+        ? (info.bipado < info.total ? "Pesado Incompleto" : "Pesado")
+        : (info.bipado >= info.total ? "Completo" : "Incompleto"),
+          }))
     .sort((a, b) => a.box - b.box)
     .slice(0, 50);
 
