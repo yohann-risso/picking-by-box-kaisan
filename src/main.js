@@ -101,72 +101,88 @@ async function verificarRomaneioEmUso(romaneio) {
   return { emUso: false };
 }
 
-function gerarPdfResumo() {
+async function gerarPdfResumo() {
   const operadorLogado = operador || "Desconhecido";
   const romaneioAtivo = romaneio || "Não informado";
   const dataHoraAtual = new Date().toLocaleString("pt-BR");
 
-  const boxList = Object.entries(caixas)
-    .filter(([_, info]) => info?.box && info.total > 0)
-    .map(([_, info]) => ({
-      box: info.box,
-      total: info.total,
-      status: info.pesado
+  // BOXES
+  const boxTableRows = Object.entries(caixas)
+    .sort((a, b) => {
+      const boxA = caixas[a[0]].box ?? 0;
+      const boxB = caixas[b[0]].box ?? 0;
+      return boxA - boxB;
+    })
+    .slice(0, 50)
+    .map(([pedido, info]) => {
+      const box = info.box ?? "-";
+      const bipado = info.bipado ?? 0;
+      const total = info.total ?? 0;
+      const status = info.pesado
         ? "Pesado"
-        : info.bipado >= info.total
+        : bipado >= total
         ? "Completo"
-        : "Incompleto",
-    }));
+        : "Incompleto";
 
-  if (boxList.length === 0) {
-    return alert("Nenhum box encontrado para impressão.");
-  }
+      return `
+        <tr>
+          <td>${box}</td>
+          <td>${pedido}</td>
+          <td>${bipado}</td>
+          <td>${total}</td>
+          <td>${status}</td>
+        </tr>`;
+    })
+    .join("");
 
-  const agrupado = {};
-  boxList.forEach(({ box, total, status }) => {
-    agrupado[box] = { total, status };
+  // PENDENTES
+  const { data: pedidosData } = await supabase
+    .from("pedidos")
+    .select("id, cliente")
+    .eq("romaneio", romaneio);
+
+  const clienteMap = {};
+  pedidosData?.forEach((p) => {
+    clienteMap[p.id] = p.cliente || "-";
   });
 
-  const ordenados = Object.entries(agrupado)
-    .sort((a, b) => Number(a[0]) - Number(b[0]))
-    .slice(0, 50);
+  const pedidosMap = {};
+  pendentes.forEach((p) => {
+    const cliente = clienteMap[p.pedido] || "-";
+    const linha = `
+      <tr>
+        <td>${p.pedido}</td>
+        <td>${cliente}</td>
+        <td>${p.descricao || "-"}</td>
+        <td>${p.sku}</td>
+        <td>${p.qtd}</td>
+        <td></td>
+        <td></td>
+      </tr>`;
+    if (!pedidosMap[p.pedido]) pedidosMap[p.pedido] = [];
+    pedidosMap[p.pedido].push(linha);
+  });
 
-  let linhas = "";
-  for (let i = 0; i < 50; i += 5) {
-    for (let j = 0; j < 5; j++) {
-      const box1 = ordenados[i + j];
-      const box2 = ordenados[i + 25 + j];
+  const linhasNL = Object.values(pedidosMap).flat().join("");
 
-      const col1 = box1
-        ? `<td>${box1[0]}</td><td>${box1[1].total}</td><td>${box1[1].status}</td>`
-        : "<td></td><td></td><td></td>";
-
-      const col2 = box2
-        ? `<td>${box2[0]}</td><td>${box2[1].total}</td><td>${box2[1].status}</td>`
-        : "<td></td><td></td><td></td>";
-
-      linhas += `<tr>${col1}${col2}</tr>`;
-    }
-    linhas += `<tr style="height: 10px;"><td colspan="6"></td></tr>`;
-  }
-
+  // HTML
   const html = `
     <html>
       <head>
-        <title>Resumo de Boxes</title>
+        <title>Resumo de Boxes e NL</title>
         <style>
           body { font-family: sans-serif; padding: 20px; }
           h2 { margin-bottom: 10px; }
           .info { margin-bottom: 16px; }
-          table { width: 100%; border-collapse: collapse; font-size: 12px; page-break-inside: avoid; }
-          th, td { border: 1px solid #ccc; padding: 6px; text-align: center; }
+          table { width: 100%; border-collapse: collapse; font-size: 11px; page-break-inside: avoid; }
+          th, td { border: 1px solid #ccc; padding: 6px; text-align: left; }
           th { background-color: #000; color: white; }
-          @media print {
-            tr { page-break-inside: avoid; }
-          }
+          .page-break { page-break-before: always; }
+          td.center { text-align: center; }
         </style>
       </head>
       <body>
+        <!-- Página 1: Boxes -->
         <h2>Resumo de Boxes</h2>
         <div class="info">
           <strong>Operador:</strong> ${operadorLogado}<br/>
@@ -176,15 +192,41 @@ function gerarPdfResumo() {
         <table>
           <thead>
             <tr>
-              <th>Box</th><th>Qtd. Total</th><th>Status</th>
-              <th>Box</th><th>Qtd. Total</th><th>Status</th>
+              <th>Box</th>
+              <th>Pedido</th>
+              <th>Qtde. Conferida</th>
+              <th>Qtde. Total</th>
+              <th>Status</th>
             </tr>
           </thead>
           <tbody>
-            ${linhas}
+            ${boxTableRows}
           </tbody>
         </table>
-        <script>window.onload = () => { window.print(); window.close(); }</script>
+
+        <!-- Página 2: Pendentes -->
+        <div class="page-break"></div>
+        <h2>Relatório de NL</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Pedido</th>
+              <th>Cliente</th>
+              <th>Desc. Produto</th>
+              <th>SKU</th>
+              <th>Qtde.</th>
+              <th>Completo</th>
+              <th>Finalizando</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${linhasNL}
+          </tbody>
+        </table>
+
+        <script>
+          window.onload = () => { window.print(); window.close(); }
+        </script>
       </body>
     </html>
   `;
@@ -1087,25 +1129,25 @@ document.getElementById("btnPrintBoxes")?.addEventListener("click", () => {
     .sort((a, b) => Number(a[0]) - Number(b[0]))
     .slice(0, 50);
 
-  // Quebra a cada 5 boxes
-  const linhas = [];
-  for (let i = 0; i < 50; i += 5) {
-    for (let j = 0; j < 5; j++) {
-      const box1 = ordenados[i + j];
-      const box2 = ordenados[i + 25 + j];
+  // Divide as colunas corretamente: esquerda (1–25), direita (26–50)
+  const colEsq = ordenados.slice(0, 25);
+  const colDir = ordenados.slice(25, 50);
 
-      const col1 = box1
-        ? `<td>${box1[0]}</td><td>${box1[1].total}</td><td>${box1[1].status}</td>`
-        : "<td></td><td></td><td></td>";
+  let linhas = "";
 
-      const col2 = box2
-        ? `<td>${box2[0]}</td><td>${box2[1].total}</td><td>${box2[1].status}</td>`
-        : "<td></td><td></td><td></td>";
+  for (let i = 0; i < 25; i++) {
+    const box1 = colEsq[i];
+    const box2 = colDir[i];
 
-      linhas.push(`<tr>${col1}${col2}</tr>`);
-    }
-    // quebra visual após cada bloco de 5
-    linhas.push(`<tr style="height: 10px;"><td colspan="6"></td></tr>`);
+    const col1 = box1
+      ? `<td><strong style="color:white;">${box1[0]}</strong></td><td><strong>${box1[1].total}</strong></td><td>${box1[1].status}</td>`
+      : "<td></td><td></td><td></td>";
+
+    const col2 = box2
+      ? `<td><strong style="color:white;">${box2[0]}</strong></td><td><strong>${box2[1].total}</strong></td><td>${box2[1].status}</td>`
+      : "<td></td><td></td><td></td>";
+
+    linhas += `<tr>${col1}<td class="spacer"></td>${col2}</tr>`;
   }
 
   const html = `
@@ -1118,7 +1160,8 @@ document.getElementById("btnPrintBoxes")?.addEventListener("click", () => {
           .info { margin-bottom: 16px; }
           table { width: 100%; border-collapse: collapse; font-size: 12px; page-break-inside: avoid; }
           th, td { border: 1px solid #ccc; padding: 6px; text-align: center; }
-          th { background-color: #000; color: white; }
+          th { background-color: #000; color: white; font-weight: bold; }
+          td.spacer { border: none; width: 20px; }
           @media print {
             tr { page-break-inside: avoid; }
           }
@@ -1135,14 +1178,17 @@ document.getElementById("btnPrintBoxes")?.addEventListener("click", () => {
           <thead>
             <tr>
               <th>Box</th><th>Qtd. Total</th><th>Status</th>
+              <td class="spacer"></td>
               <th>Box</th><th>Qtd. Total</th><th>Status</th>
             </tr>
           </thead>
           <tbody>
-            ${linhas.join("")}
+            ${linhas}
           </tbody>
         </table>
-        <script>window.onload = () => { window.print(); window.close(); }</script>
+        <script>
+          window.onload = () => { window.print(); window.close(); }
+        </script>
       </body>
     </html>
   `;
