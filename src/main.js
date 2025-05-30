@@ -138,14 +138,14 @@ async function gerarPdfResumo() {
       const qtde = info.total || 0;
       const bipado = info.bipado || 0;
 
-      let status = "❌ Incompleto";
+      let status = "Incompleto";
       let color = "red";
 
       if (info.pesado) {
-        status = "✔️ Pesado";
+        status = "Pesado";
         color = "blue";
       } else if (bipado >= qtde && qtde > 0) {
-        status = "🟩 Completo";
+        status = "Completo";
         color = "green";
       }
 
@@ -998,12 +998,27 @@ document.getElementById("btnPrintPendentes")?.addEventListener("click", () => {
 
   // ✅ LOG 2: verificar conteúdo de cada pendente individual
   pendentes.forEach((p, i) => {
-    console.log(`#${i}`, { sku: p.sku, qtd: p.qtd, endereco: p.endereco });
+    console.log(`📍 Pendente ${i}:`, {
+      sku: p.sku,
+      qtd: p.qtd,
+      endereco: p.endereco,
+      enderecoTipo: typeof p.endereco
+    });
   });
 
   // Filtra pendentes com endereço válido
   const comEndereco = pendentes.filter((p) => {
-    if (!p.endereco || typeof p.endereco !== "string") return false;
+    if (!p.endereco) return false;
+
+    let enderecos = [];
+
+    if (typeof p.endereco === "string") {
+      enderecos = p.endereco.split("•").map(e => e.trim());
+    } else if (Array.isArray(p.endereco)) {
+      enderecos = p.endereco.map(e => String(e).trim());
+    } else if (typeof p.endereco === "object") {
+      enderecos = Object.values(p.endereco).map(e => String(e).trim());
+    }
     const enderecos = p.endereco.split("•").map((e) => e.trim());
     return enderecos.some((e) => e && e.toUpperCase() !== "SEM LOCAL");
   });
@@ -1076,6 +1091,84 @@ document.getElementById("btnPrintPendentes")?.addEventListener("click", () => {
             ${linhas}
           </tbody>
         </table>
+        <script>
+          window.onload = () => { window.print(); window.close(); }
+        </script>
+      </body>
+    </html>
+  `;
+
+  const janela = window.open("", "_blank");
+  if (janela) {
+    janela.document.write(htmlImpressao);
+    janela.document.close();
+  }
+});
+
+document.getElementById("btnPrintBoxes")?.addEventListener("click", () => {
+  const operadorLogado = operador || "Desconhecido";
+  const romaneioAtivo = romaneio || "Não informado";
+  const dataHoraAtual = new Date().toLocaleString("pt-BR");
+
+  const boxList = Object.entries(caixas)
+    .filter(([_, info]) => info?.box && info.total > 0)
+    .map(([pedido, info]) => ({
+      box: info.box,
+      total: info.total,
+    }));
+
+  if (boxList.length === 0) {
+    return alert("Nenhum box encontrado para impressão.");
+  }
+
+  // Agrupa por número da box (soma total de itens por box)
+  const agrupado = {};
+  boxList.forEach(({ box, total }) => {
+    if (!agrupado[box]) agrupado[box] = 0;
+    agrupado[box] += total;
+  });
+
+  const linhas = Object.entries(agrupado)
+    .sort((a, b) => a[0] - b[0])
+    .map(([box, total]) => `<tr><td>${box}</td><td>${total}</td></tr>`);
+
+  // Divide em 2 colunas
+  const metade = Math.ceil(linhas.length / 2);
+  const col1 = linhas.slice(0, metade).join("");
+  const col2 = linhas.slice(metade).join("");
+
+  const htmlImpressao = `
+    <html>
+      <head>
+        <title>Resumo de Boxes</title>
+        <style>
+          body { font-family: sans-serif; padding: 20px; }
+          .info { margin-bottom: 20px; }
+          table { width: 100%; border-collapse: collapse; }
+          th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+          th { background-color: #f0f0f0; }
+          .coluna { width: 48%; display: inline-block; vertical-align: top; }
+        </style>
+      </head>
+      <body>
+        <h2>Resumo de Boxes</h2>
+        <div class="info">
+          <strong>Operador:</strong> ${operadorLogado}<br/>
+          <strong>Romaneio:</strong> ${romaneioAtivo}<br/>
+          <strong>Data:</strong> ${dataHoraAtual}
+        </div>
+        <div class="coluna">
+          <table>
+            <thead><tr><th>Box</th><th>Qtd. Total</th></tr></thead>
+            <tbody>${col1}</tbody>
+          </table>
+        </div>
+        <div class="coluna" style="float:right;">
+          <table>
+            <thead><tr><th>Box</th><th>Qtd. Total</th></tr></thead>
+            <tbody>${col2}</tbody>
+          </table>
+        </div>
         <script>
           window.onload = () => { window.print(); window.close(); }
         </script>
