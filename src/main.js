@@ -375,16 +375,26 @@ function renderBoxCards() {
         : "Incompleto";
 
       // Define conteúdo do botão de acordo com o status
+      const botaoClasse = isPesado
+        ? `btn-undo-simple btn-pesado ${solid}`
+        : `btn-undo-simple btn-pesar ${solid}`;
+      
+      const shadowColor = solid.includes("primary")
+        ? "#0d6efd" // azul
+        : solid.includes("success")
+        ? "#198754" // verde
+        : solid.includes("warning")
+        ? "#ffc107" // amarelo
+        : solid.includes("danger")
+        ? "#dc3545" // vermelho
+        : "#6c757d"; // fallback cinza  
+
       const botaoHtml = isPesado
-        ? `<button class="btn-undo-simple btn-pesado" disabled tabindex="0">
+        ? `<button class="${botaoClasse}" disabled tabindex="0">
             <i class="bi bi-check-circle-fill"></i> PESADO ✅
           </button>`
-        : `<button
-            class="btn-undo-simple btn-transparent btn-pesar"
-            data-box="${boxNum}"
-            data-codnfe="${codNfe}"
-            data-pedidos='${JSON.stringify(pedidos)}'
-            tabindex="0">
+        : `<button class="${botaoClasse}" data-box="${boxNum}" data-codnfe="${codNfe}"
+            data-pedidos='${JSON.stringify(pedidos)}' tabindex="0">
             <i class="bi bi-balance-scale"></i> PESAR PEDIDO
           </button>`;
 
@@ -408,8 +418,9 @@ function renderBoxCards() {
       }
 
       const wrapper = document.createElement("div");
-      wrapper.className = "card-produto"; // mesma estrutura do produto
-
+      wrapper.className = "card-produto";
+      wrapper.style.boxShadow = `0 0 10px 2px ${shadowColor}`;
+      
       const infoCard = document.createElement("div");
       infoCard.className = `card-info ${light}`;
       infoCard.innerHTML = `
@@ -419,7 +430,6 @@ function renderBoxCards() {
             <span class="badge bg-dark">${bipado}/${total}</span>
           </div>
           <div class="mt-2">${botaoHtml}</div>
-          <div class="mt-1 small text-muted">${status}</div>
         </div>
       `;
       wrapper.appendChild(infoCard);
