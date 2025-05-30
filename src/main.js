@@ -370,21 +370,16 @@ function renderBoxCards() {
 
       // Define conteúdo do botão de acordo com o status
       const botaoHtml = isPesado
-        ? `
-          <button class="btn-undo-simple btn-pesado" disabled tabindex="0">
+        ? `<button class="btn-undo-simple btn-pesado" disabled tabindex="0">
             <i class="bi bi-check-circle-fill"></i> PESADO ✅
-          </button>
-        `
-        : `
-          <button
+          </button>`
+        : `<button
             class="btn-undo-simple btn-transparent btn-pesar"
-            data-pedido="${pedidoRef}"
-            data-codnfe="${codNfe}"
-            tabindex="0"
-          >
+            data-box="${boxNum}"
+            data-pedidos='${JSON.stringify(pedidos)}'
+            tabindex="0">
             <i class="bi bi-balance-scale"></i> PESAR PEDIDO
-          </button>
-        `;
+          </button>`;
 
       let light, solid;
       if (isPesado) {
@@ -428,10 +423,21 @@ function renderBoxCards() {
   document.querySelectorAll(".btn-pesar").forEach((btn) => {
     btn.addEventListener("click", (e) => {
       e.preventDefault();
+      const pedidos = JSON.parse(btn.dataset.pedidos || "[]");
       const codNfe = btn.dataset.codnfe;
+
       const url = `https://ge.kaisan.com.br/index2.php?page=meta/view&id_view=nfe_pedido_conf&acao_view=cadastra&cod_del=${codNfe}&where=cod_nfe_pedido=${codNfe}#prodweightsomaproduto`;
       window.open(url, "_blank");
-      btn.focus();
+
+      // Depois que ele abriu a página da balança, troca o status para pesado:
+      pedidos.forEach((pedidoId) => {
+        if (!caixas[pedidoId]) return;
+        caixas[pedidoId].pesado = true;
+      });
+
+      // Persiste no localStorage e atualiza tela
+      localStorage.setItem(`caixas-${romaneio}`, JSON.stringify(caixas));
+      renderBoxCards();
     });
 
     btn.addEventListener("keydown", (e) => {
