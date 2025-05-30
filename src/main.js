@@ -1115,7 +1115,7 @@ document.getElementById("btnPrintBoxes")?.addEventListener("click", () => {
   const boxList = Object.entries(caixas)
     .filter(([_, info]) => info?.box && info.total > 0)
     .map(([_, info]) => ({
-      box: info.box,
+      box: Number(info.box),
       total: info.total,
       bipado: info.bipado,
       status: info.pesado
@@ -1123,20 +1123,13 @@ document.getElementById("btnPrintBoxes")?.addEventListener("click", () => {
         : info.bipado >= info.total
         ? "Completo"
         : "Incompleto",
-    }));
+    }))
+    .sort((a, b) => a.box - b.box)
+    .slice(0, 50);
 
   if (boxList.length === 0) {
     return alert("Nenhum box encontrado para impressão.");
   }
-
-  const agrupado = {};
-  boxList.forEach(({ box, total, bipado, status }) => {
-    agrupado[box] = { total, bipado, status };
-  });
-
-  const ordenados = Object.entries(agrupado)
-    .sort((a, b) => Number(a[0]) - Number(b[0]))
-    .slice(0, 50);
 
   const colEsq = ordenados.slice(0, 25);
   const colDir = ordenados.slice(25, 50);
