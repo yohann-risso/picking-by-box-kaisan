@@ -463,38 +463,36 @@ function renderPendentes() {
   listaOrdenada.forEach(({ sku, qtd, pedido, endereco }) => {
     const enderecos = (endereco || "SEM LOCAL")
       .split(/\s*•\s*/)
-      .map((e) => e.trim())
+      .map(e => e.trim())
       .filter(Boolean);
 
-    const badgeEnderecos = enderecos
-      .map((end) => {
-        let badgeClass = "bg-info text-dark";
-        let badgeIcon = "📦";
+    const primeiro = enderecos[0] || "SEM LOCAL";
+    const tooltip = enderecos.join(" • ");
 
-        if (end === "SEM LOCAL") {
-          badgeClass = "bg-danger";
-          badgeIcon = "❌";
-        } else if (end.toUpperCase() === "PRÉ-VENDA") {
-          badgeClass = "bg-warning text-dark";
-          badgeIcon = "⏳";
-        }
+    let badgeClass = "bg-info text-dark";
+    let badgeIcon = "📦";
 
-        return `<span class="badge ${badgeClass} badge-endereco me-1" title="${end}">${badgeIcon} ${end}</span>`;
-      })
-      .join("");
+    if (primeiro === "SEM LOCAL") {
+      badgeClass = "bg-danger";
+      badgeIcon = "❌";
+    } else if (primeiro.toUpperCase() === "PRÉ-VENDA") {
+      badgeClass = "bg-warning text-dark";
+      badgeIcon = "⏳";
+    }
 
     const row = document.createElement("tr");
     row.innerHTML = `
       <td>${sku || "SEM SKU"}</td>
       <td><span class="badge bg-dark">${qtd}</span></td>
       <td>${pedido || "-"}</td>
-      <td>${badgeEnderecos}</td>
+      <td>
+        <span class="badge ${badgeClass} badge-endereco" title="${tooltip}">
+          ${badgeIcon} ${primeiro}
+        </span>
+      </td>
     `;
     tbody.appendChild(row);
   });
-
-  lista.appendChild(table);
-}
 
 function renderCardProduto(result) {
   const area = document.getElementById("cardAtual");
