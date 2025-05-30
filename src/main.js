@@ -24,12 +24,9 @@ async function gerarPdfResumo() {
   doc.setFillColor(0, 0, 0);
   doc.setTextColor(255);
   doc.rect(margin, margin, pageWidth - margin * 2, 10, "F");
-  doc.text(
-    "CONTROLE DE CONFERÊNCIA DE ROMANEIOS",
-    pageWidth / 2,
-    margin + 7,
-    { align: "center" }
-  );
+  doc.text("CONTROLE DE CONFERÊNCIA DE ROMANEIOS", pageWidth / 2, margin + 7, {
+    align: "center",
+  });
 
   doc.setTextColor(0);
   doc.setFontSize(10);
@@ -150,12 +147,12 @@ function toggleBoxes() {
     inputArea.classList.remove("col-12");
     inputArea.classList.add("col-md-4");
     boxArea.classList.add("col-md-8");
-    btnToggle.textContent = "🔽 Ocultar Boxes";
+    btnToggle.textContent = "Ocultar Boxes";
   } else {
     boxArea.classList.add("d-none");
     inputArea.classList.remove("col-md-4");
     inputArea.classList.add("col-12");
-    btnToggle.textContent = "🔼 Mostrar Boxes";
+    btnToggle.textContent = "Mostrar Boxes";
   }
 }
 
@@ -628,11 +625,13 @@ document.getElementById("btnBipar").addEventListener("click", async () => {
     };
 
     // 6) atualiza o estado de “caixas”
-    caixas[currentProduto.pedido] = {
-      box: currentProduto.box,
-      bipado: 0,
-      total: result.total,
-    };
+    if (!caixas[currentProduto.pedido]) {
+      caixas[currentProduto.pedido] = {
+        box: currentProduto.box,
+        bipado: 0,
+        total: result.total,
+      };
+    }
     caixas[currentProduto.pedido].box = currentProduto.box;
     caixas[currentProduto.pedido].bipado += 1;
 

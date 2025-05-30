@@ -22,7 +22,7 @@ export async function biparProduto(skuOuEan, romaneio) {
     .from("produtos_pedido")
     .select("*")
     .in("pedido_id", pedidoIds)
-    .or(`sku.eq.${skuOuEan},ean.eq.${skuOuEan}`)
+    .or(`sku.ilike.${skuOuEan},ean.eq.${skuOuEan}`)
     .order("pedido_id", { ascending: true });
 
   if (erroProdutos || !produtos || produtos.length === 0) {

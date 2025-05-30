@@ -17,54 +17,86 @@
 
   <body class="p-4">
     <div class="container-fluid">
-      <h1 class="mb-4">📦 Picking by Box</h1>
+      <div class="header-container mb-4 text-center">
+        <img
+          src="https://www.kaisan.com.br/skin/frontend/ultimo/default/images/nova/logo-2020-new.png"
+          alt="Logo"
+          class="app-logo mb-2"
+        />
+        <h1 class="app-title">Picking by Box</h1>
+      </div>
 
       <div class="row">
-        <!-- Coluna 1: Bipagem -->
-        <div id="colInputs" class="col-md-4 col-12">
-          <div class="input-group mb-3">
-            <span class="input-group-text">Romaneio</span>
-            <input
-              type="text"
-              id="romaneioInput"
-              class="form-control"
-              placeholder="Digite o romaneio"
-            />
-            <button id="btnIniciar" class="btn btn-primary">
-              Iniciar Conferência
-            </button>
+        <!-- Coluna 1: Bipagem, histórico e pendentes -->
+        <div id="colInputs" class="col-md-4 col-12 mb-4">
+          <div class="row gx-2 gy-2 align-items-center mb-3">
+            <!-- Romaneio + Iniciar -->
+            <div class="col-auto">
+              <div class="input-group">
+                <span class="input-group-text">Romaneio</span>
+                <input
+                  type="text"
+                  id="romaneioInput"
+                  class="form-control"
+                  placeholder="Digite o romaneio"
+                />
+                <button id="btnIniciar" class="btn btn-primary">
+                  <i class="bi bi-play-fill"></i> Iniciar
+                </button>
+              </div>
+            </div>
+
+            <!-- SKU/EAN + Bipar -->
+            <div class="col-auto">
+              <div class="input-group">
+                <input
+                  type="text"
+                  id="skuInput"
+                  class="form-control"
+                  placeholder="SKU/EAN"
+                />
+                <button id="btnBipar" class="btn btn-success">
+                  <i class="bi bi-check2-all"></i> Bipar
+                </button>
+              </div>
+            </div>
+
+            <!-- Mostrar Boxes + PDF -->
+            <div class="col-auto">
+              <button
+                id="btnToggleBoxes"
+                class="btn btn-outline-secondary"
+                title="Mostrar ou ocultar boxes"
+              >
+                <i class="bi bi-grid-3x3-gap"></i> Mostrar Boxes
+              </button>
+              <button
+                id="btnGerarPdf"
+                class="btn btn-outline-primary ms-2"
+                title="Gerar PDF"
+              >
+                <i class="bi bi-printer"></i> PDF
+              </button>
+            </div>
+
+            <!-- Limpar e Finalizar -->
+            <div class="col-auto ms-auto">
+              <button
+                id="btnLimparRomaneio"
+                class="btn btn-warning"
+                title="Limpar bipagem"
+              >
+                <i class="bi bi-trash"></i> Limpar
+              </button>
+              <button
+                id="btnFinalizar"
+                class="btn btn-outline-danger ms-2"
+                title="Finalizar romaneio"
+              >
+                <i class="bi bi-flag-fill"></i> Finalizar
+              </button>
+            </div>
           </div>
-
-          <div class="input-group mb-3 d-none">
-            <input
-              id="skuInput"
-              type="text"
-              class="form-control"
-              placeholder="Digite ou bip o SKU/EAN"
-            />
-            <button class="btn btn-success" id="btnBipar">
-              ✔️ Bipar Produto
-            </button>
-          </div>
-
-          <button id="btnFinalizar" class="btn btn-outline-danger mb-3 d-none">
-            🔁 Finalizar Romaneio
-          </button>
-
-          <button id="btnLimparRomaneio" class="btn btn-warning mb-3 d-none">
-            🧹 Limpar Bipagem do Romaneio
-          </button>
-
-          <button
-            id="btnToggleBoxes"
-            class="btn btn-sm btn-outline-secondary mb-2"
-          >
-            🔽 Ocultar Boxes
-          </button>
-
-          <button id="btnGerarPdf" class="btn btn-sm btn-outline-primary mb-3">
-            🖨️ Gerar PDF
-          </button>
 
           <div id="feedback" class="mb-3 fw-bold"></div>
           <div id="cardAtual"></div>
@@ -79,7 +111,7 @@
         <!-- Coluna 2: Boxes -->
         <div id="colBoxes" class="col-md-8">
           <h4 class="mb-3">📦 Boxes Atuais</h4>
-          <div class="d-flex flex-wrap g-2" id="boxContainer"></div>
+          <div id="boxContainer" class="d-flex flex-wrap gap-2"></div>
         </div>
       </div>
     </div>

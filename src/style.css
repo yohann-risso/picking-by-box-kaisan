@@ -178,3 +178,53 @@ body {
 .btn-transparent:hover {
   background-color: rgba(255, 255, 255, 0.8);
 }
+
+/* quando o painel de boxes estiver oculto */
+#colBoxes.d-none ~ #colInputs,
+#colInputs.col-12 {
+  /* ajusta conforme você achar melhor */
+  max-width: 600px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* garante responsividade: em telas muito pequenas, ocupa 100% */
+@media (max-width: 576px) {
+  #colBoxes.d-none ~ #colInputs,
+  #colInputs.col-12 {
+    max-width: none;
+    margin: 0;
+  }
+}
+
+/* Header: logo + título centralizados */
+.header-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+/* Logo */
+.app-logo {
+  height: 40px;       /* ajuste conforme preferir */
+  width: auto;
+  margin-bottom: 0.5rem;
+}
+
+/* Título */
+.app-title {
+  margin: 0;
+  font-size: 1.5rem;  /* ajuste conforme preferir */
+  font-weight: bold;
+}
+
+/* se você está usando IDs #colInputs e #colBoxes do Bootstrap */
+#colInputs {
+  border-right: 1px solid #ccc;
+  padding-right: 1rem;  /* ajusta o espaçamento interno */
+}
+
+#colBoxes {
+  padding-left: 1rem;   /* para não encostar na linha */
+}
