@@ -407,17 +407,17 @@ function renderBoxCards() {
         : `<button class="${botaoClasse}" data-box="${boxNum}" data-codnfe="${codNfe}"
             data-pedidos='${JSON.stringify(pedidos)}' tabindex="0">
             <i class="bi bi-balance-scale"></i> PESAR PEDIDO
-          </button>`;  
+          </button>`;
 
       const shadowColor = solid.includes("primary")
-        ? "#0d6efd" // azul
+        ? "rgba(13, 110, 253, 0.3)" // azul
         : solid.includes("success")
-        ? "#198754" // verde
+        ? "rgba(25, 135, 84, 0.3)" // verde
         : solid.includes("warning")
-        ? "#ffc107" // amarelo
+        ? "rgba(255, 193, 7, 0.3)" // amarelo
         : solid.includes("danger")
-        ? "#dc3545" // vermelho
-        : "#6c757d"; // fallback cinza
+        ? "rgba(220, 53, 69, 0.3)" // vermelho
+        : "rgba(108, 117, 125, 0.2)"; // fallback cinza
 
       const wrapper = document.createElement("div");
       wrapper.className = "card-produto";
