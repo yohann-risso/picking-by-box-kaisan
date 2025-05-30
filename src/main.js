@@ -311,6 +311,7 @@ function renderHistorico() {
     return;
   }
   lista.innerHTML = "";
+
   historico
     .slice()
     .reverse()
@@ -337,10 +338,8 @@ function renderPendentes() {
   const agrupados = {};
   pendentes.forEach(({ sku, qtd, endereco }) => {
     const key = sku || "SEM SKU";
-
     const raw = endereco || "SEM LOCAL";
     const loc = raw.split(/\s*•\s*/)[0].trim();
-
     const agrupamento = `${key}|${loc}`;
     if (!agrupados[agrupamento]) {
       agrupados[agrupamento] = { sku: key, qtd: 0, endereco: loc };
@@ -360,12 +359,32 @@ function renderPendentes() {
     return a.sku.localeCompare(b.sku);
   });
 
+  // Cria tabela Bootstrap
+  const table = document.createElement("table");
+  table.className = "table table-bordered table-sm align-middle mb-0";
+  table.innerHTML = `
+    <thead class="table-light">
+      <tr>
+        <th>SKU</th>
+        <th>Qtde</th>
+        <th>Endereço</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  `;
+
+  const tbody = table.querySelector("tbody");
   listaOrdenada.forEach((item) => {
-    const li = document.createElement("li");
-    li.className = "list-group-item small";
-    li.innerHTML = `<strong>SKU:</strong> ${item.sku} | <strong>Qtde:</strong> <span class="badge bg-dark">${item.qtd}</span> | <strong>Endereço:</strong> <span class="badge bg-info">${item.endereco}</span>`;
-    lista.appendChild(li);
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td>${item.sku}</td>
+      <td><span class="badge bg-dark">${item.qtd}</span></td>
+      <td><span class="badge bg-info text-dark">${item.endereco}</span></td>
+    `;
+    tbody.appendChild(row);
   });
+
+  lista.appendChild(table);
 }
 
 function renderCardProduto(result) {

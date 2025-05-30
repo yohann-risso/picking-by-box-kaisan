@@ -228,3 +228,8 @@ body {
 #colBoxes {
   padding-left: 1rem;   /* para não encostar na linha */
 }
+
+#listaHistorico {
+  max-height: 400px; /* ajuste conforme o layout */
+  overflow-y: auto;
+}
