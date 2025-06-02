@@ -369,14 +369,12 @@ function renderBoxCards() {
 
       const isPesado = pedidos.every((p) => caixas[p]?.pesado);
       const isIncompleto = bipado < total;
-      const statusCustom = pedidos.some(
-        (p) => caixas[p]?.status_custom === "corrigido"
-      );
+      const statusCustom = pedidos.some((p) => caixas[p]?.status_custom === "corrigido");
 
       let light, solid;
       if (statusCustom) {
-        light = "bg-secondary-subtle text-dark";
-        solid = "bg-secondary text-white fw-bold";
+        light = "bg-info-subtle text-dark";
+        solid = "bg-info text-dark fw-bold";
       } else if (isPesado && isIncompleto) {
         light = "bg-warning-subtle text-dark";
         solid = "bg-warning text-dark fw-bold";
@@ -402,9 +400,7 @@ function renderBoxCards() {
         </button>`;
       } else {
         botaoHtml = `<button class="btn-undo-simple btn-pesar ${solid}" style="border:none;box-shadow:none;" 
-          data-box="${boxNum}" data-codnfe="${codNfe}" data-pedidos='${JSON.stringify(
-          pedidos
-        )}' tabindex="0">
+          data-box="${boxNum}" data-codnfe="${codNfe}" data-pedidos='${JSON.stringify(pedidos)}' tabindex="0">
           <i class="bi bi-balance-scale"></i> PESAR PEDIDO
         </button>`;
       }
@@ -445,6 +441,7 @@ function renderBoxCards() {
 
       boxContainer.appendChild(wrapper);
     });
+
 
   document.querySelectorAll(".btn-pesar").forEach((btn) => {
     btn.addEventListener("click", async (e) => {
