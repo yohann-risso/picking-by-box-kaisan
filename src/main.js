@@ -479,7 +479,7 @@ function renderBoxCards() {
       }
 
       localStorage.setItem(`caixas-${romaneio}`, JSON.stringify(caixas));
-      renderBoxCards();
+      atualizarBoxIndividual(boxNum);
     });
 
     btn.addEventListener("keydown", (e) => {
@@ -487,6 +487,107 @@ function renderBoxCards() {
         e.preventDefault();
         btn.click();
       }
+    });
+  });
+}
+
+function atualizarBoxIndividual(boxNum) {
+  const boxContainer = document.getElementById("boxContainer");
+  if (!boxContainer) return;
+
+  // Remove o card existente
+  const cards = boxContainer.querySelectorAll(".card-produto");
+  cards.forEach((card) => {
+    const num = card.querySelector(".card-number")?.innerText;
+    if (num === String(boxNum)) {
+      boxContainer.removeChild(card);
+    }
+  });
+
+  // Reinsere apenas o card atualizado
+  const entradas = Object.entries(caixas).filter(
+    ([_, info]) => info.box == boxNum && Number(info.bipado) > 0
+  );
+
+  if (!entradas.length) return;
+
+  // Simula chamada para criar um novo card (usando parte do renderBoxCards)
+  for (const [pedido, info] of entradas) {
+    const pedidos = [pedido];
+    const codNfe = codNfeMap[pedido] || "";
+    const isPesado = info.pesado;
+    const isIncompleto = info.bipado < info.total;
+    const statusCustom = info.status_custom === "corrigido";
+
+    let light, solid;
+    if (statusCustom) {
+      light = "bg-warning-subtle text-dark";
+      solid = "bg-warning text-dark fw-bold";
+    } else if (isPesado && isIncompleto) {
+      light = "bg-warning-subtle text-dark";
+      solid = "bg-warning text-dark fw-bold";
+    } else if (isPesado) {
+      light = "bg-primary-subtle text-dark";
+      solid = "bg-primary text-white";
+    } else if (info.bipado >= info.total) {
+      light = "bg-success-subtle text-dark";
+      solid = "bg-success text-white";
+    } else {
+      light = "bg-danger-subtle text-dark";
+      solid = "bg-danger text-white";
+    }
+
+    let botaoHtml = "";
+    if (statusCustom) {
+      botaoHtml = `<button class="btn-undo-simple ${solid}" style="border:none;box-shadow:none;" tabindex="0">
+        <i class="bi bi-check-circle-fill"></i> CORRIGIDO
+      </button>`;
+    } else if (isPesado) {
+      botaoHtml = `<button class="btn-undo-simple ${solid}" style="border:none;box-shadow:none;" tabindex="0">
+        <i class="bi bi-check-circle-fill"></i> PESADO ✅
+      </button>`;
+    } else {
+      botaoHtml = `<button class="btn-undo-simple btn-pesar ${solid}" style="border:none;box-shadow:none;" 
+        data-box="${boxNum}" data-codnfe="${codNfe}" data-pedidos='${JSON.stringify(
+        pedidos
+      )}' tabindex="0">
+        <i class="bi bi-balance-scale"></i> PESAR PEDIDO
+      </button>`;
+    }
+
+    const wrapper = document.createElement("div");
+    wrapper.className = "card-produto";
+    wrapper.style.boxShadow = `0 2px 8px rgba(0,0,0,0.1)`;
+    wrapper.style.borderRadius = "12px";
+
+    const infoCard = document.createElement("div");
+    infoCard.className = `card-info ${light}`;
+    infoCard.innerHTML = `
+      <div class="details text-center w-100">
+        <div class="fs-6 fw-bold">${pedido}</div>
+        <div>
+          <span class="badge bg-dark">${info.bipado}/${info.total}</span>
+        </div>
+        <div class="mt-2">${botaoHtml}</div>
+      </div>`;
+    wrapper.appendChild(infoCard);
+
+    const numCard = document.createElement("div");
+    numCard.className = `card-number ${solid}`;
+    numCard.innerHTML = `<div>${boxNum}</div>`;
+    wrapper.appendChild(numCard);
+
+    boxContainer.appendChild(wrapper);
+  }
+
+  // Reatribuir eventos aos novos botões (mínimo necessário)
+  document.querySelectorAll(".btn-pesar").forEach((btn) => {
+    btn.addEventListener("click", async (e) => {
+      e.preventDefault();
+      const pedidos = JSON.parse(btn.dataset.pedidos || "[]");
+      const codNfe = btn.dataset.codnfe;
+      const boxNum = btn.dataset.box;
+      // ... manter lógica atual
     });
   });
 }
