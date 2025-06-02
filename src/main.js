@@ -376,6 +376,12 @@ function renderBoxCards() {
         ? "Completo"
         : "Incompleto";
 
+      const statusCustom = pedidos.some((p) => caixas[p]?.status_custom === "corrigido");
+      if (statusCustom) {
+        light = "bg-warning-subtle text-dark";
+        solid = "bg-warning text-dark fw-bold";
+}
+
       let light, solid;
       if (isPesado && bipado < total) {
         // ⚠️ Pesado incompleto
@@ -468,21 +474,29 @@ function renderBoxCards() {
         if (!confirmar) return;
       }
 
+      // Abre nova aba
       const url = `https://ge.kaisan.com.br/index2.php?page=meta/view&id_view=nfe_pedido_conf&acao_view=cadastra&cod_del=${codNfe}&where=cod_nfe_pedido=${codNfe}#prodweightsomaproduto`;
       window.open(url, "_blank");
 
+      // Marca como pesado no sistema
       for (const pedidoId of pedidos) {
         if (!caixas[pedidoId]) continue;
         caixas[pedidoId].pesado = true;
+        caixas[pedidoId].status_custom = "corrigido";
 
         await supabase
           .from("pedidos")
           .update({ status: "PESADO" })
           .eq("id", pedidoId);
+
+        localStorage.setItem(`caixas-${romaneio}`, JSON.stringify(caixas));
+        renderBoxCards();
       }
 
-      localStorage.setItem(`caixas-${romaneio}`, JSON.stringify(caixas));
-      renderBoxCards();
+      // Atualiza visual do botão para "Corrigido"
+      btn.innerHTML = `<i class="bi bi-check-circle-fill"></i> CORRIGIDO`;
+      btn.classList.remove("btn-pesar");
+      btn.classList.add("bg-warning", "text-dark", "fw-bold");
     });
 
     btn.addEventListener("keydown", (e) => {
