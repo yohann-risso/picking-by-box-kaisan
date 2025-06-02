@@ -405,7 +405,9 @@ function renderBoxCards() {
             <i class="bi bi-check-circle-fill"></i> PESADO ✅
           </button>`
         : `<button class="${botaoClasse}" style="border: none; box-shadow: none;" 
-            data-box="${boxNum}" data-codnfe="${codNfe}" data-pedidos='${JSON.stringify(pedidos)}' tabindex="0">
+            data-box="${boxNum}" data-codnfe="${codNfe}" data-pedidos='${JSON.stringify(
+            pedidos
+          )}' tabindex="0">
             <i class="bi bi-balance-scale"></i> PESAR PEDIDO
           </button>`;
 
@@ -448,7 +450,7 @@ function renderBoxCards() {
 
   // Eventos de clique/teclado para botões "PESAR PEDIDO"
   document.querySelectorAll(".btn-pesar").forEach((btn) => {
-    btn.addEventListener("click", (e) => {
+    btn.addEventListener("click", async (e) => {
       e.preventDefault();
       const pedidos = JSON.parse(btn.dataset.pedidos || "[]");
       const codNfe = btn.dataset.codnfe;
@@ -469,10 +471,15 @@ function renderBoxCards() {
       const url = `https://ge.kaisan.com.br/index2.php?page=meta/view&id_view=nfe_pedido_conf&acao_view=cadastra&cod_del=${codNfe}&where=cod_nfe_pedido=${codNfe}#prodweightsomaproduto`;
       window.open(url, "_blank");
 
-      pedidos.forEach((pedidoId) => {
-        if (!caixas[pedidoId]) return;
+      for (const pedidoId of pedidos) {
+        if (!caixas[pedidoId]) continue;
         caixas[pedidoId].pesado = true;
-      });
+
+        await supabase
+          .from("pedidos")
+          .update({ status: "PESADO" })
+          .eq("id", pedidoId);
+      }
 
       localStorage.setItem(`caixas-${romaneio}`, JSON.stringify(caixas));
       renderBoxCards();
@@ -680,7 +687,6 @@ async function undoLastBipagem() {
     box: freedBox,
   } = currentProduto;
 
-  // 1) decrementa no Supabase
   const { data: before, error: selErr } = await supabase
     .from("produtos_pedido")
     .select("qtd, qtd_bipada")
@@ -698,7 +704,6 @@ async function undoLastBipagem() {
     .eq("id", id);
   if (updErr) return alert("Erro ao desfazer bipagem.");
 
-  // 2) recarrega o row para pegar o qtd original e o novo qtd_bipada
   const { data: after, error: afterErr } = await supabase
     .from("produtos_pedido")
     .select("qtd, qtd_bipada")
@@ -708,7 +713,6 @@ async function undoLastBipagem() {
 
   const restante = (after.qtd || 0) - (after.qtd_bipada || 0);
 
-  // 3) ajusta o objeto de caixas e contador de box
   const info = caixas[pedido];
   if (info) {
     info.bipado = after.qtd_bipada;
@@ -716,9 +720,12 @@ async function undoLastBipagem() {
       delete caixas[pedido];
       setContadorBox(freedBox);
     }
+    if (info.pesado && info.bipado < info.total) {
+      info.pesado = false;
+      await supabase.from("pedidos").update({ status: "" }).eq("id", pedido);
+    }
   }
 
-  // 4) atualiza o array de pendentes — SEMPRE com o valor recalc
   const idx = pendentes.findIndex((p) => p.sku === sku && p.pedido === pedido);
   if (restante > 0) {
     if (idx > -1) {
@@ -727,13 +734,10 @@ async function undoLastBipagem() {
       pendentes.push({ sku, pedido, qtd: restante, endereco, descricao });
     }
   } else if (idx > -1) {
-    // se não restaram unidades, remove a linha
     pendentes.splice(idx, 1);
   }
 
-  // 5) histórico e persistência
   const histIdx = historico.findIndex((h) => h.id === currentProduto.id);
-
   if (histIdx > -1) {
     historico.splice(histIdx, 1);
   }
@@ -741,13 +745,11 @@ async function undoLastBipagem() {
   localStorage.setItem(`caixas-${romaneio}`, JSON.stringify(caixas));
   localStorage.setItem(`historico-${romaneio}`, JSON.stringify(historico));
 
-  // 6) rerender
   renderPendentes();
   renderBoxCards();
   renderHistorico();
   renderProgressoConferencia();
 
-  // 7) limpa card atual e ajusta ponteiro
   document.getElementById("cardAtual").innerHTML = "";
   currentProduto = historico.length ? historico[historico.length - 1] : null;
 }
@@ -761,8 +763,13 @@ async function carregarBipagemAnterior(romaneio) {
   // 1) fetch de pedidos
   const { data: pedidos } = await supabase
     .from("pedidos")
-    .select("id")
+    .select("id, status")
     .eq("romaneio", romaneio);
+
+  const pedidoStatusMap = {};
+  pedidos.forEach((p) => {
+    pedidoStatusMap[p.id] = p.status;
+  });
 
   // 2) reset estado
   caixas = {};
@@ -789,7 +796,10 @@ async function carregarBipagemAnterior(romaneio) {
         box: p.box != null ? p.box : null,
         bipado: 0,
         total: 0,
+        pesado: false,
       };
+
+      caixas[p.pedido_id].pesado = pedidoStatusMap[p.pedido_id] === "PESADO";
     }
 
     // só atualiza box se existir
@@ -915,18 +925,17 @@ document.getElementById("btnBipar").addEventListener("click", async () => {
   inputSKU.disabled = true;
   btnBipar.disabled = true;
 
+  // Salva o histórico atual antes de bipar
+  if (currentProduto) {
+    historico.push(currentProduto);
+    localStorage.setItem(`historico-${romaneio}`, JSON.stringify(historico));
+  }
+
   // 3) executa bipagem e renderiza o card
   const result = await biparProduto(sku, romaneio);
   renderCardProduto(result);
 
   if (result.status === "ok") {
-    // 4) só no sucesso empurra o currentProduto anterior para o histórico
-    if (currentProduto) {
-      historico.push(currentProduto);
-      localStorage.setItem(`historico-${romaneio}`, JSON.stringify(historico));
-    }
-
-    // 5) registra o novo produto atual
     currentProduto = {
       id: result.id,
       sku: result.sku,
@@ -984,21 +993,26 @@ document.getElementById("btnFinalizar").addEventListener("click", async () => {
   if (!confirmacao) return;
 
   for (const pedido in caixas) {
-    const { box } = caixas[pedido];
+    const { box, pesado } = caixas[pedido];
     await supabase
       .from("produtos_pedido")
       .update({ box })
       .eq("pedido_id", parseInt(pedido));
+
+    if (pesado) {
+      await supabase
+        .from("pedidos")
+        .update({ status: "PESADO" })
+        .eq("id", pedido);
+    }
   }
 
   await supabase.from("romaneios_em_uso").delete().eq("romaneio", romaneio);
 
-  // Limpeza do localStorage
   localStorage.removeItem(`historico-${romaneio}`);
   localStorage.removeItem(`caixas-${romaneio}`);
   localStorage.removeItem(`pendentes-${romaneio}`);
 
-  // Reset de variáveis e campos
   caixas = {};
   historico = [];
   pendentes = [];
@@ -1017,6 +1031,7 @@ document.getElementById("btnFinalizar").addEventListener("click", async () => {
 
   renderProgressoConferencia();
 });
+
 document
   .getElementById("btnLimparRomaneio")
   .addEventListener("click", async () => {
