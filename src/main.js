@@ -1306,11 +1306,11 @@ document.getElementById("btnPrintBoxes")?.addEventListener("click", () => {
     const b2 = colDir[i];
 
     const col1 = b1
-      ? `<td><strong style="color:white;">${b1.box}</strong></td><td><strong>${b1.bipado}/${b1.total}</strong></td><td>${b1.status}</td>`
+      ? `<td class="col-box">${b1.box}</td><td><strong>${b1.bipado}/${b1.total}</strong></td><td>${b1.status}</td>`
       : "<td></td><td></td><td></td>";
 
     const col2 = b2
-      ? `<td><strong style="color:white;">${b2.box}</strong></td><td><strong>${b2.bipado}/${b2.total}</strong></td><td>${b2.status}</td>`
+      ? `<td class="col-box">${b2.box}</td><td><strong>${b2.bipado}/${b2.total}</strong></td><td>${b2.status}</td>`
       : "<td></td><td></td><td></td>";
 
     linhas += `<tr>${col1}<td class="spacer"></td>${col2}</tr>`;

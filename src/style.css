@@ -211,11 +211,17 @@ tbody td {
   justify-content: center;
 }
 
+td.col-box {
+  background-color: #000;
+  color: #fff;
+  font-weight: bold;
+}
+
 tr.bloco-spacer td {
   height: 16px;
   border: none;
-  border-top: 2px solid #ccc;
-  background-color: #f9f9f9;
+  border-top: 3px dashed #999;
+  background-color: #e0e0e0;
 }
 
 /* estilo base do “btn-undo-simple” */
