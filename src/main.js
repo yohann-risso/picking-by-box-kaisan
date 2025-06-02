@@ -366,6 +366,7 @@ function renderBoxCards() {
       const { bipado, total, pedidos, codNfes } = agrupado[boxNum];
       const pedidoRef = pedidos[0];
       const codNfe = codNfes[0] || "";
+
       const isPesado = pedidos.every((p) => caixas[p]?.pesado);
       const isIncompleto = bipado < total;
       const statusCustom = pedidos.some(
@@ -374,8 +375,8 @@ function renderBoxCards() {
 
       let light, solid;
       if (statusCustom) {
-        light = "bg-warning-subtle text-dark";
-        solid = "bg-warning text-dark fw-bold";
+        light = "bg-secondary-subtle text-dark";
+        solid = "bg-secondary text-white fw-bold";
       } else if (isPesado && isIncompleto) {
         light = "bg-warning-subtle text-dark";
         solid = "bg-warning text-dark fw-bold";
