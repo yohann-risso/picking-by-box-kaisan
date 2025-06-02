@@ -211,6 +211,13 @@ tbody td {
   justify-content: center;
 }
 
+tr.bloco-spacer td {
+  height: 16px;
+  border: none;
+  border-top: 2px solid #ccc;
+  background-color: #f9f9f9;
+}
+
 /* estilo base do “btn-undo-simple” */
 .btn-undo-simple {
   display: inline-flex;

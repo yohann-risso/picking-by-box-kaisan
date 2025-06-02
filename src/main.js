@@ -1314,8 +1314,8 @@ document.getElementById("btnPrintBoxes")?.addEventListener("click", () => {
 
     linhas += `<tr>${col1}<td class="spacer"></td>${col2}</tr>`;
 
-    if ((i + 1) % 5 === 0) {
-      linhas += `<tr style="height:10px;"><td colspan="7" style="border:none;"></td></tr>`;
+    if ((i + 1) % 5 === 0 && i < 24) {
+      linhas += `<tr class="bloco-spacer"><td colspan="7"></td></tr>`;
     }
   }
 
