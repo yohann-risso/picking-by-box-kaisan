@@ -368,64 +368,55 @@ function renderBoxCards() {
       const codNfe = codNfes[0] || "";
       const isPesado = pedidos.every((p) => caixas[p]?.pesado);
       const isIncompleto = bipado < total;
-      const status = isPesado
-        ? isIncompleto
-          ? "Pesado Incompleto"
-          : "Pesado"
-        : bipado >= total
-        ? "Completo"
-        : "Incompleto";
+      const statusCustom = pedidos.some(
+        (p) => caixas[p]?.status_custom === "corrigido"
+      );
 
-      const statusCustom = pedidos.some((p) => caixas[p]?.status_custom === "corrigido");
+      let light, solid;
       if (statusCustom) {
         light = "bg-warning-subtle text-dark";
         solid = "bg-warning text-dark fw-bold";
-}
-
-      let light, solid;
-      if (isPesado && bipado < total) {
-        // ⚠️ Pesado incompleto
+      } else if (isPesado && isIncompleto) {
         light = "bg-warning-subtle text-dark";
         solid = "bg-warning text-dark fw-bold";
       } else if (isPesado) {
-        // ✅ Pesado e completo
         light = "bg-primary-subtle text-dark";
         solid = "bg-primary text-white";
       } else if (bipado >= total) {
-        // 📦 Completo mas não pesado
         light = "bg-success-subtle text-dark";
         solid = "bg-success text-white";
       } else {
-        // 🔴 Incompleto e não pesado
         light = "bg-danger-subtle text-dark";
         solid = "bg-danger text-white";
       }
 
-      // Define conteúdo do botão de acordo com o status
-      const botaoClasse = isPesado
-        ? `btn-undo-simple btn-pesado ${solid}`
-        : `btn-undo-simple btn-pesar ${solid}`;
-
-      const botaoHtml = isPesado
-        ? `<button class="${botaoClasse}" style="border: none; box-shadow: none;" tabindex="0">
-            <i class="bi bi-check-circle-fill"></i> PESADO ✅
-          </button>`
-        : `<button class="${botaoClasse}" style="border: none; box-shadow: none;" 
-            data-box="${boxNum}" data-codnfe="${codNfe}" data-pedidos='${JSON.stringify(
-            pedidos
-          )}' tabindex="0">
-            <i class="bi bi-balance-scale"></i> PESAR PEDIDO
-          </button>`;
+      let botaoHtml = "";
+      if (statusCustom) {
+        botaoHtml = `<button class="btn-undo-simple ${solid}" style="border:none;box-shadow:none;" tabindex="0">
+          <i class="bi bi-check-circle-fill"></i> CORRIGIDO
+        </button>`;
+      } else if (isPesado) {
+        botaoHtml = `<button class="btn-undo-simple ${solid}" style="border:none;box-shadow:none;" tabindex="0">
+          <i class="bi bi-check-circle-fill"></i> PESADO ✅
+        </button>`;
+      } else {
+        botaoHtml = `<button class="btn-undo-simple btn-pesar ${solid}" style="border:none;box-shadow:none;" 
+          data-box="${boxNum}" data-codnfe="${codNfe}" data-pedidos='${JSON.stringify(
+          pedidos
+        )}' tabindex="0">
+          <i class="bi bi-balance-scale"></i> PESAR PEDIDO
+        </button>`;
+      }
 
       const shadowColor = solid.includes("primary")
-        ? "rgba(13, 110, 253, 0.3)" // azul
+        ? "rgba(13, 110, 253, 0.3)"
         : solid.includes("success")
-        ? "rgba(25, 135, 84, 0.3)" // verde
+        ? "rgba(25, 135, 84, 0.3)"
         : solid.includes("warning")
-        ? "rgba(255, 193, 7, 0.3)" // amarelo
+        ? "rgba(255, 193, 7, 0.3)"
         : solid.includes("danger")
-        ? "rgba(220, 53, 69, 0.3)" // vermelho
-        : "rgba(108, 117, 125, 0.2)"; // fallback cinza
+        ? "rgba(220, 53, 69, 0.3)"
+        : "rgba(108, 117, 125, 0.2)";
 
       const wrapper = document.createElement("div");
       wrapper.className = "card-produto";
@@ -454,7 +445,6 @@ function renderBoxCards() {
       boxContainer.appendChild(wrapper);
     });
 
-  // Eventos de clique/teclado para botões "PESAR PEDIDO"
   document.querySelectorAll(".btn-pesar").forEach((btn) => {
     btn.addEventListener("click", async (e) => {
       e.preventDefault();
@@ -474,11 +464,9 @@ function renderBoxCards() {
         if (!confirmar) return;
       }
 
-      // Abre nova aba
       const url = `https://ge.kaisan.com.br/index2.php?page=meta/view&id_view=nfe_pedido_conf&acao_view=cadastra&cod_del=${codNfe}&where=cod_nfe_pedido=${codNfe}#prodweightsomaproduto`;
       window.open(url, "_blank");
 
-      // Marca como pesado no sistema
       for (const pedidoId of pedidos) {
         if (!caixas[pedidoId]) continue;
         caixas[pedidoId].pesado = true;
@@ -488,15 +476,10 @@ function renderBoxCards() {
           .from("pedidos")
           .update({ status: "PESADO" })
           .eq("id", pedidoId);
-
-        localStorage.setItem(`caixas-${romaneio}`, JSON.stringify(caixas));
-        renderBoxCards();
       }
 
-      // Atualiza visual do botão para "Corrigido"
-      btn.innerHTML = `<i class="bi bi-check-circle-fill"></i> CORRIGIDO`;
-      btn.classList.remove("btn-pesar");
-      btn.classList.add("bg-warning", "text-dark", "fw-bold");
+      localStorage.setItem(`caixas-${romaneio}`, JSON.stringify(caixas));
+      renderBoxCards();
     });
 
     btn.addEventListener("keydown", (e) => {
