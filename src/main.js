@@ -401,7 +401,7 @@ function renderBoxCards() {
         : `btn-undo-simple btn-pesar ${solid}`;
 
       const botaoHtml = isPesado
-        ? `<button class="${botaoClasse}" style="border: none; box-shadow: none;" disabled tabindex="0">
+        ? `<button class="${botaoClasse}" style="border: none; box-shadow: none;" tabindex="0">
             <i class="bi bi-check-circle-fill"></i> PESADO ✅
           </button>`
         : `<button class="${botaoClasse}" style="border: none; box-shadow: none;" 
