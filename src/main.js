@@ -1197,13 +1197,14 @@ document.getElementById("btnPrintPendentes")?.addEventListener("click", () => {
   // Agrupar por SKU somando a quantidade e guardando o primeiro endereço
   const agrupado = {};
   comEndereco.forEach(({ sku, qtd, endereco }) => {
-    const primeiroEndereco = (endereco || "").split("•")[0]?.trim();
+    const partesEndereco = (endereco || "").split("•").map(p => p.trim());
+    const doisEnderecos = partesEndereco.slice(0, 2).join(" • ");
+
     if (!agrupado[sku]) {
-      agrupado[sku] = { qtd: 0, endereco: primeiroEndereco };
+      agrupado[sku] = { qtd: 0, endereco: doisEnderecos };
     }
     agrupado[sku].qtd += qtd;
   });
-
   // Gera e ordena os dados agrupados por endereço
   const linhas = Object.entries(agrupado)
     .sort((a, b) => {
