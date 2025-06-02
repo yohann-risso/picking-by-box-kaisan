@@ -468,14 +468,10 @@ function renderBoxCards() {
       window.open(url, "_blank");
 
       for (const pedidoId of pedidos) {
-        if (!caixas[pedidoId]) continue;
-        caixas[pedidoId].pesado = true;
-        caixas[pedidoId].status_custom = "corrigido";
-
-        await supabase
-          .from("pedidos")
-          .update({ status: "PESADO" })
-          .eq("id", pedidoId);
+        if (!caixas[pedidoId].pesado) {
+          caixas[pedidoId].pesado = true;
+          await atualizarStatusPedido(pedidoId, "PESADO");
+        }
       }
 
       localStorage.setItem(`caixas-${romaneio}`, JSON.stringify(caixas));
@@ -490,6 +486,23 @@ function renderBoxCards() {
     });
   });
 }
+
+document.querySelectorAll(".btn-pesado").forEach((btn) => {
+  btn.addEventListener("click", async (e) => {
+    e.preventDefault();
+    const pedidos = JSON.parse(btn.dataset.pedidos || "[]");
+    const boxNum = btn.dataset.box;
+
+    for (const pedidoId of pedidos) {
+      if (!caixas[pedidoId]) continue;
+      caixas[pedidoId].status_custom = "corrigido";
+      await atualizarStatusPedido(pedidoId, "CORRIGIDO");
+    }
+
+    localStorage.setItem(`caixas-${romaneio}`, JSON.stringify(caixas));
+    atualizarBoxIndividual(boxNum);
+  });
+});
 
 function atualizarBoxIndividual(boxNum) {
   const boxContainer = document.getElementById("boxContainer");
@@ -538,19 +551,27 @@ function atualizarBoxIndividual(boxNum) {
     }
 
     let botaoHtml = "";
+
     if (statusCustom) {
-      botaoHtml = `<button class="btn-undo-simple ${solid}" style="border:none;box-shadow:none;" tabindex="0">
+      botaoHtml = `<button class="btn-undo-simple btn-corrigido ${solid}" 
+        data-box="${boxNum}" 
+        data-pedidos='${JSON.stringify(pedidos)}' 
+        style="border:none;box-shadow:none;" tabindex="0">
         <i class="bi bi-check-circle-fill"></i> CORRIGIDO
       </button>`;
     } else if (isPesado) {
-      botaoHtml = `<button class="btn-undo-simple ${solid}" style="border:none;box-shadow:none;" tabindex="0">
+      botaoHtml = `<button class="btn-undo-simple btn-pesado ${solid}" 
+        data-box="${boxNum}" 
+        data-pedidos='${JSON.stringify(pedidos)}' 
+        style="border:none;box-shadow:none;" tabindex="0">
         <i class="bi bi-check-circle-fill"></i> PESADO ✅
       </button>`;
     } else {
-      botaoHtml = `<button class="btn-undo-simple btn-pesar ${solid}" style="border:none;box-shadow:none;" 
-        data-box="${boxNum}" data-codnfe="${codNfe}" data-pedidos='${JSON.stringify(
-        pedidos
-      )}' tabindex="0">
+      botaoHtml = `<button class="btn-undo-simple btn-pesar ${solid}" 
+        data-box="${boxNum}" 
+        data-codnfe="${codNfe}" 
+        data-pedidos='${JSON.stringify(pedidos)}' 
+        style="border:none;box-shadow:none;" tabindex="0">
         <i class="bi bi-balance-scale"></i> PESAR PEDIDO
       </button>`;
     }
@@ -1197,7 +1218,7 @@ document.getElementById("btnPrintPendentes")?.addEventListener("click", () => {
   // Agrupar por SKU somando a quantidade e guardando o primeiro endereço
   const agrupado = {};
   comEndereco.forEach(({ sku, qtd, endereco }) => {
-    const partesEndereco = (endereco || "").split("•").map(p => p.trim());
+    const partesEndereco = (endereco || "").split("•").map((p) => p.trim());
     const doisEnderecos = partesEndereco.slice(0, 2).join(" • ");
 
     if (!agrupado[sku]) {

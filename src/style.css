@@ -219,9 +219,9 @@ td.col-box {
 }
 
 tr.bloco-spacer td {
-  height: 20px;
+  height: 24px;
   border: none;
-  border-top: 3px dashed #666;
+  border-top: 4px dashed #666;
   background-color: #f0f0f0;
 }
 
