@@ -443,6 +443,8 @@ function renderBoxCards() {
   document.querySelectorAll(".btn-pesar").forEach((btn) => {
     btn.addEventListener("click", async (e) => {
       e.preventDefault();
+      const thisBtn = e.currentTarget;
+
       const pedidos = JSON.parse(btn.dataset.pedidos || "[]");
       const codNfe = btn.dataset.codnfe;
       const boxNum = btn.dataset.box;
@@ -467,16 +469,19 @@ function renderBoxCards() {
         await atualizarStatusPedido(pedidoId, "PESADO");
       }
 
-      // Atualiza localStorage
       localStorage.setItem(`caixas-${romaneio}`, JSON.stringify(caixas));
-
-      // Recarrega tudo com os dados atualizados
       await carregarBipagemAnterior(romaneio);
 
-      // Espera o Supabase gravar tudo antes de re-renderizar
+      // Espera a renderização terminar antes de devolver o foco
       setTimeout(() => {
         renderBoxCards();
-        renderProgressoConferencia(); // opcional: atualiza a barra também
+        renderProgressoConferencia();
+
+        // foca novamente no botão da mesma box
+        const novoBotao = document.querySelector(
+          `.btn-pesar[data-box="${boxNum}"]`
+        );
+        if (novoBotao) novoBotao.focus();
       }, 200);
     });
 
