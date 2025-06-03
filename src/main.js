@@ -1110,17 +1110,18 @@ document.getElementById("btnFinalizar").addEventListener("click", async () => {
   renderProgressoConferencia();
 });
 
-document
-  .getElementById("btnLimparRomaneio")
+document.getElementById("btnLimparRomaneio")
   .addEventListener("click", async () => {
     if (!romaneio) return;
-    if (!confirm("Apagar toda bipagem deste romaneio?")) return;
+    const confirmar = confirm("Apagar TODAS as bipagens deste romaneio?\nIsso limpará banco de dados e histórico local.");
+    if (!confirmar) return;
 
-    // 1) Atualiza o banco
+    // 1) Apaga no banco: zera bipagens e desvincula boxes
     const { data: pedidos } = await supabase
       .from("pedidos")
       .select("id")
       .eq("romaneio", romaneio);
+
     const pedidoIds = pedidos.map((p) => p.id);
 
     await supabase
@@ -1128,30 +1129,43 @@ document
       .update({ qtd_bipada: 0, box: null })
       .in("pedido_id", pedidoIds);
 
-    // 2) Recarrega todo o estado da tela:
-    await carregarBipagemAnterior(romaneio);
+    await supabase
+      .from("pedidos")
+      .update({ status: "" }) // zera status PESADO
+      .in("id", pedidoIds);
 
+    await supabase
+      .from("romaneios_em_uso")
+      .delete()
+      .eq("romaneio", romaneio);
+
+    // 2) Limpa localStorage
+    localStorage.removeItem(`caixas-${romaneio}`);
+    localStorage.removeItem(`pendentes-${romaneio}`);
+    localStorage.removeItem(`historico-${romaneio}`);
+
+    // 3) Limpa variáveis em memória
+    caixas = {};
     pendentes = [];
-    localStorage.setItem(`pendentes-${romaneio}`, JSON.stringify(pendentes));
-
-    const listaPendentesEl = document.getElementById("listaPendentes");
-    if (listaPendentesEl) listaPendentesEl.innerHTML = "";
-
-    await supabase.from("romaneios_em_uso").delete().eq("romaneio", romaneio);
-
+    historico = [];
+    currentProduto = null;
     romaneio = "";
-    const romaneioInput = document.getElementById("romaneioInput");
-    if (romaneioInput) {
-      romaneioInput.value = "";
-      romaneioInput.disabled = false;
-    }
 
-    // 3) Destrava o input de romaneio
+    // 4) Restaura UI
+    document.getElementById("romaneioInput").value = "";
     document.getElementById("romaneioInput").disabled = false;
     document.getElementById("btnIniciar").disabled = false;
+    document.getElementById("skuInput").value = "";
+    document.getElementById("cardAtual").innerHTML = "";
+    document.getElementById("boxContainer").innerHTML = "";
+    document.getElementById("listaHistorico").innerHTML = "";
+    document.getElementById("listaPendentes").innerHTML = "";
+    document.getElementById("feedback")?.innerHTML = "";
+    document.getElementById("btnFinalizar").classList.add("d-none");
+    document.getElementById("btnLimparRomaneio").classList.add("d-none");
 
-    document.getElementById("romaneioInput").focus();
     renderProgressoConferencia();
+    document.getElementById("romaneioInput").focus();
   });
 
 document.getElementById("btnPrintPendentes")?.addEventListener("click", () => {
