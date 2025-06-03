@@ -369,13 +369,9 @@ function renderBoxCards() {
 
       const isPesado = pedidos.every((p) => caixas[p]?.pesado);
       const isIncompleto = bipado < total;
-      const statusCustom = pedidos.some((p) => caixas[p]?.status_custom === "corrigido");
 
       let light, solid;
-      if (statusCustom) {
-        light = "bg-info-subtle text-dark";
-        solid = "bg-info text-dark fw-bold";
-      } else if (isPesado && isIncompleto) {
+      if (isPesado && isIncompleto) {
         light = "bg-warning-subtle text-dark";
         solid = "bg-warning text-dark fw-bold";
       } else if (isPesado) {
@@ -390,11 +386,7 @@ function renderBoxCards() {
       }
 
       let botaoHtml = "";
-      if (statusCustom) {
-        botaoHtml = `<button class="btn-undo-simple ${solid}" style="border:none;box-shadow:none;" tabindex="0">
-          <i class="bi bi-check-circle-fill"></i> CORRIGIDO
-        </button>`;
-      } else if (isPesado) {
+      if (isPesado) {
         botaoHtml = `<button class="btn-undo-simple ${solid}" style="border:none;box-shadow:none;" tabindex="0">
           <i class="bi bi-check-circle-fill"></i> PESADO ✅
         </button>`;
@@ -483,23 +475,6 @@ function renderBoxCards() {
   });
 }
 
-document.querySelectorAll(".btn-pesado").forEach((btn) => {
-  btn.addEventListener("click", async (e) => {
-    e.preventDefault();
-    const pedidos = JSON.parse(btn.dataset.pedidos || "[]");
-    const boxNum = btn.dataset.box;
-
-    for (const pedidoId of pedidos) {
-      if (!caixas[pedidoId]) continue;
-      caixas[pedidoId].status_custom = "corrigido";
-      await atualizarStatusPedido(pedidoId, "CORRIGIDO");
-    }
-
-    localStorage.setItem(`caixas-${romaneio}`, JSON.stringify(caixas));
-    atualizarBoxIndividual(boxNum);
-  });
-});
-
 async function atualizarStatusPedido(pedidoId, status) {
   return await supabase
     .from("pedidos")
@@ -565,13 +540,9 @@ function atualizarBoxIndividual(boxNum) {
     const codNfe = codNfeMap[pedido] || "";
     const isPesado = info.pesado;
     const isIncompleto = info.bipado < info.total;
-    const statusCustom = info.status_custom === "corrigido";
 
     let light, solid;
-    if (statusCustom) {
-      light = "bg-warning-subtle text-dark";
-      solid = "bg-warning text-dark fw-bold";
-    } else if (isPesado && isIncompleto) {
+    if (isPesado && isIncompleto) {
       light = "bg-warning-subtle text-dark";
       solid = "bg-warning text-dark fw-bold";
     } else if (isPesado) {
@@ -586,18 +557,8 @@ function atualizarBoxIndividual(boxNum) {
     }
 
     let botaoHtml = "";
-
-    if (statusCustom) {
-      botaoHtml = `<button class="btn-undo-simple btn-corrigido ${solid}" 
-        data-box="${boxNum}" 
-        data-pedidos='${JSON.stringify(pedidos)}' 
-        style="border:none;box-shadow:none;" tabindex="0">
-        <i class="bi bi-check-circle-fill"></i> CORRIGIDO
-      </button>`;
-    } else if (isPesado) {
-      botaoHtml = `<button class="btn-undo-simple btn-pesado ${solid}" 
-        data-box="${boxNum}" 
-        data-pedidos='${JSON.stringify(pedidos)}' 
+    if (isPesado) {
+      botaoHtml = `<button class="btn-undo-simple ${solid}" 
         style="border:none;box-shadow:none;" tabindex="0">
         <i class="bi bi-check-circle-fill"></i> PESADO ✅
       </button>`;
