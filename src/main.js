@@ -1160,8 +1160,8 @@ document
     document.getElementById("boxContainer").innerHTML = "";
     document.getElementById("listaHistorico").innerHTML = "";
     document.getElementById("listaPendentes").innerHTML = "";
-    const feedbackEl = document.getElementById("feedback");
-    if (feedbackEl) feedbackEl.innerHTML = "";
+    document.getElementById("feedback") &&
+      (document.getElementById("feedback").innerHTML = "");
     document.getElementById("btnFinalizar").classList.add("d-none");
     document.getElementById("btnLimparRomaneio").classList.add("d-none");
 
