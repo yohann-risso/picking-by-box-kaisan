@@ -337,7 +337,7 @@ function renderBoxCards() {
   boxContainer.innerHTML = "";
 
   const entradas = Object.entries(caixas).filter(
-    ([_, info]) => info.box != null && Number(info.bipado) > 0
+    ([_, info]) => info.box == boxNum && Number(info.total) > 0
   );
   if (!entradas.length) return;
 
@@ -529,7 +529,7 @@ function atualizarBoxIndividual(boxNum) {
 
   // Reinsere apenas o card atualizado
   const entradas = Object.entries(caixas).filter(
-    ([_, info]) => info.box == boxNum && Number(info.bipado) > 0
+    ([_, info]) => info.box != null && Number(info.total) > 0
   );
 
   if (!entradas.length) return;
