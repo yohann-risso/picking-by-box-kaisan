@@ -337,7 +337,7 @@ function renderBoxCards() {
   boxContainer.innerHTML = "";
 
   const entradas = Object.entries(caixas).filter(
-    ([_, info]) => info.box != null && Number(info.total) > 0
+    ([_, info]) => info.box != null
   );
   if (!entradas.length) return;
 
@@ -392,7 +392,9 @@ function renderBoxCards() {
         </button>`;
       } else {
         botaoHtml = `<button class="btn-undo-simple btn-pesar ${solid}" style="border:none;box-shadow:none;" 
-          data-box="${boxNum}" data-codnfe="${codNfe}" data-pedidos='${JSON.stringify(pedidos)}' tabindex="0">
+          data-box="${boxNum}" data-codnfe="${codNfe}" data-pedidos='${JSON.stringify(
+          pedidos
+        )}' tabindex="0">
           <i class="bi bi-balance-scale"></i> PESAR PEDIDO
         </button>`;
       }
@@ -433,7 +435,6 @@ function renderBoxCards() {
 
       boxContainer.appendChild(wrapper);
     });
-
 
   document.querySelectorAll(".btn-pesar").forEach((btn) => {
     btn.addEventListener("click", async (e) => {
@@ -476,10 +477,7 @@ function renderBoxCards() {
 }
 
 async function atualizarStatusPedido(pedidoId, status) {
-  return await supabase
-    .from("pedidos")
-    .update({ status })
-    .eq("id", pedidoId);
+  return await supabase.from("pedidos").update({ status }).eq("id", pedidoId);
 }
 
 function atualizarBoxIndividual(boxNum) {
@@ -488,16 +486,22 @@ function atualizarBoxIndividual(boxNum) {
 
   // Remove o card existente
   const cards = boxContainer.querySelectorAll(".card-produto");
-  cards.forEach((card) => {
-    const num = card.querySelector(".card-number")?.innerText;
-    if (num === String(boxNum)) {
-      boxContainer.removeChild(card);
-    }
-  });
+  const totalPedidosNaBox = Object.values(caixas).filter(
+    (info) => String(info.box) === String(boxNum)
+  ).length;
+
+  if (totalPedidosNaBox === 0) {
+    cards.forEach((card) => {
+      const num = card.querySelector(".card-number")?.innerText;
+      if (num === String(boxNum)) {
+        boxContainer.removeChild(card);
+      }
+    });
+  }
 
   // Reinsere apenas o card atualizado
   const entradas = Object.entries(caixas).filter(
-    ([_, info]) => info.box != null && Number(info.total) > 0
+    ([_, info]) => String(info.box) === String(boxNum)
   );
 
   if (!entradas.length) return;
