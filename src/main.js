@@ -387,7 +387,11 @@ function renderBoxCards() {
 
       let botaoHtml = "";
       if (isPesado) {
-        botaoHtml = `<button class="btn-undo-simple ${solid}" style="border:none;box-shadow:none;" tabindex="0">
+        botaoHtml = `<button class="btn-undo-simple btn-pesar ${solid}" 
+          data-box="${boxNum}" 
+          data-codnfe="${codNfe}" 
+          data-pedidos='${JSON.stringify(pedidos)}'
+          style="border:none;box-shadow:none;" tabindex="0">
           <i class="bi bi-check-circle-fill"></i> PESADO ✅
         </button>`;
       } else {
