@@ -1110,10 +1110,13 @@ document.getElementById("btnFinalizar").addEventListener("click", async () => {
   renderProgressoConferencia();
 });
 
-document.getElementById("btnLimparRomaneio")
+document
+  .getElementById("btnLimparRomaneio")
   .addEventListener("click", async () => {
     if (!romaneio) return;
-    const confirmar = confirm("Apagar TODAS as bipagens deste romaneio?\nIsso limpará banco de dados e histórico local.");
+    const confirmar = confirm(
+      "Apagar TODAS as bipagens deste romaneio?\nIsso limpará banco de dados e histórico local."
+    );
     if (!confirmar) return;
 
     // 1) Apaga no banco: zera bipagens e desvincula boxes
@@ -1134,10 +1137,7 @@ document.getElementById("btnLimparRomaneio")
       .update({ status: "" }) // zera status PESADO
       .in("id", pedidoIds);
 
-    await supabase
-      .from("romaneios_em_uso")
-      .delete()
-      .eq("romaneio", romaneio);
+    await supabase.from("romaneios_em_uso").delete().eq("romaneio", romaneio);
 
     // 2) Limpa localStorage
     localStorage.removeItem(`caixas-${romaneio}`);
@@ -1160,7 +1160,8 @@ document.getElementById("btnLimparRomaneio")
     document.getElementById("boxContainer").innerHTML = "";
     document.getElementById("listaHistorico").innerHTML = "";
     document.getElementById("listaPendentes").innerHTML = "";
-    document.getElementById("feedback")?.innerHTML = "";
+    const feedbackEl = document.getElementById("feedback");
+    if (feedbackEl) feedbackEl.innerHTML = "";
     document.getElementById("btnFinalizar").classList.add("d-none");
     document.getElementById("btnLimparRomaneio").classList.add("d-none");
 
