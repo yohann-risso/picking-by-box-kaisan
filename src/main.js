@@ -337,7 +337,7 @@ function renderBoxCards() {
   boxContainer.innerHTML = "";
 
   const entradas = Object.entries(caixas).filter(
-    ([_, info]) => info.box == boxNum && Number(info.total) > 0
+    ([_, info]) => info.box != null && Number(info.total) > 0
   );
   if (!entradas.length) return;
 
@@ -481,38 +481,6 @@ async function atualizarStatusPedido(pedidoId, status) {
     .update({ status })
     .eq("id", pedidoId);
 }
-
-function getStatusClasses(status) {
-  switch (status) {
-    case "CORRIGIDO":
-      return {
-        light: "bg-secondary-subtle text-dark",
-        solid: "bg-secondary text-white fw-bold",
-      };
-    case "PESADO INCOMPLETO":
-      return {
-        light: "bg-warning-subtle text-dark",
-        solid: "bg-warning text-dark fw-bold",
-      };
-    case "PESADO":
-      return {
-        light: "bg-primary-subtle text-dark",
-        solid: "bg-primary text-white",
-      };
-    case "COMPLETO":
-      return {
-        light: "bg-success-subtle text-dark",
-        solid: "bg-success text-white",
-      };
-    case "INCOMPLETO":
-    default:
-      return {
-        light: "bg-danger-subtle text-dark",
-        solid: "bg-danger text-white",
-      };
-  }
-}
-
 
 function atualizarBoxIndividual(boxNum) {
   const boxContainer = document.getElementById("boxContainer");
