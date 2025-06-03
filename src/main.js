@@ -467,8 +467,17 @@ function renderBoxCards() {
         await atualizarStatusPedido(pedidoId, "PESADO");
       }
 
+      // Atualiza localStorage
       localStorage.setItem(`caixas-${romaneio}`, JSON.stringify(caixas));
-      renderBoxCards();
+
+      // Recarrega tudo com os dados atualizados
+      await carregarBipagemAnterior(romaneio);
+
+      // Espera o Supabase gravar tudo antes de re-renderizar
+      setTimeout(() => {
+        renderBoxCards();
+        renderProgressoConferencia(); // opcional: atualiza a barra também
+      }, 200);
     });
 
     btn.addEventListener("keydown", (e) => {
