@@ -514,7 +514,7 @@ function atualizarBoxIndividual(boxNum) {
   for (const [pedido, info] of entradas) {
     const pedidos = [pedido];
     const codNfe = codNfeMap[pedido] || "";
-    const isPesado = info.pesado;
+    const isPesado = pedidosNaBox.every((p) => caixas[p]?.pesado);
     const isIncompleto = info.bipado < info.total;
 
     let light, solid;
