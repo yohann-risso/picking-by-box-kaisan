@@ -466,10 +466,8 @@ function renderBoxCards() {
       window.open(url, "_blank");
 
       for (const pedidoId of pedidos) {
-        if (!caixas[pedidoId].pesado) {
-          caixas[pedidoId].pesado = true;
-          await atualizarStatusPedido(pedidoId, "PESADO");
-        }
+        caixas[pedidoId].pesado = true;
+        await atualizarStatusPedido(pedidoId, "PESADO");
       }
 
       localStorage.setItem(`caixas-${romaneio}`, JSON.stringify(caixas));
@@ -501,6 +499,45 @@ document.querySelectorAll(".btn-pesado").forEach((btn) => {
     atualizarBoxIndividual(boxNum);
   });
 });
+
+async function atualizarStatusPedido(pedidoId, status) {
+  return await supabase
+    .from("pedidos")
+    .update({ status })
+    .eq("id", pedidoId);
+}
+
+function getStatusClasses(status) {
+  switch (status) {
+    case "CORRIGIDO":
+      return {
+        light: "bg-secondary-subtle text-dark",
+        solid: "bg-secondary text-white fw-bold",
+      };
+    case "PESADO INCOMPLETO":
+      return {
+        light: "bg-warning-subtle text-dark",
+        solid: "bg-warning text-dark fw-bold",
+      };
+    case "PESADO":
+      return {
+        light: "bg-primary-subtle text-dark",
+        solid: "bg-primary text-white",
+      };
+    case "COMPLETO":
+      return {
+        light: "bg-success-subtle text-dark",
+        solid: "bg-success text-white",
+      };
+    case "INCOMPLETO":
+    default:
+      return {
+        light: "bg-danger-subtle text-dark",
+        solid: "bg-danger text-white",
+      };
+  }
+}
+
 
 function atualizarBoxIndividual(boxNum) {
   const boxContainer = document.getElementById("boxContainer");
@@ -576,8 +613,10 @@ function atualizarBoxIndividual(boxNum) {
 
     const wrapper = document.createElement("div");
     wrapper.className = "card-produto";
-    wrapper.style.boxShadow = `0 2px 8px rgba(0,0,0,0.1)`;
+    wrapper.style.boxShadow = `0 2px 8px ${shadowColor}`;
     wrapper.style.borderRadius = "12px";
+    wrapper.style.transition = "all 0.2s ease-in-out";
+    wrapper.style.order = Number(boxNum);
 
     const infoCard = document.createElement("div");
     infoCard.className = `card-info ${light}`;
@@ -598,17 +637,6 @@ function atualizarBoxIndividual(boxNum) {
 
     boxContainer.appendChild(wrapper);
   }
-
-  // Reatribuir eventos aos novos botões (mínimo necessário)
-  document.querySelectorAll(".btn-pesar").forEach((btn) => {
-    btn.addEventListener("click", async (e) => {
-      e.preventDefault();
-      const pedidos = JSON.parse(btn.dataset.pedidos || "[]");
-      const codNfe = btn.dataset.codnfe;
-      const boxNum = btn.dataset.box;
-      // ... manter lógica atual
-    });
-  });
 }
 
 function renderHistorico() {
@@ -1001,15 +1029,11 @@ document.getElementById("btnIniciar").addEventListener("click", async () => {
   // 3) carregar só as refs desses SKUs
   await carregarRefs(skus);
 
-  // 4) agora sim carrega o restante do estado
-  await carregarBipagemAnterior(romaneio);
-
   // limpa o cartão antes de liberar o bipar
   currentProduto = null;
   document.getElementById("cardAtual").innerHTML = "";
 
   // depois segue com o unlock dos campos, focus etc.
-  document.getElementById("skuInput").parentElement.classList.remove("d-none");
 
   await carregarBipagemAnterior(romaneio);
 
