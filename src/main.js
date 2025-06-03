@@ -468,7 +468,7 @@ function renderBoxCards() {
       }
 
       localStorage.setItem(`caixas-${romaneio}`, JSON.stringify(caixas));
-      atualizarBoxIndividual(boxNum);
+      renderBoxCards();
     });
 
     btn.addEventListener("keydown", (e) => {
