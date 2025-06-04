@@ -282,6 +282,7 @@ async function verificarRomaneioEmUso(romaneio) {
     romaneio,
     operador1: operador1,
     operador2: operador2 || null,
+    iniciado_em: nowInBrazilISO(),
   };
 
   const { error: insertError } = await supabase
@@ -294,6 +295,13 @@ async function verificarRomaneioEmUso(romaneio) {
   }
 
   return { emUso: false };
+}
+
+function nowInBrazilISO() {
+  const date = new Date();
+  const offset = -3 * 60; // em minutos
+  const localDate = new Date(date.getTime() - (date.getTimezoneOffset() - offset) * 60000);
+  return localDate.toISOString();
 }
 
 async function gerarPdfResumo() {
