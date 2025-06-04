@@ -30,7 +30,7 @@ window.pedidos = 0;
 let resumo = [];
 
 // --- Constantes para controle de expiração ---
-const EXPIRACAO_MS = 60 * 60 * 1000; // 1 hora em milissegundos
+const EXPIRACAO_MS = 150 * 60 * 1000; // 150 minutos em milissegundos
 
 // --- Função auxiliar para carregar dados salvos, se ainda válidos ---
 function carregarLoginSeValido() {
@@ -309,7 +309,6 @@ function nowInBrazilISO() {
 }
 
 async function gerarPdfResumo() {
-  // monta string de exibição:
   const operadorLogado =
     operador2 && operador2.length
       ? `${operador1} e ${operador2}`
@@ -317,7 +316,6 @@ async function gerarPdfResumo() {
   const romaneioAtivo = romaneio || "Não informado";
   const dataHoraAtual = new Date().toLocaleString("pt-BR");
 
-  // restante do código para montar a tabela de boxes … (inalterado)
   const boxList = Object.entries(caixas)
     .filter(([_, info]) => info?.box && info.total > 0)
     .map(([pedido, info]) => ({
@@ -337,7 +335,6 @@ async function gerarPdfResumo() {
   const ordenados = boxList
     .sort((a, b) => Number(a.box) - Number(b.box))
     .slice(0, 50);
-
   const colEsq = ordenados.slice(0, 25);
   const colDir = ordenados.slice(25, 50);
 
@@ -357,7 +354,6 @@ async function gerarPdfResumo() {
     boxRows += `<tr>${col1}<td class="spacer"></td>${col2}</tr>`;
   }
 
-  // Mapeia clientes dos pedidos
   const { data: pedidosData } = await supabase
     .from("pedidos")
     .select("id, cliente")
@@ -368,7 +364,6 @@ async function gerarPdfResumo() {
     clienteMap[p.id] = p.cliente || "-";
   });
 
-  // Gera tabela de NL
   const pedidosMap = {};
   pendentes.forEach((p) => {
     const cliente = clienteMap[p.pedido] || "-";
@@ -388,6 +383,82 @@ async function gerarPdfResumo() {
 
   const linhasNL = Object.values(pedidosMap).flat().join("");
 
+  // ⏱️ CALCULA tempos ideal e real com base no resumo
+  function converterSegundosParaString(totalSegundos) {
+    const horas = Math.floor(totalSegundos / 3600);
+    const minutos = Math.floor((totalSegundos % 3600) / 60);
+    const segundos = totalSegundos % 60;
+    const pad2 = (n) => String(n).padStart(2, "0");
+    return `${pad2(horas)}:${pad2(minutos)}:${pad2(segundos)}`;
+  }
+
+  function calcularTempoTotalCronometro(resumo) {
+    if (!Array.isArray(resumo)) return 0;
+    return resumo.reduce((acc, etapa) => {
+      if (!etapa.tempo) return acc;
+      const partes = etapa.tempo.split(":").map(Number);
+      if (partes.length !== 3) return acc;
+      const [h, m, s] = partes;
+      return acc + (h * 3600 + m * 60 + s);
+    }, 0);
+  }
+
+  const tempoRealSegundos = calcularTempoTotalCronometro(window.resumo || []);
+  const tempoReal = converterSegundosParaString(tempoRealSegundos);
+
+  const tempo80Map = { "003": 2.42, "005": 13.376, "006": 17.778 };
+  const idealSegundos =
+    tempo80Map["003"] * (window.pecas || 0) +
+    tempo80Map["005"] * (window.pedidos || 0) +
+    tempo80Map["006"] * (window.pedidos || 0);
+  const tempoIdeal = converterSegundosParaString(Math.round(idealSegundos));
+
+  // Tabela do cronômetro
+  let cronometroRows = "";
+  document.querySelectorAll("#tbodyTempoIdeal tr").forEach((tr) => {
+    const tds = tr.querySelectorAll("td");
+    if (tds.length >= 6) {
+      cronometroRows += `
+        <tr>
+          <td>${tds[0].textContent}</td>
+          <td>${tds[1].textContent}</td>
+          <td>${tds[2].textContent}</td>
+          <td>${tds[3].textContent}</td>
+          <td>${tds[4].textContent}</td>
+          <td>${tds[5].textContent}</td>
+        </tr>`;
+    }
+  });
+
+  const cronometroHtml = `
+    <div class="page-break"></div>
+    <h2>Resumo do Cronômetro</h2>
+    <div class="info">
+      <strong>Operador:</strong> ${operadorLogado}<br/>
+      <strong>Romaneio:</strong> ${romaneioAtivo}<br/>
+      <strong>Data:</strong> ${dataHoraAtual}<br/>
+      <strong>Pedidos:</strong> ${window.pedidos || "-"}<br/>
+      <strong>Peças:</strong> ${window.pecas || "-"}<br/>
+      <strong>Tempo Ideal Total:</strong> ${tempoIdeal}<br/>
+      <strong>Tempo Real Total:</strong> ${tempoReal}<br/>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Etapa</th>
+          <th>Tempo Ideal</th>
+          <th>Início</th>
+          <th>Fim</th>
+          <th>Executado</th>
+          <th>Eficiência</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${cronometroRows}
+      </tbody>
+    </table>
+  `;
+
   // HTML final
   const html = `
     <html>
@@ -405,7 +476,6 @@ async function gerarPdfResumo() {
         </style>
       </head>
       <body>
-        <!-- Resumo de Boxes -->
         <h2>Resumo de Boxes</h2>
         <div class="info">
           <strong>Operador:</strong> ${operadorLogado}<br/>
@@ -425,7 +495,6 @@ async function gerarPdfResumo() {
           </tbody>
         </table>
 
-        <!-- Relatório de NL -->
         <div class="page-break"></div>
         <h2>Relatório de NL</h2>
         <table>
@@ -444,6 +513,8 @@ async function gerarPdfResumo() {
             ${linhasNL}
           </tbody>
         </table>
+
+        ${cronometroHtml}
 
         <script>window.onload = () => { window.print(); window.close(); }</script>
       </body>
@@ -1354,6 +1425,8 @@ document.getElementById("btnFinalizar").addEventListener("click", async () => {
 
   // AQUI: apagamos o registro de “romaneios_em_uso” para este romaneio
   await supabase.from("romaneios_em_uso").delete().eq("romaneio", romaneio);
+
+  await gerarPdfResumo();
 
   localStorage.removeItem(`historico-${romaneio}`);
   localStorage.removeItem(`caixas-${romaneio}`);
