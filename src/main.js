@@ -1960,18 +1960,20 @@ async function finalizarEtapas() {
   calcularETrocarTempos(window.pecas, window.pedidos, resumo);
 
   await salvarEtapasNaPlanilha();
-
 }
 
 async function salvarEtapasNaPlanilha() {
-  const urlGAS = "https://script.google.com/macros/s/AKfycbwLnP9MUhfHdVjeZZFNH_rkr2gJyxQwoHC4GvMtJSykcqYvhBzB8GeMVu2NH57yWNHp/exec";
+  const urlGAS =
+    "https://script.google.com/macros/s/AKfycbwLnP9MUhfHdVjeZZFNH_rkr2gJyxQwoHC4GvMtJSykcqYvhBzB8GeMVu2NH57yWNHp/exec";
 
   const etapasParaSalvar = resumo.map((etapaObj, index) => {
-    const linha = document.querySelector(`#tbodyTempoIdeal tr:nth-child(${index + 1})`);
+    const linha = document.querySelector(
+      `#tbodyTempoIdeal tr:nth-child(${index + 1})`
+    );
     const tds = linha?.querySelectorAll("td") || [];
 
     return {
-      operador: operador1,
+      operador1: operador1,
       operador2: operador2 || null,
       romaneio,
       etapa: etapaObj.etapa,
@@ -1979,7 +1981,7 @@ async function salvarEtapasNaPlanilha() {
       fim: tds[3]?.textContent || "",
       tempo: etapaObj.tempo,
       pedidos: window.pedidos || 0,
-      pecas: window.pecas || 0
+      pecas: window.pecas || 0,
     };
   });
 
@@ -1988,9 +1990,9 @@ async function salvarEtapasNaPlanilha() {
       await fetch(urlGAS, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify({ func: "incluirEtapa", data: etapa })
+        body: JSON.stringify({ func: "registrarEtapaPickingBox", data: etapa }),
       });
     } catch (err) {
       console.error("Erro ao enviar etapa:", etapa.etapa, err);
@@ -2109,7 +2111,10 @@ function configurarListenersCronometro() {
   // Teclado: Enter ou Espaço avança etapa
   document.addEventListener("keydown", (e) => {
     const elementoFocado = document.activeElement;
-    const ehInput = elementoFocado && (elementoFocado.tagName === "INPUT" || elementoFocado.tagName === "TEXTAREA");
+    const ehInput =
+      elementoFocado &&
+      (elementoFocado.tagName === "INPUT" ||
+        elementoFocado.tagName === "TEXTAREA");
 
     if (ehInput) return;
     if ((e.key === "Enter" || e.key === " ") && !btnIniciar.disabled) {
