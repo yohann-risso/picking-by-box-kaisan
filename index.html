@@ -176,44 +176,6 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script type="module" src="/src/main.js"></script>
 
-    <script>
-      document.addEventListener("DOMContentLoaded", () => {
-        const modalPesagem = new bootstrap.Modal(
-          document.getElementById("modalPesagem")
-        );
-        const inputPeso = document.getElementById("inputPeso");
-        const inputCodNfe = document.getElementById("inputCodNfe");
-
-        document.querySelectorAll(".btn-pesar").forEach((btn) => {
-          btn.addEventListener("click", (e) => {
-            e.preventDefault();
-            const codNfe = btn.dataset.codnfe;
-            inputPeso.value = "";
-            inputCodNfe.value = codNfe;
-            modalPesagem.show();
-          });
-        });
-
-        document
-          .getElementById("btnConfirmarPeso")
-          .addEventListener("click", async () => {
-            const peso = inputPeso.value.trim();
-            const codNfe = inputCodNfe.value;
-
-            if (!peso || !codNfe) {
-              alert("Informe o peso corretamente.");
-              return;
-            }
-
-            await enviarPesagemParaGE(codNfe, peso);
-            modalPesagem.hide();
-
-            alert("✅ Peso enviado com sucesso.");
-            // Aqui você pode gerar as etiquetas se quiser depois
-          });
-      });
-    </script>
-
     <!-- Modal pesagem -->
     <div class="modal fade" id="modalPesagem" tabindex="-1" aria-hidden="true">
       <div class="modal-dialog modal-sm modal-dialog-centered">

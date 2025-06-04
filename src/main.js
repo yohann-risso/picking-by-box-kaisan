@@ -1438,3 +1438,36 @@ async function enviarPesagemParaGE(codNfe, pesoInformado) {
   const texto = await res.text();
   console.log("✅ Pesagem enviada para o GE:", texto.slice(0, 200));
 }
+
+document.addEventListener("DOMContentLoaded", () => {
+  const inputPeso = document.getElementById("inputPeso");
+  const inputCodNfe = document.getElementById("inputCodNfe");
+  const modalPesagem = new bootstrap.Modal(document.getElementById("modalPesagem"));
+
+  // Delegação: escuta cliques em botões com a classe .btn-pesar
+  document.addEventListener("click", (e) => {
+    const btn = e.target.closest(".btn-pesar");
+    if (!btn) return;
+
+    e.preventDefault();
+
+    const codNfe = btn.dataset.codnfe;
+    inputPeso.value = "";
+    inputCodNfe.value = codNfe;
+    modalPesagem.show();
+  });
+
+  document.getElementById("btnConfirmarPeso").addEventListener("click", async () => {
+    const peso = inputPeso.value.trim();
+    const codNfe = inputCodNfe.value;
+
+    if (!peso || !codNfe) {
+      alert("Informe o peso corretamente.");
+      return;
+    }
+
+    await enviarPesagemParaGE(codNfe, peso);
+    modalPesagem.hide();
+    alert("✅ Peso enviado com sucesso.");
+  });
+});
