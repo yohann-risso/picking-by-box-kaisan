@@ -2119,7 +2119,7 @@ function configurarListenersCronometro() {
 // Mostrar/ocultar modal flutuante do cronômetro
 async function carregarCronometroNoModal() {
   try {
-    const resp = await fetch("cronometro.html");
+    const resp = await fetch("/cronometro.html");
     if (!resp.ok) throw new Error("Não foi possível carregar cronometro.html");
 
     const container = document.getElementById("cronometroModal");
