@@ -1858,7 +1858,7 @@ function avancarParaProximaEtapa() {
   }
 }
 
-function finalizarEtapas() {
+async function finalizarEtapas() {
   clearInterval(timerTotal);
   clearInterval(timerEtapa);
 
@@ -1907,6 +1907,30 @@ function finalizarEtapas() {
 
     // Registra no resumo final
     resumo.push({ etapa: etapaCod, tempo: tempoHHMMSS });
+
+    // ⏺️ Montar dados para envio ao Sheets
+    const dadosParaPlanilha = resumo
+      .map((linha, i) => {
+        const tr = document.querySelector(
+          `#tbodyTempoIdeal tr:nth-child(${i + 1})`
+        );
+        if (!tr) return null;
+
+        const tds = tr.querySelectorAll("td");
+        return {
+          etapa: tds[0]?.textContent || "",
+          tempoIdeal: tds[1]?.textContent || "",
+          inicio: tds[2]?.textContent || "",
+          fim: tds[3]?.textContent || "",
+          executado: tds[4]?.textContent || "",
+          eficiencia: tds[5]?.textContent || "",
+          operador1: operador1 || "",
+          operador2: operador2 || "",
+          romaneio: romaneio || "",
+          timestamp: new Date().toISOString(),
+        };
+      })
+      .filter(Boolean); // remove linhas nulas
   }
 
   // Atualiza status da UI
@@ -1922,6 +1946,44 @@ function finalizarEtapas() {
 
   // Atualiza tempo real total
   calcularETrocarTempos(window.pecas, window.pedidos, resumo);
+
+  await salvarEtapasNaPlanilha();
+
+}
+
+async function salvarEtapasNaPlanilha() {
+  const urlGAS = "https://script.google.com/macros/s/AKfycbwLnP9MUhfHdVjeZZFNH_rkr2gJyxQwoHC4GvMtJSykcqYvhBzB8GeMVu2NH57yWNHp/exec";
+
+  const etapasParaSalvar = resumo.map((etapaObj, index) => {
+    const linha = document.querySelector(`#tbodyTempoIdeal tr:nth-child(${index + 1})`);
+    const tds = linha?.querySelectorAll("td") || [];
+
+    return {
+      operador: operador1,
+      operador2: operador2 || null,
+      romaneio,
+      etapa: etapaObj.etapa,
+      inicio: tds[2]?.textContent || "",
+      fim: tds[3]?.textContent || "",
+      tempo: etapaObj.tempo,
+      pedidos: window.pedidos || 0,
+      pecas: window.pecas || 0
+    };
+  });
+
+  for (const etapa of etapasParaSalvar) {
+    try {
+      await fetch(urlGAS, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ func: "incluirEtapa", data: etapa })
+      });
+    } catch (err) {
+      console.error("Erro ao enviar etapa:", etapa.etapa, err);
+    }
+  }
 }
 
 async function prepararDadosDoRomaneio(rom) {
