@@ -2108,6 +2108,10 @@ function configurarListenersCronometro() {
 
   // Teclado: Enter ou Espaço avança etapa
   document.addEventListener("keydown", (e) => {
+    const elementoFocado = document.activeElement;
+    const ehInput = elementoFocado && (elementoFocado.tagName === "INPUT" || elementoFocado.tagName === "TEXTAREA");
+
+    if (ehInput) return;
     if ((e.key === "Enter" || e.key === " ") && !btnIniciar.disabled) {
       if (inicioEtapa) {
         avancarParaProximaEtapa();
