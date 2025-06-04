@@ -1420,3 +1420,21 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!isInside) modal.style.display = "none";
   });
 });
+
+async function enviarPesagemParaGE(codNfe, pesoInformado) {
+  const xajaxXML = `<xjxquery><q>prodweightsomaproduto=${encodeURIComponent(pesoInformado)}&cod_del=${codNfe}&where=cod_nfe_pedido=${codNfe}</q></xjxquery>`;
+
+  const res = await fetch("https://ge.kaisan.com.br/", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded"
+    },
+    body:
+      "xajax=submit_form_view_cadastra_xajax" +
+      "&xajaxr=" + Date.now() +
+      "&xajaxargs[]=" + encodeURIComponent(xajaxXML)
+  });
+
+  const texto = await res.text();
+  console.log("✅ Pesagem enviada para o GE:", texto.slice(0, 200));
+}
