@@ -1830,7 +1830,8 @@ function avancarParaProximaEtapa() {
   clearInterval(timerEtapa);
 
   const fim = new Date();
-  const segsPassados = Math.floor((fim - inicioEtapa) / 1000);
+  const segsDesdeUltimoInicio = Math.floor((fim - inicioEtapa) / 1000);
+  const segsPassados = tempoAcumuladoEtapa + segsDesdeUltimoInicio;
   const tempoHHMMSS = formatarTempo(segsPassados);
   const etapaCod = etapas[etapaAtualIndex];
 
@@ -1874,6 +1875,8 @@ function avancarParaProximaEtapa() {
 
   // Armazena no resumo
   resumo.push({ etapa: etapaCod, tempo: tempoHHMMSS });
+  inicioEtapa = null;
+  tempoAcumuladoEtapa = 0;
 
   etapaAtualIndex++;
 
