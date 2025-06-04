@@ -23,6 +23,8 @@ let inicioTotal = null;
 let timerTotal = null;
 let pausado = false;
 let totalSegundosIdeal = 0;
+let tempoAcumuladoEtapa = 0;
+let tempoAcumuladoTotal = 0;
 window.pecas = 0;
 window.pedidos = 0;
 let resumo = [];
@@ -300,7 +302,9 @@ async function verificarRomaneioEmUso(romaneio) {
 function nowInBrazilISO() {
   const date = new Date();
   const offset = -3 * 60; // em minutos
-  const localDate = new Date(date.getTime() - (date.getTimezoneOffset() - offset) * 60000);
+  const localDate = new Date(
+    date.getTime() - (date.getTimezoneOffset() - offset) * 60000
+  );
   return localDate.toISOString();
 }
 
@@ -1770,12 +1774,12 @@ function iniciarEtapaAtual() {
   inicioEtapa = new Date();
   pausado = false;
 
-  // a cada segundo, atualiza #displayTempoEtapaAtual
   timerEtapa = setInterval(() => {
     const agora = new Date();
     const segDecorridos = Math.floor((agora - inicioEtapa) / 1000);
+    const totalSegs = tempoAcumuladoEtapa + segDecorridos;
     document.getElementById("displayTempoEtapaAtual").textContent =
-      formatarTempo(segDecorridos);
+      formatarTempo(totalSegs);
   }, 1000);
 }
 
@@ -1785,13 +1789,29 @@ function pausarOuRetomarEtapa() {
 
   if (pausado) {
     // Retomar
+    inicioEtapa = new Date();
+    inicioTotal = new Date();
     iniciarEtapaAtual();
+
+    timerTotal = setInterval(() => {
+      const agora = new Date();
+      const segDecorridos = Math.floor((agora - inicioTotal) / 1000);
+      const totalSegs = tempoAcumuladoTotal + segDecorridos;
+      document.getElementById("displayTempoTotal").textContent =
+        formatarTempo(totalSegs);
+    }, 1000);
+
     btn.innerHTML = `<i class="bi bi-pause-fill"></i> Pausar Etapa`;
     pausado = false;
   } else {
     // Pausar
+    const agora = new Date();
+    tempoAcumuladoEtapa += Math.floor((agora - inicioEtapa) / 1000);
+    tempoAcumuladoTotal += Math.floor((agora - inicioTotal) / 1000);
+
     clearInterval(timerEtapa);
-    aapp = true;
+    clearInterval(timerTotal);
+
     btn.innerHTML = `<i class="bi bi-play-fill"></i> Retomar Etapa`;
     pausado = true;
   }
@@ -1971,9 +1991,6 @@ async function finalizarEtapas() {
 }
 
 async function salvarEtapasNaPlanilha() {
-  const urlGAS =
-    "https://script.google.com/macros/s/AKfycbwLnP9MUhfHdVjeZZFNH_rkr2gJyxQwoHC4GvMtJSykcqYvhBzB8GeMVu2NH57yWNHp/exec";
-
   const etapasParaSalvar = resumo.map((etapaObj, index) => {
     const linha = document.querySelector(
       `#tbodyTempoIdeal tr:nth-child(${index + 1})`
@@ -1994,17 +2011,7 @@ async function salvarEtapasNaPlanilha() {
   });
 
   for (const etapa of etapasParaSalvar) {
-    try {
-      await fetch(urlGAS, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ func: "registrarEtapaPickingBox", data: etapa }),
-      });
-    } catch (err) {
-      console.error("Erro ao enviar etapa:", etapa.etapa, err);
-    }
+    await enviarEtapaParaPlanilha(etapa);
   }
 }
 
@@ -2083,9 +2090,10 @@ function configurarListenersCronometro() {
     inicioTotal = new Date();
     timerTotal = setInterval(() => {
       const agora = new Date();
-      const diff = Math.floor((agora - inicioTotal) / 1000);
+      const segDecorridos = Math.floor((agora - inicioTotal) / 1000);
+      const totalSegs = tempoAcumuladoTotal + segDecorridos;
       document.getElementById("displayTempoTotal").textContent =
-        formatarTempo(diff);
+        formatarTempo(totalSegs);
     }, 1000);
 
     iniciarEtapaAtual();
@@ -2289,4 +2297,28 @@ function calcularETabelaTempoIdeal(tempoObjMap, totalPedidos, totalPecas) {
 
   // 5) (Opcional) Armazene em variável global se quiser usar noutro lugar
   window._tempoIdealTotalSegundos = totalSegundos;
+}
+
+async function enviarEtapaParaPlanilha(etapa) {
+  try {
+    const response = await fetch("/api/registrar-etapa", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        func: "registrarEtapaPickingBox",
+        data: etapa,
+      }),
+    });
+
+    const json = await response.json();
+    if (json.status === "ok") {
+      console.log("✅ Etapa enviada com sucesso!");
+    } else {
+      console.warn("⚠️ Falha no GAS:", json.message || json);
+    }
+  } catch (error) {
+    console.error("🚨 Erro ao enviar etapa via proxy:", error);
+  }
 }
