@@ -1,8 +1,6 @@
 import { biparProduto } from "./components/bipagemHandler.js";
 import { supabase } from "./api/supabase.js";
 import { setContadorBox } from "./utils/box.js";
-import { jsPDF } from "jspdf";
-import autoTable from "jspdf-autotable";
 
 let romaneio = "";
 let historico = [];
@@ -11,90 +9,287 @@ let imagensRef = {};
 let codNfeMap = {};
 let pendentes = [];
 let currentProduto = null;
-let operador = null;
+let operador1 = null;
+let operador2 = null;
+let etapaLogin = 1;
 
-document.getElementById("inputLogin").addEventListener("keypress", (e) => {
-  if (e.key === "Enter") document.getElementById("btnLogin").click();
+let btnProximaEtapa = null;
+let btnFinalizarRomaneio = null;
+let etapas = ["003", "005", "006"];
+let etapaAtualIndex = 0;
+let inicioEtapa = null;
+let timerEtapa = null;
+let inicioTotal = null;
+let timerTotal = null;
+let pausado = false;
+let totalSegundosIdeal = 0;
+window.pecas = 0;
+window.pedidos = 0;
+let resumo = [];
+
+// --- Constantes para controle de expiração ---
+const EXPIRACAO_MS = 60 * 60 * 1000; // 1 hora em milissegundos
+
+// --- Função auxiliar para carregar dados salvos, se ainda válidos ---
+function carregarLoginSeValido() {
+  const storedTime = parseInt(localStorage.getItem("loginTime"), 10);
+  const now = Date.now();
+
+  if (!storedTime || isNaN(storedTime)) {
+    return false; // não há timestamp válido
+  }
+  if (now - storedTime > EXPIRACAO_MS) {
+    // Expirou: apaga tudo
+    localStorage.removeItem("operador1");
+    localStorage.removeItem("operador2");
+    localStorage.removeItem("loginTime");
+    return false;
+  }
+
+  // Ainda válido: carrega operadores
+  const op1 = localStorage.getItem("operador1");
+  const op2 = localStorage.getItem("operador2"); // pode ser null ou undefined
+  if (op1) {
+    operador1 = op1;
+    operador2 = op2;
+    window.operador = operador1;
+    return true;
+  }
+  return false;
+}
+
+// Assim que a página carregar, decide se abre modal ou mostra o app
+window.addEventListener("DOMContentLoaded", () => {
+  const dadosValidos = carregarLoginSeValido();
+
+  if (dadosValidos) {
+    // Pular o modal e mostrar mainApp
+    // Exibe “Operador: X” ou “Operadores: X e Y”
+    const display = document.getElementById("operadorLogado");
+    if (operador2) {
+      display.textContent = `Operadores: ${operador1} e ${operador2}`;
+    } else {
+      display.textContent = `Operador: ${operador1}`;
+    }
+    document.getElementById("mainApp").style.display = "block";
+  } else {
+    // Exibe o modal para novos login(s)
+    const loginModal = new bootstrap.Modal(
+      document.getElementById("loginModal")
+    );
+    loginModal.show();
+    document.getElementById("inputLoginModal").focus();
+  }
 });
 
-document.getElementById("inputSenha").addEventListener("keypress", (e) => {
-  if (e.key === "Enter") document.getElementById("btnLogin").click();
+// Função auxiliar para mostrar/ocultar erro de login
+function showLoginError(mostrar) {
+  const errorDiv = document.getElementById("loginError");
+  errorDiv.style.display = mostrar ? "block" : "none";
+}
+
+// Ativa o envio ao pressionar Enter em qualquer campo dentro do form
+document.getElementById("loginForm").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    document.getElementById("btnLoginModal").click();
+  }
 });
 
-// Login do operador
-document.getElementById("btnLogin").addEventListener("click", async () => {
-  const login = document.getElementById("inputLogin").value.trim();
-  const senha = document.getElementById("inputSenha").value.trim();
+// Listener do botão “Logar”
+document.getElementById("btnLoginModal").addEventListener("click", async () => {
+  showLoginError(false);
+  const loginInput = document.getElementById("inputLoginModal");
+  const senhaInput = document.getElementById("inputSenhaModal");
+  const loginValue = loginInput.value.trim();
+  const senhaValue = senhaInput.value.trim();
 
-  if (!login || !senha) {
-    alert("Digite login e senha.");
+  if (!loginValue || !senhaValue) {
+    showLoginError(true);
     return;
   }
 
+  // Validação via Supabase
   const { data, error } = await supabase
     .from("usuarios")
     .select("*")
-    .eq("login_usuario", login)
-    .eq("senha_usuario", senha)
+    .eq("login_usuario", loginValue)
+    .eq("senha_usuario", senhaValue)
     .single();
 
   if (error || !data) {
-    alert("Login ou senha incorretos.");
+    // Se falhar no passo 2, permanece em “Login de Operador 2” e mostra erro
+    showLoginError(true);
     return;
   }
 
-  operador = data.nome_completo || data.login_usuario;
-  localStorage.setItem("operador", operador);
-  document.getElementById("loginArea").style.display = "none";
-  document.getElementById("mainApp").style.display = "block";
-  document.getElementById(
-    "operadorLogado"
-  ).textContent = `Operador: ${operador}`;
-});
-
-// Carregar operador salvo
-window.addEventListener("load", () => {
-  const salvo = localStorage.getItem("operador");
-  if (salvo) {
-    operador = salvo;
-    document.getElementById("loginArea").style.display = "none";
-    document.getElementById("mainApp").style.display = "block";
-    document.getElementById(
-      "operadorLogado"
-    ).textContent = `Operador: ${operador}`;
+  if (etapaLogin === 1) {
+    operador1 = data.nome_completo || data.login_usuario;
+    operador2 = null; // sem 2º operador
+    finalizeLogin();
+  } else {
+    // etapaLogin === 2
+    operador2 = data.nome_completo || data.login_usuario;
+    finalizeLogin();
   }
 });
 
+// Listener do botão “Próximo operador”
+document
+  .getElementById("btnNextOperator")
+  .addEventListener("click", async () => {
+    showLoginError(false);
+    const loginInput = document.getElementById("inputLoginModal");
+    const senhaInput = document.getElementById("inputSenhaModal");
+    const loginValue = loginInput.value.trim();
+    const senhaValue = senhaInput.value.trim();
+
+    if (!loginValue || !senhaValue) {
+      showLoginError(true);
+      return;
+    }
+
+    // Valida Operador 1
+    const { data, error } = await supabase
+      .from("usuarios")
+      .select("*")
+      .eq("login_usuario", loginValue)
+      .eq("senha_usuario", senhaValue)
+      .single();
+
+    if (error || !data) {
+      showLoginError(true);
+      return;
+    }
+
+    operador1 = data.nome_completo || data.login_usuario;
+    etapaLogin = 2;
+
+    // Atualiza título, limpa campos e desabilita “Próximo operador”
+    document.getElementById("loginModalLabel").textContent =
+      "Login de Operador 2";
+    document.getElementById("inputLoginModal").value = "";
+    document.getElementById("inputSenhaModal").value = "";
+    document.getElementById("btnNextOperator").disabled = true;
+    document.getElementById("inputLoginModal").focus();
+  });
+
+// Função que finaliza o login (esconde modal, mostra app e salva timestamp)
+function finalizeLogin() {
+  // Salva operadores e timestamp no localStorage
+  localStorage.setItem("operador1", operador1);
+  if (operador2) {
+    localStorage.setItem("operador2", operador2);
+  } else {
+    localStorage.removeItem("operador2");
+  }
+  localStorage.setItem("loginTime", Date.now().toString());
+
+  window.operador = operador1;
+  window.operador2 = operador2 || null;
+
+  // Fecha o modal
+  const loginModalEl = document.getElementById("loginModal");
+  const loginModal = bootstrap.Modal.getInstance(loginModalEl);
+  loginModal.hide();
+
+  // Preenche o display de operadores
+  const display = document.getElementById("operadorLogado");
+  if (operador2) {
+    display.textContent = `Operadores: ${operador1} e ${operador2}`;
+  } else {
+    display.textContent = `Operador: ${operador1}`;
+  }
+
+  // Exibe o mainApp
+  document.getElementById("mainApp").style.display = "block";
+}
+
+// Logout: limpa tudo e retorna ao modal de login
 document.getElementById("btnLogout").addEventListener("click", () => {
-  localStorage.removeItem("operador");
-  location.reload();
+  // Limpa variáveis e localStorage
+  operador1 = null;
+  operador2 = null;
+  etapaLogin = 1;
+  localStorage.removeItem("operador1");
+  localStorage.removeItem("operador2");
+  localStorage.removeItem("loginTime");
+
+  // Esconde o mainApp
+  document.getElementById("mainApp").style.display = "none";
+
+  // Reset do modal para passo 1
+  document.getElementById("loginModalLabel").textContent =
+    "Login de Operador 1";
+  const loginInput = document.getElementById("inputLoginModal");
+  const senhaInput = document.getElementById("inputSenhaModal");
+  loginInput.value = "";
+  senhaInput.value = "";
+  showLoginError(false);
+
+  // Reabilita botão “Próximo operador”
+  document.getElementById("btnNextOperator").disabled = false;
+
+  // Mostra o modal novamente
+  const loginModal = new bootstrap.Modal(document.getElementById("loginModal"));
+  loginModal.show();
+
+  // Foca no campo usuário
+  loginInput.focus();
 });
 
 async function verificarRomaneioEmUso(romaneio) {
+  // 1) tenta ler um registro que já exista para este romaneio
   const { data, error } = await supabase
     .from("romaneios_em_uso")
     .select("*")
     .eq("romaneio", romaneio)
     .single();
 
+  // Se der erro “row not found”, tudo bem—vazou, pois a errado === null e data === null.
+  // Se der outro erro, logamos no console:
+  if (error && error.code !== "PGRST116") {
+    console.error("Erro ao buscar romaneio_em_uso:", error);
+  }
+
   if (data) {
-    if (data.operador !== operador) {
+    // já existe registro para este romaneio: se BOTH operadores forem os mesmos,
+    // deixamos continuar; caso contrário, bloqueamos.
+    const registroOp1 = data.operador1;
+    const registroOp2 = data.operador2; // pode ser null
+
+    // comparar exatamente string por string; se for o mesmo duo, permite.
+    const mesmoOp1 = registroOp1 === operador1;
+    const mesmoOp2 = (registroOp2 || "") === (operador2 || "");
+    if (mesmoOp1 && mesmoOp2) {
+      // o próprio par de operadores está retornando
+      return { emUso: false };
+    } else {
+      // outro(s) usuário(s) está(ão) usando
+      const quemUsa =
+        registroOp2 && registroOp2.length
+          ? `${registroOp1} e ${registroOp2}`
+          : registroOp1;
       return {
         emUso: true,
-        por: data.operador,
+        por: quemUsa,
       };
-    } else {
-      // o próprio operador retomando
-      return { emUso: false };
     }
   }
 
-  // Registra como em uso
+  // 2) se não havia registro, inserimos um novo com as duas colunas
+  const payload = {
+    romaneio,
+    operador1: operador1,
+    operador2: operador2 || null,
+  };
+
   const { error: insertError } = await supabase
     .from("romaneios_em_uso")
-    .insert([{ romaneio, operador }]);
+    .insert([payload]);
 
   if (insertError) {
+    console.error("Erro ao inserir em romaneios_em_uso:", insertError);
     return { emUso: true, por: "desconhecido" };
   }
 
@@ -102,11 +297,15 @@ async function verificarRomaneioEmUso(romaneio) {
 }
 
 async function gerarPdfResumo() {
-  const operadorLogado = operador || "Desconhecido";
+  // monta string de exibição:
+  const operadorLogado =
+    operador2 && operador2.length
+      ? `${operador1} e ${operador2}`
+      : operador1 || "Desconhecido";
   const romaneioAtivo = romaneio || "Não informado";
   const dataHoraAtual = new Date().toLocaleString("pt-BR");
 
-  // Mapeia pedidos com box válida
+  // restante do código para montar a tabela de boxes … (inalterado)
   const boxList = Object.entries(caixas)
     .filter(([_, info]) => info?.box && info.total > 0)
     .map(([pedido, info]) => ({
@@ -952,6 +1151,15 @@ document.getElementById("btnIniciar").addEventListener("click", async () => {
   romaneio = input.value.trim();
   if (!romaneio) return alert("Digite o romaneio");
 
+  window.romaneio = romaneio;
+  atualizarCamposDoCronometroModal();
+
+  // Se operador1 não existir, não adianta nem tentar
+  if (!operador1) {
+    return alert("Você precisa fazer login antes de iniciar um romaneio.");
+  }
+
+  // Checa se já há alguém usando:
   const status = await verificarRomaneioEmUso(romaneio);
   if (status.emUso) {
     alert(`Este romaneio está em uso por: ${status.por}`);
@@ -985,7 +1193,6 @@ document.getElementById("btnIniciar").addEventListener("click", async () => {
   document.getElementById("cardAtual").innerHTML = "";
 
   // depois segue com o unlock dos campos, focus etc.
-
   await carregarBipagemAnterior(romaneio);
 
   document.getElementById("skuInput").parentElement.classList.remove("d-none");
@@ -1003,7 +1210,29 @@ document.getElementById("btnIniciar").addEventListener("click", async () => {
   document.getElementById("skuInput").focus();
 
   await carregarBipagemAnterior(romaneio);
+
+  if (typeof atualizarInfosCronometro === "function") {
+    atualizarInfosCronometro();
+  }
+  if (typeof buscarEPopularTempoIdeal === "function") {
+    buscarEPopularTempoIdeal(romaneio);
+  }
+
+  await carregarCronometroNoModal();
 });
+
+function atualizarCamposDoCronometroModal() {
+  const container = document.getElementById("cronometroModal");
+  if (!container) return;
+
+  const elOp1 = container.querySelector("#operadorDisplay");
+  const elOp2 = container.querySelector("#operador2Display");
+  const elRom = container.querySelector("#romaneioDisplay");
+
+  if (elOp1) elOp1.value = operador1 || "—";
+  if (elOp2) elOp2.value = operador2 || "—";
+  if (elRom) elRom.value = romaneio || "—";
+}
 
 document.getElementById("btnBipar").addEventListener("click", async () => {
   const inputSKU = document.getElementById("skuInput");
@@ -1099,6 +1328,7 @@ document.getElementById("btnFinalizar").addEventListener("click", async () => {
     }
   }
 
+  // AQUI: apagamos o registro de “romaneios_em_uso” para este romaneio
   await supabase.from("romaneios_em_uso").delete().eq("romaneio", romaneio);
 
   localStorage.removeItem(`historico-${romaneio}`);
@@ -1151,6 +1381,7 @@ document
       .update({ status: "" }) // zera status PESADO
       .in("id", pedidoIds);
 
+    // Remove o registro de “romaneios_em_uso” para este romaneio
     await supabase.from("romaneios_em_uso").delete().eq("romaneio", romaneio);
 
     // 2) Limpa localStorage
@@ -1184,7 +1415,10 @@ document
   });
 
 document.getElementById("btnPrintPendentes")?.addEventListener("click", () => {
-  const operadorLogado = operador || "Desconhecido";
+  const operadorLogado =
+    operador2 && operador2.length
+      ? `${operador1} e ${operador2}`
+      : operador1 || "Desconhecido";
   const romaneioAtivo = romaneio || "Não informado";
   const dataHoraAtual = new Date().toLocaleString("pt-BR");
 
@@ -1280,7 +1514,10 @@ document.getElementById("btnPrintPendentes")?.addEventListener("click", () => {
 });
 
 document.getElementById("btnPrintBoxes")?.addEventListener("click", () => {
-  const operadorLogado = operador || "Desconhecido";
+  const operadorLogado =
+    operador2 && operador2.length
+      ? `${operador1} e ${operador2}`
+      : operador1 || "Desconhecido";
   const romaneioAtivo = romaneio || "Não informado";
   const dataHoraAtual = new Date().toLocaleString("pt-BR");
 
@@ -1405,18 +1642,560 @@ function renderProductMap() {
   });
 }
 
+// 1) Suas funções auxiliares:
+function converterStringParaSegundos(hhmmss) {
+  const partes = hhmmss.split(":").map((str) => parseInt(str, 10));
+  if (partes.length !== 3 || partes.some(isNaN)) return 0;
+  const [h, m, s] = partes;
+  return h * 3600 + m * 60 + s;
+}
+
+function converterSegundosParaString(totalSegundos) {
+  const horas = Math.floor(totalSegundos / 3600);
+  const minutos = Math.floor((totalSegundos % 3600) / 60);
+  const segundos = totalSegundos % 60;
+  const pad2 = (n) => String(n).padStart(2, "0");
+  return `${pad2(horas)}:${pad2(minutos)}:${pad2(segundos)}`;
+}
+
+// 2) Função “obterTempoPadrao” (exemplo fixo; substitua pela sua lógica)
+function obterTempoPadrao(codEtapa) {
+  const mapa = {
+    "003": { tempo80: 15 }, // 15 segundos por peça
+    "005": { tempo80: 10 }, // 10 segundos por pedido
+    "006": { tempo80: 20 }, // 20 segundos por pedido
+  };
+  return mapa[codEtapa] || null;
+}
+
+// 3) Função que, dado pecas, pedidos e resumo, calcula e exibe no DOM:
+function calcularETrocarTempos(pecas, pedidos, resumo) {
+  // 3.1) Montar o objeto de tempos padrão
+  const tempoPadrao = {};
+  ["003", "005", "006"].forEach((cod) => {
+    const tempoObj = obterTempoPadrao(cod);
+    if (tempoObj && tempoObj.tempo80 != null) {
+      tempoPadrao[cod] = parseFloat(tempoObj.tempo80);
+    }
+  });
+
+  // 3.2) Calcular tempo ideal total (segundos)
+  const tpEtapa003 = (tempoPadrao["003"] || 0) * pecas;
+  const tpEtapa005 = (tempoPadrao["005"] || 0) * pedidos;
+  const tpEtapa006 = (tempoPadrao["006"] || 0) * pedidos;
+  const tempoIdealTotalSegundos = Math.round(
+    tpEtapa003 + tpEtapa005 + tpEtapa006
+  );
+
+  // 3.3) Calcular tempo real total (segundos)
+  const tempoRealTotalSegundos = resumo.reduce((acc, etapaObj) => {
+    return acc + converterStringParaSegundos(etapaObj.tempo);
+  }, 0);
+
+  // 3.4) Converter para “HH:mm:ss”
+  const idealFormatado = converterSegundosParaString(tempoIdealTotalSegundos);
+  const realFormatado = converterSegundosParaString(tempoRealTotalSegundos);
+
+  // 3.5) Atualizar o DOM
+  const elementoIdeal = document.getElementById("tempoIdealTotalDisplay");
+  const elementoReal = document.getElementById("tempoRealTotalDisplay");
+
+  if (elementoIdeal) elementoIdeal.textContent = idealFormatado;
+  if (elementoReal) elementoReal.textContent = realFormatado;
+
+  // (Opcional) Você pode também retornar um objeto com esses valores, se precisar de outros cálculos
+  return {
+    idealSegundos: tempoIdealTotalSegundos,
+    realSegundos: tempoRealTotalSegundos,
+    idealHHMMSS: idealFormatado,
+    realHHMMSS: realFormatado,
+  };
+}
+
+function popularTabelaTempoIdeal(lista) {
+  const tbody = document.getElementById("tbodyTempoIdeal");
+  if (!tbody) return;
+
+  tbody.innerHTML = "";
+  totalSegundosIdeal = 0;
+
+  lista.forEach((item) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${item.etapa}</td>
+      <td>${item.tempo_ideal}</td>
+      <td>–</td>
+      <td>–</td>
+      <td>–</td>  <!-- Executado -->
+      <td>–</td>  <!-- Eficiência -->
+    `;
+    tbody.appendChild(tr);
+
+    // Soma os segundos do tempo_ideal
+    const segs = converterStringParaSegundos(item.tempo_ideal);
+    totalSegundosIdeal += segs;
+  });
+
+  // Atualiza o “displayTempoIdealTotal”
+  const display = document.getElementById("displayTempoIdealTotal");
+  if (display)
+    display.textContent = converterSegundosParaString(totalSegundosIdeal);
+}
+
+function formatarTempo(segundos) {
+  return converterSegundosParaString(segundos);
+}
+
+function iniciarEtapaAtual() {
+  inicioEtapa = new Date();
+  pausado = false;
+
+  // a cada segundo, atualiza #displayTempoEtapaAtual
+  timerEtapa = setInterval(() => {
+    const agora = new Date();
+    const segDecorridos = Math.floor((agora - inicioEtapa) / 1000);
+    document.getElementById("displayTempoEtapaAtual").textContent =
+      formatarTempo(segDecorridos);
+  }, 1000);
+}
+
+function pausarOuRetomarEtapa() {
+  const btn = document.getElementById("btnPausarEtapa");
+  if (!btn) return;
+
+  if (pausado) {
+    // Retomar
+    iniciarEtapaAtual();
+    btn.innerHTML = `<i class="bi bi-pause-fill"></i> Pausar Etapa`;
+    pausado = false;
+  } else {
+    // Pausar
+    clearInterval(timerEtapa);
+    aapp = true;
+    btn.innerHTML = `<i class="bi bi-play-fill"></i> Retomar Etapa`;
+    pausado = true;
+  }
+}
+
+function reiniciarEtapa() {
+  clearInterval(timerEtapa);
+  document.getElementById("displayTempoEtapaAtual").textContent = "00:00:00";
+  iniciarEtapaAtual();
+  const btn = document.getElementById("btnPausarEtapa");
+  if (btn) btn.innerHTML = `<i class="bi bi-pause-fill"></i> Pausar Etapa`;
+  pausado = false;
+}
+
+function avancarParaProximaEtapa() {
+  clearInterval(timerEtapa);
+
+  const fim = new Date();
+  const segsPassados = Math.floor((fim - inicioEtapa) / 1000);
+  const tempoHHMMSS = formatarTempo(segsPassados);
+  const etapaCod = etapas[etapaAtualIndex];
+
+  // Captura a linha correspondente na tabela
+  const linha = document.querySelector(
+    `#tbodyTempoIdeal tr:nth-child(${etapaAtualIndex + 1})`
+  );
+  if (linha) {
+    const celulas = linha.querySelectorAll("td");
+    if (celulas.length >= 6) {
+      const horarioInicio = inicioEtapa.toLocaleTimeString("pt-BR");
+      const horarioFim = fim.toLocaleTimeString("pt-BR");
+
+      celulas[2].textContent = horarioInicio; // Início
+      celulas[3].textContent = horarioFim; // Fim
+      celulas[4].textContent = tempoHHMMSS; // Executado
+
+      const tempoIdealStr = celulas[1].textContent || "00:00:00";
+      const idealSegs = converterStringParaSegundos(tempoIdealStr);
+      const eficiencia =
+        idealSegs > 0 ? Math.round((idealSegs / segsPassados) * 100) : 0;
+
+      celulas[5].textContent = `${eficiencia}%`;
+      celulas[5].classList.remove(
+        "text-success",
+        "text-warning",
+        "text-danger"
+      );
+
+      if (eficiencia >= 100) {
+        celulas[5].classList.add("text-success", "fw-bold");
+      } else if (eficiencia >= 80) {
+        celulas[5].classList.add("text-warning", "fw-bold");
+      } else {
+        celulas[5].classList.add("text-danger", "fw-bold");
+      }
+    } else {
+      console.warn("⚠️ A linha da tabela não tem colunas suficientes.");
+    }
+  }
+
+  // Armazena no resumo
+  resumo.push({ etapa: etapaCod, tempo: tempoHHMMSS });
+
+  etapaAtualIndex++;
+
+  if (etapaAtualIndex < etapas.length) {
+    const proximaEtapa = etapas[etapaAtualIndex];
+    document.getElementById("labelEtapaAtual").textContent = proximaEtapa;
+    document.getElementById("displayTempoEtapaAtual").textContent = "00:00:00";
+
+    iniciarEtapaAtual();
+    calcularETrocarTempos(window.pecas, window.pedidos, resumo);
+
+    // Alterna botões
+    btnProximaEtapa.classList.remove("d-none");
+    btnFinalizarRomaneio.classList.add("d-none");
+
+    if (proximaEtapa === "006") {
+      btnProximaEtapa.classList.add("d-none");
+      btnFinalizarRomaneio.classList.remove("d-none");
+    }
+  } else {
+    finalizarEtapas();
+  }
+}
+
+function finalizarEtapas() {
+  clearInterval(timerTotal);
+  clearInterval(timerEtapa);
+
+  // Marca fim da última etapa se ainda estava em andamento
+  if (etapaAtualIndex < etapas.length) {
+    const fim = new Date();
+    const segsPassados = Math.floor((fim - inicioEtapa) / 1000);
+    const tempoHHMMSS = formatarTempo(segsPassados);
+    const etapaCod = etapas[etapaAtualIndex];
+
+    // Atualiza a linha da tabela
+    const linha = document.querySelector(
+      `#tbodyTempoIdeal tr:nth-child(${etapaAtualIndex + 1})`
+    );
+    if (linha) {
+      const celulas = linha.querySelectorAll("td");
+      if (celulas.length >= 6) {
+        const horarioInicio = inicioEtapa.toLocaleTimeString("pt-BR");
+        const horarioFim = fim.toLocaleTimeString("pt-BR");
+
+        celulas[2].textContent = horarioInicio;
+        celulas[3].textContent = horarioFim;
+        celulas[4].textContent = tempoHHMMSS;
+
+        const tempoIdealStr = celulas[1].textContent || "00:00:00";
+        const idealSegs = converterStringParaSegundos(tempoIdealStr);
+        const eficiencia =
+          idealSegs > 0 ? Math.round((idealSegs / segsPassados) * 100) : 0;
+
+        celulas[5].textContent = `${eficiencia}%`;
+        celulas[5].classList.remove(
+          "text-success",
+          "text-warning",
+          "text-danger"
+        );
+
+        if (eficiencia >= 100) {
+          celulas[5].classList.add("text-success", "fw-bold");
+        } else if (eficiencia >= 80) {
+          celulas[5].classList.add("text-warning", "fw-bold");
+        } else {
+          celulas[5].classList.add("text-danger", "fw-bold");
+        }
+      }
+    }
+
+    // Registra no resumo final
+    resumo.push({ etapa: etapaCod, tempo: tempoHHMMSS });
+  }
+
+  // Atualiza status da UI
+  document.getElementById("labelEtapaAtual").textContent = "—";
+  document.getElementById("btnPausarEtapa").disabled = true;
+  document.getElementById("btnReiniciarEtapa").disabled = true;
+
+  const btnProximaEtapa = document.getElementById("btnProximaEtapa");
+  const btnFinalizarRomaneio = document.getElementById("btnFinalizarRomaneio");
+
+  if (btnProximaEtapa) btnProximaEtapa.classList.add("d-none");
+  if (btnFinalizarRomaneio) btnFinalizarRomaneio.classList.add("d-none");
+
+  // Atualiza tempo real total
+  calcularETrocarTempos(window.pecas, window.pedidos, resumo);
+}
+
+async function prepararDadosDoRomaneio(rom) {
+  // 1) Buscar todos os pedidos desse romaneio
+  const { data: pedidosData, error: errPedidos } = await supabase
+    .from("pedidos")
+    .select("id")
+    .eq("romaneio", rom);
+
+  if (errPedidos) {
+    console.error("Erro ao buscar pedidos do romaneio:", errPedidos);
+    return { pecas: 0, pedidos: 0 };
+  }
+  const pedidoIds = pedidosData.map((p) => p.id);
+  window.pedidos = pedidoIds.length;
+
+  // 2) Buscar quantidades de peças (soma de qtd em produtos_pedido)
+  //    Suponho que a tabela “produtos_pedido” tem colunas: pedido_id, qtd, qtd_bipada, box, etc.
+  const { data: produtosData, error: errProdutos } = await supabase
+    .from("produtos_pedido")
+    .select("qtd")
+    .in("pedido_id", pedidoIds);
+
+  if (errProdutos) {
+    console.error("Erro ao buscar produtos do romaneio:", errProdutos);
+    window.pecas = 0;
+    return { pecas: 0, pedidos: window.pedidos };
+  }
+
+  const totalPecas = produtosData.reduce((acc, linha) => {
+    return acc + (linha.qtd || 0);
+  }, 0);
+
+  window.pecas = totalPecas;
+  return { pecas: totalPecas, pedidos: window.pedidos };
+}
+
+function configurarListenersCronometro() {
+  // 🔁 (Re)captura os botões toda vez que o cronômetro for carregado
+  btnProximaEtapa = document.getElementById("btnProximaEtapa");
+  btnFinalizarRomaneio = document.getElementById("btnFinalizarRomaneio");
+
+  const btnIniciar = document.getElementById("btnIniciarRomaneio");
+  const btnPausar = document.getElementById("btnPausarEtapa");
+  const btnReiniciar = document.getElementById("btnReiniciarEtapa");
+
+  if (!btnIniciar || !btnPausar || !btnReiniciar) {
+    console.warn("⚠️ Botões do cronômetro não encontrados no DOM.");
+    return;
+  }
+
+  // 🔁 Garante que os botões sejam visíveis apenas quando devem
+  btnProximaEtapa?.classList.add("d-none");
+  btnFinalizarRomaneio?.classList.add("d-none");
+
+  // Botão "Iniciar Romaneio"
+  btnIniciar.addEventListener("click", async () => {
+    if (!window.operador) {
+      return alert("Operador não está definido.");
+    }
+    if (!window.romaneio) {
+      return alert("Romaneio não está definido.");
+    }
+
+    await prepararDadosDoRomaneio(window.romaneio);
+
+    btnIniciar.disabled = true;
+    btnPausar.disabled = false;
+    btnReiniciar.disabled = false;
+
+    etapaAtualIndex = 0;
+    document.getElementById("labelEtapaAtual").textContent =
+      etapas[etapaAtualIndex];
+
+    inicioTotal = new Date();
+    timerTotal = setInterval(() => {
+      const agora = new Date();
+      const diff = Math.floor((agora - inicioTotal) / 1000);
+      document.getElementById("displayTempoTotal").textContent =
+        formatarTempo(diff);
+    }, 1000);
+
+    iniciarEtapaAtual();
+    buscarEPopularTempoIdeal(window.romaneio);
+
+    // 👇 Mostra botão Próxima Etapa, oculta Finalizar
+    btnProximaEtapa?.classList.remove("d-none");
+    btnFinalizarRomaneio?.classList.add("d-none");
+  });
+
+  // Botão "Próxima Etapa"
+  btnProximaEtapa?.addEventListener("click", () => {
+    avancarParaProximaEtapa();
+  });
+
+  // Botão "Finalizar Romaneio"
+  btnFinalizarRomaneio?.addEventListener("click", () => {
+    finalizarEtapas(); // ou outro comportamento
+  });
+
+  // Botão "Pausar Etapa"
+  btnPausar.addEventListener("click", () => {
+    pausarOuRetomarEtapa();
+  });
+
+  // Botão "Reiniciar Etapa"
+  btnReiniciar.addEventListener("click", () => {
+    reiniciarEtapa();
+  });
+
+  // Teclado: Enter ou Espaço avança etapa
+  document.addEventListener("keydown", (e) => {
+    if ((e.key === "Enter" || e.key === " ") && !btnIniciar.disabled) {
+      if (inicioEtapa) {
+        avancarParaProximaEtapa();
+      }
+    }
+  });
+}
+
 // Mostrar/ocultar modal flutuante do cronômetro
-document.addEventListener("DOMContentLoaded", () => {
-  const modal = document.getElementById("cronometroModal");
-  const btn = document.getElementById("btnCronometroFloating");
+async function carregarCronometroNoModal() {
+  try {
+    const resp = await fetch("cronometro.html");
+    if (!resp.ok) throw new Error("Não foi possível carregar cronometro.html");
 
-  btn.addEventListener("click", (e) => {
-    e.stopPropagation();
-    modal.style.display = modal.style.display === "block" ? "none" : "block";
-  });
+    const container = document.getElementById("cronometroModal");
+    container.innerHTML = await resp.text();
 
-  document.addEventListener("click", (e) => {
-    const isInside = modal.contains(e.target) || btn.contains(e.target);
-    if (!isInside) modal.style.display = "none";
-  });
+    // 🔧 Corrigido: preenchimento seguro dos campos
+    const elOp1 = container.querySelector("#operadorDisplay");
+    const elOp2 = container.querySelector("#operador2Display");
+    const elRom = container.querySelector("#romaneioDisplay");
+
+    if (elOp1) elOp1.value = operador1 || "—";
+    if (elOp2) elOp2.value = operador2 || "—";
+    if (elRom) elRom.value = romaneio || "—";
+
+    // Reativa funções internas
+    if (typeof initCronometroCampos === "function") {
+      initCronometroCampos();
+    }
+
+    configurarListenersCronometro();
+  } catch (err) {
+    console.error("Erro ao injetar cronômetro:", err);
+  }
+}
+
+document.addEventListener("DOMContentLoaded", async () => {
+  // 1) Carrega o cronometro.html dentro de #cronometroModal
+  await carregarCronometroNoModal();
+
+  // 2) Lógica do botão flutuante que abre/fecha o modal
+  const btnCron = document.getElementById("btnCronometroFloating");
+  const modalCron = document.getElementById("cronometroModal");
+  if (btnCron && modalCron) {
+    btnCron.addEventListener("click", (e) => {
+      e.stopPropagation();
+      modalCron.style.display =
+        modalCron.style.display === "block" ? "none" : "block";
+    });
+    document.addEventListener("click", (e) => {
+      if (!modalCron.contains(e.target) && !btnCron.contains(e.target)) {
+        modalCron.style.display = "none";
+      }
+    });
+  } else {
+    console.warn("botão ou modal do cronômetro não encontrados.");
+  }
 });
+
+function obterPedidosEpecasDoRomaneio(rom, callback) {
+  supabase
+    .from("romaneios")
+    .select("romaneio, qtd_pedidos, qtd_pecas") // Nomes corrigidos
+    .eq("romaneio", rom)
+    .single()
+    .then(({ data, error }) => {
+      if (error || !data) {
+        console.error("Erro ao buscar romaneio:", error);
+        callback(null);
+      } else {
+        callback({
+          romaneio: data.romaneio,
+          qtd_pedidos: data.qtd_pedidos,
+          qtd_pecas: data.qtd_pecas,
+        });
+      }
+    });
+}
+
+function buscarEPopularTempoIdeal(rom) {
+  if (!rom) return console.warn("buscarEPopularTempoIdeal: rom vazio");
+
+  obterPedidosEpecasDoRomaneio(rom, (resRom) => {
+    if (!resRom) return;
+
+    const totalPedidos = Number(resRom.qtd_pedidos) || 0;
+    const totalPecas = Number(resRom.qtd_pecas) || 0;
+
+    const tempo80Map = {
+      "003": 2.42, // segundos por peça
+      "005": 13.376, // segundos por pedido
+      "006": 17.778, // segundos por pedido
+    };
+
+    const etapas = ["003", "005", "006"];
+    const lista = etapas.map((etapa) => {
+      const tempoSegundos =
+        etapa === "003"
+          ? tempo80Map[etapa] * totalPecas
+          : tempo80Map[etapa] * totalPedidos;
+
+      return {
+        etapa,
+        tempo_ideal: converterSegundosParaString(Math.round(tempoSegundos)),
+      };
+    });
+
+    popularTabelaTempoIdeal(lista);
+  });
+}
+
+function calcularETabelaTempoIdeal(tempoObjMap, totalPedidos, totalPecas) {
+  // Converter segundos → “HH:mm:ss”
+  function segParaHHMMSS(segundos) {
+    const h = String(Math.floor(segundos / 3600)).padStart(2, "0");
+    const m = String(Math.floor((segundos % 3600) / 60)).padStart(2, "0");
+    const s = String(segundos % 60).padStart(2, "0");
+    return `${h}:${m}:${s}`;
+  }
+
+  // 1) Extrai o tp80 de cada etapa (em segundos)
+  const tp003 = (tempoObjMap["003"]?.tempo80 || 0) * totalPecas;
+  const tp005 = (tempoObjMap["005"]?.tempo80 || 0) * totalPedidos;
+  const tp006 = (tempoObjMap["006"]?.tempo80 || 0) * totalPedidos;
+
+  // 2) Formata cada um em “HH:mm:ss”
+  const tempoIdeal003 = segParaHHMMSS(Math.round(tp003));
+  const tempoIdeal005 = segParaHHMMSS(Math.round(tp005));
+  const tempoIdeal006 = segParaHHMMSS(Math.round(tp006));
+
+  // 3) Preenche o <tbody id="tbodyTempoIdeal"> com 3 linhas
+  const tbody = document.getElementById("tbodyTempoIdeal");
+  if (!tbody) {
+    console.warn("tbodyTempoIdeal não encontrado no DOM");
+    return;
+  }
+  tbody.innerHTML = ""; // limpa antes
+
+  // Cria função auxiliar para montar cada <tr>
+  function montaLinha(etapa, tempoHH) {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${item.etapa}</td>
+      <td>${item.tempo_ideal}</td>
+      <td>–</td>
+      <td>–</td>
+      <td>–</td>
+      <td>–</td>
+    `;
+    return tr;
+  }
+
+  tbody.appendChild(montaLinha("003", tempoIdeal003));
+  tbody.appendChild(montaLinha("005", tempoIdeal005));
+  tbody.appendChild(montaLinha("006", tempoIdeal006));
+
+  // 4) Exibe o “Tempo Ideal Total” em #displayTempoIdealTotal
+  const totalSegundos = Math.round(tp003 + tp005 + tp006);
+  const displayIdeal = document.getElementById("displayTempoIdealTotal");
+  if (displayIdeal) displayIdeal.textContent = segParaHHMMSS(totalSegundos);
+
+  // 5) (Opcional) Armazene em variável global se quiser usar noutro lugar
+  window._tempoIdealTotalSegundos = totalSegundos;
+}

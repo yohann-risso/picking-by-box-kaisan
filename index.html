@@ -16,24 +16,71 @@
   </head>
 
   <body class="p-4">
-    <div id="loginArea" class="container mt-5">
-      <h4 class="mb-3">Login do Operador</h4>
-      <input
-        type="text"
-        id="inputLogin"
-        class="form-control mb-2"
-        placeholder="Usuário"
-      />
-      <input
-        type="password"
-        id="inputSenha"
-        class="form-control mb-2"
-        placeholder="Senha"
-      />
-      <button id="btnLogin" class="btn btn-primary w-100">Entrar</button>
+    <!-- Modal de Login -->
+    <div
+      class="modal fade"
+      id="loginModal"
+      tabindex="-1"
+      aria-labelledby="loginModalLabel"
+      aria-hidden="true"
+      data-bs-backdrop="static"
+      data-bs-keyboard="false"
+    >
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="loginModalLabel">
+              Login de Operador 1
+            </h5>
+          </div>
+          <div class="modal-body">
+            <form id="loginForm">
+              <div class="mb-3">
+                <label for="inputLoginModal" class="form-label">Usuário</label>
+                <input
+                  type="text"
+                  id="inputLoginModal"
+                  class="form-control"
+                  placeholder="Digite o usuário"
+                  required
+                />
+              </div>
+              <div class="mb-3">
+                <label for="inputSenhaModal" class="form-label">Senha</label>
+                <input
+                  type="password"
+                  id="inputSenhaModal"
+                  class="form-control"
+                  placeholder="Digite a senha"
+                  required
+                />
+              </div>
+            </form>
+            <div
+              id="loginError"
+              class="text-danger small"
+              style="display: none"
+            >
+              Usuário ou senha incorretos.
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              id="btnNextOperator"
+              class="btn btn-outline-secondary"
+            >
+              Próximo operador
+            </button>
+            <button type="button" id="btnLoginModal" class="btn btn-primary">
+              Logar
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <!-- Container principal oculto até login -->
+    <!-- Container principal: ficará oculto até fechar o modal -->
     <div id="mainApp" style="display: none">
       <div class="text-end text-muted small mb-2" id="operadorLogado"></div>
       <div>
@@ -158,23 +205,16 @@
       </div>
       <!-- fim container-fluid -->
 
-      <!-- Botão flutuante com ícone do Bootstrap -->
       <div id="btnCronometroFloating" title="Abrir Cronômetro">
         <i class="bi bi-stopwatch"></i>
       </div>
 
-      <!-- Modal flutuante com iframe -->
-      <div id="cronometroModal">
-        <iframe
-          src="https://script.google.com/macros/s/AKfycbwLnP9MUhfHdVjeZZFNH_rkr2gJyxQwoHC4GvMtJSykcqYvhBzB8GeMVu2NH57yWNHp/exec"
-          id="cronometroIframe"
-        ></iframe>
-      </div>
+      <!-- Este div receberá o conteúdo de cronometro.html via fetch() -->
+      <div id="cronometroModal"></div>
     </div>
     <!-- fim de #mainApp -->
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script type="module" src="/src/main.js"></script>
-
   </body>
 </html>
