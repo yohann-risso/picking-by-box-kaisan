@@ -1151,6 +1151,18 @@ document.getElementById("btnIniciar").addEventListener("click", async () => {
   romaneio = input.value.trim();
   if (!romaneio) return alert("Digite o romaneio");
 
+  // 🔒 Verifica se o romaneio existe no banco de dados
+  const { data: romaneioValido, error: erroRom } = await supabase
+    .from("romaneios")
+    .select("romaneio")
+    .eq("romaneio", romaneio)
+    .single();
+
+  if (erroRom || !romaneioValido) {
+    alert("⚠️ Este romaneio não existe no banco de dados.");
+    return;
+  }
+
   window.romaneio = romaneio;
   atualizarCamposDoCronometroModal();
 
