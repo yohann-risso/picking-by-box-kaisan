@@ -770,6 +770,7 @@ function renderBoxCards() {
     btn.addEventListener("keydown", (e) => {
       if (e.key === " " || e.key === "Enter") {
         e.preventDefault();
+        e.stopPropagation();
         btn.click();
       }
     });
