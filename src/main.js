@@ -580,6 +580,34 @@ document.addEventListener("DOMContentLoaded", async () => {
   console.log("Mapeamento de imagens:", imagensRef);
   renderProductMap();
 
+  document
+    .getElementById("romaneioInput")
+    .addEventListener("input", async (e) => {
+      const termo = e.target.value.trim();
+      if (termo.length < 2) return;
+
+      const { data, error } = await supabase
+        .from("romaneios")
+        .select("romaneio")
+        .ilike("romaneio", `%${termo}%`)
+        .limit(10);
+
+      if (error) {
+        console.error("Erro ao buscar sugestões:", error);
+        return;
+      }
+
+      const datalist = document.getElementById("romaneiosSugeridos");
+      if (!datalist) return;
+      datalist.innerHTML = "";
+
+      data.forEach((item) => {
+        const option = document.createElement("option");
+        option.value = item.romaneio;
+        datalist.appendChild(option);
+      });
+    });
+
   document.getElementById("romaneioInput").addEventListener("keypress", (e) => {
     if (e.key === "Enter") document.getElementById("btnIniciar").click();
   });
