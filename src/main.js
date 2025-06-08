@@ -577,7 +577,6 @@ async function carregarRefs(skuList = []) {
 
 document.addEventListener("DOMContentLoaded", async () => {
   await carregarRefs();
-  console.log("Mapeamento de imagens:", imagensRef);
   renderProductMap();
 
   document
@@ -638,8 +637,6 @@ async function carregarCodNfeMap(pedidoIds) {
   data.forEach(({ pedido_id, cod_nfe }) => {
     codNfeMap[pedido_id] = cod_nfe;
   });
-
-  console.log("✅ codNfeMap atualizado:", codNfeMap);
 }
 
 function renderBoxCards() {
@@ -781,6 +778,7 @@ function renderBoxCards() {
 
       localStorage.setItem(`caixas-${romaneio}`, JSON.stringify(caixas));
       await carregarBipagemAnterior(romaneio);
+      await gerarResumoVisualRomaneio();
 
       // Espera a renderização terminar antes de devolver o foco
       setTimeout(() => {
@@ -921,7 +919,7 @@ function renderHistorico() {
           <strong>${item.sku}</strong><br/>
           Pedido: ${item.pedido}
         </div>
-        <div class="h2"><span class="badge bg-primary">${item.box}</span></div>
+        <div class="h2"><span class="badge-box">${item.box}</span></div>
       `;
       lista.appendChild(li);
     });
@@ -969,14 +967,14 @@ function renderPendentes() {
     const primeiro = enderecos[0] || "SEM LOCAL";
     const tooltip = enderecos.join(" • ").replace(/"/g, "&quot;");
 
-    let badgeClass = "bg-info text-dark";
+    let badgeClass = "badge-endereco badge-endereco-localizado";
     let badgeIcon = "📦";
 
     if (primeiro === "SEM LOCAL") {
-      badgeClass = "bg-danger";
+      badgeClass = "badge-endereco badge-endereco-sem-local";
       badgeIcon = "❌";
     } else if (primeiro.toUpperCase() === "PRÉ-VENDA") {
-      badgeClass = "bg-warning text-dark";
+      badgeClass = "badge-endereco badge-endereco-pre-venda";
       badgeIcon = "⏳";
     }
 
@@ -1030,7 +1028,7 @@ function renderCardProduto(result) {
     <div class="card-produto">
       <div class="card-info">
         <div class="details">
-          <div class="title">${desc} | Ref: ${ref}</div>
+          <div class="title">${desc}</div>
           <hr />
           <div class="sku">SKU: ${sku}</div>
           <div class="pedido-undo">
@@ -1072,7 +1070,7 @@ function renderProgressoConferencia() {
   if (barra) {
     barra.style.width = `${perc}%`;
     barra.setAttribute("aria-valuenow", perc);
-    barra.textContent = `${perc}% (${bipado}/${total})`;
+    barra.textContent = "";
   }
 }
 
@@ -1256,6 +1254,9 @@ async function carregarBipagemAnterior(romaneio) {
   renderHistorico();
   renderPendentes();
   renderProgressoConferencia();
+
+  const { bipado, total } = calcularPecasTotaisEBipadas();
+  atualizarProgressoPro(bipado, total, window.inicioRomaneioTimestamp);
 }
 
 document.getElementById("btnIniciar").addEventListener("click", async () => {
@@ -1331,9 +1332,11 @@ document.getElementById("btnIniciar").addEventListener("click", async () => {
 
   input.disabled = true;
   document.getElementById("btnIniciar").disabled = true;
+  document.getElementById("skuInput").disabled = false;
   document.getElementById("skuInput").focus();
 
   await carregarBipagemAnterior(romaneio);
+  await gerarResumoVisualRomaneio();
 
   if (typeof atualizarInfosCronometro === "function") {
     atualizarInfosCronometro();
@@ -1416,11 +1419,13 @@ document.getElementById("btnBipar").addEventListener("click", async () => {
     localStorage.setItem(`caixas-${romaneio}`, JSON.stringify(caixas));
     localStorage.setItem(`pendentes-${romaneio}`, JSON.stringify(pendentes));
 
-    // 9) rerenderiza a UI
+    // 9) atualiza UI com progresso recalculado após atualizar o estado
     renderBoxCards();
     renderPendentes();
     renderHistorico();
-    renderProgressoConferencia();
+
+    const { bipado, total } = calcularPecasTotaisEBipadas();
+    atualizarProgressoPro(bipado, total, window.inicioRomaneioTimestamp);
   } else {
     // 10) em caso de erro, zera para não poluir o histórico
     currentProduto = null;
@@ -1475,7 +1480,6 @@ document.getElementById("btnFinalizar").addEventListener("click", async () => {
   document.getElementById("boxContainer").innerHTML = "";
   document.getElementById("listaHistorico").innerHTML = "";
   document.getElementById("listaPendentes").innerHTML = "";
-  document.getElementById("feedback").innerHTML = "";
 
   renderProgressoConferencia();
 });
@@ -1531,8 +1535,6 @@ document
     document.getElementById("boxContainer").innerHTML = "";
     document.getElementById("listaHistorico").innerHTML = "";
     document.getElementById("listaPendentes").innerHTML = "";
-    document.getElementById("feedback") &&
-      (document.getElementById("feedback").innerHTML = "");
     document.getElementById("btnFinalizar").classList.add("d-none");
     document.getElementById("btnLimparRomaneio").classList.add("d-none");
 
@@ -2426,4 +2428,201 @@ async function enviarEtapaParaPlanilha(etapa) {
   } catch (error) {
     console.error("🚨 Erro ao enviar etapa via proxy:", error);
   }
+}
+
+async function obterResumoPorMetodoEnvio(romaneio) {
+  const { data, error } = await supabase
+    .from("pedidos")
+    .select("metodo_envio")
+    .eq("romaneio", romaneio);
+
+  if (error) {
+    console.error("Erro ao buscar pedidos:", error);
+    return {};
+  }
+
+  const contagem = {};
+
+  data.forEach(({ metodo_envio }) => {
+    const metodo = metodo_envio?.trim() || "Desconhecido";
+    contagem[metodo] = (contagem[metodo] || 0) + 1;
+  });
+
+  return contagem;
+}
+
+async function gerarResumoVisualRomaneio() {
+  const { data: pedidos, error } = await supabase
+    .from("pedidos")
+    .select("id, metodo_envio, status")
+    .eq("romaneio", romaneio);
+
+  if (error) {
+    console.error("Erro ao buscar pedidos:", error);
+    return;
+  }
+
+  const resumo = {}; // método => { sub: x, pesado: y, nl: z }
+
+  pedidos.forEach((pedido) => {
+    const metodo = (pedido.metodo_envio || "Outros")
+      .replace("Correios", "")
+      .trim()
+      .toUpperCase();
+    if (!resumo[metodo])
+      resumo[metodo] = { sub: 0, pesado: 0, nl: 0, remessa: 0 };
+    resumo[metodo].sub += 1;
+
+    // Corrigido: usa o objeto de caixas que reflete o UI
+    if (caixas[pedido.id]?.pesado) resumo[metodo].pesado += 1;
+  });
+
+  // Calcular NL por método
+  for (const metodo in resumo) {
+    const dados = resumo[metodo];
+    dados.nl = dados.sub - dados.pesado;
+    dados.remessa = Math.max(dados.pesado - dados.nl, 0);
+  }
+
+  // Preenche a tabela
+  const corpo = document.getElementById("resumoTabelaEnvios");
+  corpo.innerHTML = "";
+
+  let totalSub = 0,
+    totalPesado = 0,
+    totalNL = 0;
+
+  for (const metodo in resumo) {
+    const { sub, pesado, nl, remessa } = resumo[metodo];
+    totalSub += sub;
+    totalPesado += pesado;
+    totalNL += nl;
+
+    const rowClass = nl > 0 ? "bg-warning-subtle" : "";
+    const linksRemessa = {
+      SEDEX:
+        "https://ge.kaisan.com.br/?page=nfe_arquivo_remessa/inicia_confere_remessa_transportadora&cod_bandeira=1&cod_loja=-1&cod_transportadora=2",
+      PAC: "https://ge.kaisan.com.br/?page=nfe_arquivo_remessa/inicia_confere_remessa_transportadora&cod_bandeira=1&cod_loja=-1&cod_transportadora=1",
+      "RETIRADA LOCAL":
+        "https://ge.kaisan.com.br/?page=nfe_arquivo_remessa/inicia_confere_remessa_transportadora&cod_bandeira=1&cod_loja=-1&cod_transportadora=4",
+    };
+
+    const metodoNormalizado = metodo.toUpperCase();
+    const urlRemessa = linksRemessa[metodoNormalizado] || null;
+
+    const botao = urlRemessa
+      ? `<a href="${urlRemessa}" target="_blank" title="Abrir remessa ${metodo}" 
+        class="btn btn-outline-secondary btn-sm botao-remessa">
+        🚚 Gerar Remessa
+     </a>`
+      : "";
+
+    corpo.innerHTML += `
+  <tr class="${rowClass}">
+    <td>${metodo}</td>
+    <td class="bg-white text-center">${sub}</td>
+    <td class="destacar-pesado">${pesado}</td>
+    <td class="destacar-nl">${nl}</td>
+    <td class="destacar-remessa">${remessa}</td>
+    <td class="text-align: center; vertical-align: middle">${botao}</td>
+  </tr>
+`;
+  }
+
+  document.getElementById("resTotalSub").textContent = totalSub;
+  document.getElementById("resTotalPesado").textContent = totalPesado;
+  document.getElementById("resTotalNL").textContent = totalNL;
+}
+
+const toggleBtn = document.getElementById("resumoToggle");
+const resumoCard = document.getElementById("resumoRomaneio");
+
+toggleBtn.addEventListener("click", () => {
+  const isOpen = resumoCard.style.display === "block";
+
+  if (isOpen) {
+    resumoCard.style.opacity = 0;
+    setTimeout(() => {
+      resumoCard.style.display = "none";
+      toggleBtn.style.display = "block"; // mostra o botão
+    }, 200);
+  } else {
+    resumoCard.style.display = "block";
+    setTimeout(() => (resumoCard.style.opacity = 1), 10);
+    toggleBtn.style.display = "none"; // esconde o botão
+  }
+});
+
+// Fecha ao clicar fora
+document.addEventListener("click", (e) => {
+  if (
+    !document.getElementById("resumoWrapper").contains(e.target) &&
+    resumoCard.style.display === "block"
+  ) {
+    resumoCard.style.display = "none";
+    toggleBtn.style.display = "block";
+  }
+});
+
+document
+  .getElementById("btnAbrirRemessaModal")
+  .addEventListener("click", () => {
+    window.open(
+      "https://ge.kaisan.com.br/?page=meta/view&id_view=nfe_arquivo_remessa_conferencia&_menu_acessado=610",
+      "_blank"
+    );
+  });
+
+function atualizarProgresso(pecasBipadas, totalPecas) {
+  const percentual =
+    totalPecas > 0 ? Math.round((pecasBipadas / totalPecas) * 100) : 0;
+  const barra = document.getElementById("progressoConferencia");
+  const label = document.getElementById("labelProgresso");
+  const bolha = document.getElementById("bolhaProgresso");
+
+  // Atualiza a largura da barra
+  barra.style.width = `${percentual}%`;
+  barra.setAttribute("aria-valuenow", percentual);
+
+  // Atualiza o texto no centro da barra
+  label.textContent = `${pecasBipadas} de ${totalPecas} peças (${percentual}%)`;
+
+  // Atualiza a bolha lateral
+  bolha.innerHTML = `<span><strong>${percentual}%</strong><br><small>(${pecasBipadas}/${totalPecas})</small></span>`;
+
+  // Cores semânticas
+  if (percentual < 40) {
+    barra.style.backgroundColor = "#dc3545"; // vermelho
+    bolha.style.backgroundColor = "#dc3545";
+  } else if (percentual < 80) {
+    barra.style.backgroundColor = "#ffc107"; // amarelo
+    bolha.style.backgroundColor = "#ffc107";
+  } else {
+    barra.style.backgroundColor = "#198754"; // verde
+    bolha.style.backgroundColor = "#198754";
+  }
+}
+
+function calcularPecasTotaisEBipadas() {
+  const total = Object.values(caixas).reduce((acc, c) => acc + c.total, 0);
+  const bipado = Object.values(caixas).reduce((acc, c) => acc + c.bipado, 0);
+  return { total, bipado };
+}
+
+function atualizarProgressoPro(bipado, total, inicioTimestamp = null) {
+  const perc = total > 0 ? Math.round((bipado / total) * 100) : 0;
+  const barra = document.getElementById("progressoConferencia");
+  const label = document.getElementById("labelProgresso");
+  const bolha = document.getElementById("bolhaProgresso");
+  const tempoRestante = document.getElementById("tempoRestante");
+  const eficienciaEl = document.getElementById("eficienciaProgresso");
+
+  barra.style.width = `${perc}%`;
+  barra.setAttribute("aria-valuenow", perc);
+  label.textContent = `${bipado} de ${total} peças (${perc}%)`;
+  // Cores por progresso
+  let cor = "#198754"; // verde
+  if (perc < 40) cor = "#dc3545";
+  else if (perc < 80) cor = "#ffc107";
+  barra.style.backgroundColor = cor;
 }

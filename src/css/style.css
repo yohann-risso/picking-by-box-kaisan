@@ -1,0 +1,1204 @@
+/* =============================
+   TOKENS DE DESIGN EXPANDIDOS
+   ============================= */
+:root {
+  --color-primary: #1c3f60;
+  --color-primary-dark: #142f47;
+  --color-primary-light: #d9e9f2;
+  --color-success: #2e7d32;
+  --color-success-dark: #1b5e20;
+  --color-success-light: #e8f5e9;
+  --color-danger: #c62828;
+  --color-danger-dark: #b71c1c;
+  --color-danger-light: #fdecea;
+  --color-bg: #f8f9fa;
+  --color-white: #fff;
+  --color-black: #000;
+  --color-text: #1a1d20;
+  --color-info-bg: #d9e9f2;
+  --color-info-border: rgb(36 42 49 / 15%);
+  --font-default: "Geist", "Segoe UI", sans-serif;
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-md: 1rem;
+  --font-size-lg: 1.25rem;
+  --font-size-xl: 1.5rem;
+  --font-weight-light: 300;
+  --font-weight-regular: 400;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --space-xxs: 0.25rem;
+  --space-xs: 0.5rem;
+  --space-sm: 0.75rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2rem;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-full: 9999px;
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 5%);
+  --shadow-md: 0 4px 6px rgb(0 0 0 / 10%);
+  --shadow-lg: 0 10px 15px rgb(0 0 0 / 15%);
+  --shadow-inner: inset 0 2px 4px rgb(0 0 0 / 6%);
+  --transition-fast: 0.2s ease-in-out;
+  --transition-base: 0.3s ease-in-out;
+  --transition-slow: 0.5s ease;
+}
+
+[data-theme="dark"] {
+  --color-bg: #121212;
+  --color-white: #1e1e1e;
+  --color-text: #e0e0e0;
+  --color-primary: #90caf9;
+  --color-primary-dark: #42a5f5;
+  --color-primary-light: #1a2b3c;
+  --color-success: #81c784;
+  --color-success-dark: #519657;
+  --color-success-light: #1b3c28;
+  --color-danger: #ef5350;
+  --color-danger-dark: #c62828;
+  --color-danger-light: #2c1a1a;
+  --color-info-bg: #1e2a38;
+  --color-info-border: rgb(255 255 255 / 6%);
+}
+
+/* ===============================
+   PADRÕES DE INTERAÇÃO VISUAL
+   =============================== */
+.btn,
+.btn-primary,
+.btn-success,
+.btn-outline-primary,
+.btn-outline-danger,
+.btn-outline-secondary,
+.btn-warning,
+.btn-dark,
+.card-produto,
+.card-info,
+.badge-endereco,
+.badge-box,
+input,
+select,
+textarea {
+  transition: background-color var(--transition-base),
+    color var(--transition-base), border-color var(--transition-base),
+    transform var(--transition-base), box-shadow var(--transition-base);
+}
+
+.btn:hover,
+.btn:focus,
+.btn-primary:hover,
+.btn-success:hover,
+.btn-outline-primary:hover,
+.btn-outline-danger:hover,
+.btn-outline-secondary:hover,
+.btn-warning:hover,
+.btn-dark:hover {
+  transform: scale(1.02);
+  box-shadow: var(--shadow-md);
+}
+
+.btn:active,
+.btn-primary:active,
+.btn-success:active,
+.btn-outline-primary:active,
+.btn-outline-danger:active,
+.btn-outline-secondary:active,
+.btn-warning:active,
+.btn-dark:active {
+  transform: scale(0.97);
+  box-shadow: var(--shadow-sm);
+}
+
+.card-produto:hover,
+.card-produto:focus-within {
+  transform: scale(1.02);
+  box-shadow: var(--shadow-lg);
+}
+
+.card-produto:active {
+  transform: scale(0.99);
+  box-shadow: var(--shadow-md);
+}
+
+.badge-endereco:hover,
+.badge-box:hover {
+  transform: scale(1.05);
+  opacity: 0.95;
+  box-shadow: var(--shadow-sm);
+}
+
+input:hover,
+select:hover,
+textarea:hover {
+  border-color: var(--color-primary);
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: 2px solid var(--color-primary);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgb(28 63 96 / 20%);
+}
+
+input:active,
+select:active,
+textarea:active {
+  background-color: var(--color-primary-light);
+}
+
+body {
+  margin: 0 !important;
+  padding: 0 !important;
+  background-color: var(--color-bg) !important;
+  font-family: var(--font-default) !important;
+  color: var(--color-text) !important;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+/* Tabelas */
+table,
+table th,
+table td,
+.print-table th,
+.print-table td {
+  text-align: center;
+  vertical-align: middle;
+  font-family: var(--font-default) !important;
+}
+
+.print-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  font-family: var(--font-default) !important;
+}
+
+.print-table th {
+  background-color: #000 !important;
+  color: #fff !important;
+  font-weight: bold;
+  font-family: var(--font-default) !important;
+}
+
+.print-table td.spacer {
+  border: none;
+  width: 20px;
+  font-family: var(--font-default) !important;
+}
+
+@media print {
+  body {
+    margin: 0;
+  }
+
+  tr {
+    page-break-inside: avoid;
+  }
+}
+
+/* Cartão de erro */
+.card-erro {
+  background-color: var(--color-danger-light);
+  border: 2px dashed var(--color-danger);
+  color: var(--color-danger);
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+/* Cartões de produto */
+.card-produto {
+  display: flex;
+  align-items: stretch;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  transition: transform 0.2s ease;
+}
+
+.card-produto:hover {
+  transform: scale(1.02);
+  box-shadow: 0 6px 18px rgb(0 0 0 / 8%);
+}
+
+.card-produto .card-info {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  background-color: var(--color-info-bg);
+  border-radius: 8px;
+  padding: 1rem;
+  gap: 1rem;
+  position: relative;
+  box-shadow: 0 0 8px var(--color-info-border);
+  color: var(--color-text);
+}
+
+.card-info .details {
+  flex: 1;
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.card-info .details .title {
+  font-size: 1.2rem;
+  font-weight: bold;
+  margin: 0;
+}
+
+.card-info .details hr {
+  border: none;
+  border-top: 1px solid #bbb;
+  margin: 0.25rem 0 0.5rem;
+}
+
+.card-info .details .sku {
+  font-size: 1rem;
+  color: var(--color-primary-dark);
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.card-info .details .pedido-undo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.card-info .details .btn-undo-simple {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  border: 1px solid var(--color-text);
+  background: transparent;
+  padding: 0.3rem 0.6rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  color: var(--color-text);
+}
+
+.card-info .details .btn-undo-simple:hover {
+  background-color: rgb(255 255 255 / 85%);
+}
+
+.card-info .image-container {
+  width: 20%;
+  height: 100%;
+  border: 3px solid var(--color-primary);
+  border-radius: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.card-info .image-container img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.card-produto .card-number {
+  width: 90px;
+  background-color: var(--color-primary);
+  color: var(--color-white);
+  font-size: 3.5rem;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  flex-shrink: 0;
+  margin-left: -6px;
+  box-shadow: #313131 0 0 5px;
+  text-shadow: #313131 0 0 5px;
+}
+
+/* Status */
+.bg-success-subtle {
+  background-color: var(--color-success-light);
+}
+
+.bg-success {
+  background-color: var(--color-success) !important;
+  color: var(--color-white);
+}
+
+.bg-danger-subtle {
+  background-color: var(--color-danger-light);
+}
+
+.bg-danger {
+  background-color: var(--color-danger) !important;
+  color: var(--color-white);
+}
+
+.bg-primary-subtle {
+  background-color: var(--color-primary-light);
+}
+
+.bg-primary {
+  background-color: var(--color-primary) !important;
+  color: var(--color-white);
+}
+
+/* Botões */
+.btn-pesar {
+  font-size: 0.85rem;
+  color: var(--color-primary);
+  background: none;
+  border: none;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.btn-pesar:hover {
+  text-decoration: underline;
+}
+
+.btn-transparent {
+  background-color: transparent;
+  border: 1px solid #ccc;
+  color: inherit;
+}
+
+.btn-transparent:hover {
+  background-color: rgb(255 255 255 / 80%);
+}
+
+.btn-undo-simple {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.btn-pesado {
+  background-color: var(--color-primary);
+  color: var(--color-white);
+  border: none;
+  font-weight: bold;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: default;
+}
+
+.btn-pesado:hover {
+  background-color: var(--color-primary);
+  color: var(--color-white);
+  text-decoration: none;
+}
+
+/* Classes utilitárias e layout */
+#boxContainer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.box-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 10px;
+  width: 260px;
+  border-radius: 8px;
+  box-shadow: 0 0 4px rgb(0 0 0 / 10%);
+}
+
+.info-card {
+  flex: 1;
+  padding: 0;
+  text-align: left;
+  box-shadow: none;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+}
+
+.number-card {
+  width: 44px;
+  height: 44px;
+  font-size: 1.1rem;
+  font-weight: bold;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Elementos de tabela */
+td.col-box {
+  background-color: #000;
+  color: #fff;
+  font-weight: bold;
+  width: 40px;
+}
+
+tr.bloco-spacer td {
+  height: 24px;
+  border: none;
+  border-top: 4px dashed #666;
+  background-color: #f0f0f0;
+}
+
+/* Layout responsivo */
+#colBoxes.d-none ~ #colInputs,
+#colInputs.col-12 {
+  max-width: 600px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+@media (width <= 576px) {
+  #colBoxes.d-none ~ #colInputs,
+  #colInputs.col-12 {
+    max-width: none;
+    margin: 0;
+  }
+}
+
+/* Cabeçalho */
+.header-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.app-logo {
+  height: 40px;
+  width: auto;
+  margin-bottom: 0.5rem;
+}
+
+.app-title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+/* Botão flutuante do cronômetro */
+#btnCronometroFloating {
+  position: fixed;
+  top: 60px;
+  right: 0;
+  background-color: var(--color-primary);
+  color: var(--color-white);
+  width: 48px;
+  height: 48px;
+  border-radius: 10%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10000;
+}
+
+#cronometroModal {
+  position: fixed;
+  top: 105px;
+  right: 20px;
+  width: 720px;
+  max-height: 90vh;
+  z-index: 9999;
+  background: var(--color-white);
+  border: 2px solid var(--color-primary);
+  box-shadow: 0 0 10px rgb(0 0 0 / 20%);
+  display: none;
+  overflow-y: auto;
+  padding: 1rem;
+  border-radius: 6px;
+}
+
+/* Resumo lateral */
+#resumoWrapper {
+  position: fixed;
+  top: 50%;
+  right: 0;
+  transform: translateY(-50%);
+  z-index: 1050;
+}
+
+#resumoToggle {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  background-color: var(--color-primary);
+  color: var(--color-white);
+  padding: 8px 10px;
+  font-weight: bold;
+  cursor: pointer;
+  border-radius: 0 10px 10px 0;
+  box-shadow: 0 0 5px rgb(0 0 0 / 30%);
+}
+
+#resumoCard {
+  width: 240px;
+  background-color: var(--color-white);
+  padding: 12px;
+  border-radius: 10px;
+  display: none;
+}
+
+#resumoWrapper.aberto #resumoCard {
+  display: block;
+}
+
+#resumoRomaneio {
+  min-width: 260px;
+  font-size: 13px;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 20%);
+  display: none;
+  transition: all 0.3s ease;
+  vertical-align: middle;
+}
+
+/* Destaques visuais */
+.destacar-remessa {
+  background-color: #000 !important;
+  color: #fff !important;
+  font-weight: bold;
+  vertical-align: middle;
+}
+
+.destacar-nl {
+  background-color: #801414 !important;
+  color: #fff !important;
+  font-weight: bold;
+  vertical-align: middle;
+}
+
+.destacar-pesado {
+  background-color: #5a9927 !important;
+  color: #fff !important;
+  font-weight: bold;
+  vertical-align: middle;
+}
+
+.linha-total {
+  background-color: #666;
+}
+
+.botao-remessa {
+  padding: 2px 6px;
+  font-size: 12px;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+/* Padronização de botões */
+.btn-primary {
+  background-color: var(--color-primary) !important;
+  border-color: var(--color-primary) !important;
+  color: var(--color-white) !important;
+}
+
+.btn-primary:hover,
+.btn-primary:focus {
+  background-color: var(--color-primary-dark) !important;
+  border-color: var(--color-primary-dark) !important;
+  color: var(--color-white) !important;
+}
+
+.btn-outline-primary {
+  color: var(--color-primary) !important;
+  border-color: var(--color-primary) !important;
+}
+
+.btn-outline-primary:hover,
+.btn-outline-primary:focus {
+  background-color: var(--color-primary) !important;
+  color: var(--color-white) !important;
+}
+
+.btn-success {
+  background-color: var(--color-success) !important;
+  border-color: var(--color-success) !important;
+  color: var(--color-white) !important;
+}
+
+.btn-success:hover,
+.btn-success:focus {
+  background-color: var(--color-success-dark) !important;
+  border-color: var(--color-success-dark) !important;
+  color: var(--color-white) !important;
+}
+
+.btn-outline-danger {
+  color: var(--color-danger) !important;
+  border-color: var(--color-danger) !important;
+}
+
+.btn-outline-danger:hover,
+.btn-outline-danger:focus {
+  background-color: var(--color-danger) !important;
+  color: var(--color-white) !important;
+}
+
+.btn-outline-secondary {
+  color: #6c757d !important;
+  border-color: #6c757d !important;
+}
+
+.btn-outline-secondary:hover,
+.btn-outline-secondary:focus {
+  background-color: #6c757d !important;
+  color: var(--color-white) !important;
+}
+
+.btn-warning {
+  background-color: #ffc107 !important;
+  border-color: #ffc107 !important;
+  color: #212529 !important;
+}
+
+.btn-warning:hover {
+  background-color: #e0a800 !important;
+  border-color: #d39e00 !important;
+}
+
+.btn-dark {
+  background-color: #343a40 !important;
+  border-color: #343a40 !important;
+  color: var(--color-white) !important;
+}
+
+.btn-dark:hover {
+  background-color: #23272b !important;
+  border-color: #1d2124 !important;
+  color: var(--color-white) !important;
+}
+
+.app-logo {
+  transition: filter 0.3s ease;
+}
+
+/* Se estiver no tema escuro, inverte a logo para branco */
+[data-theme="dark"] .app-logo {
+  filter: brightness(0) invert(1);
+}
+
+/* Transições suaves */
+body,
+.card-info,
+.btn,
+input,
+.card-produto {
+  transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+}
+
+/* Inputs no dark */
+input,
+select,
+textarea {
+  background-color: var(--color-white);
+  color: var(--color-text);
+  border: 1px solid var(--color-info-border);
+}
+
+input::placeholder {
+  color: rgb(255 255 255 / 40%);
+}
+
+/* Botões com hover claro */
+.btn-outline-primary:hover,
+.btn-outline-secondary:hover,
+.btn-outline-danger:hover {
+  filter: brightness(1.2);
+}
+
+.btn-transparent:hover {
+  background-color: rgb(255 255 255 / 5%);
+}
+
+/* Card de produto e elementos relacionados */
+.card-info {
+  background-color: var(--color-info-bg);
+  box-shadow: 0 0 6px var(--color-info-border);
+  color: var(--color-text);
+}
+
+.card-info .details .sku,
+.card-info .details .btn-undo-simple {
+  color: var(--color-primary);
+}
+
+.card-info .details .btn-undo-simple:hover {
+  background-color: rgb(255 255 255 / 5%);
+}
+
+.card-produto .card-number {
+  background-color: var(--color-primary-dark);
+  color: #fff;
+  box-shadow: #000 0 0 8px;
+  text-shadow: 0 0 4px rgb(0 0 0 / 60%);
+}
+
+/* Sombra sutil no modo dark */
+[data-theme="dark"] .box-wrapper,
+[data-theme="dark"] #resumoCard {
+  box-shadow: 0 0 10px rgb(255 255 255 / 5%);
+}
+
+/* Botão flutuante */
+[data-theme="dark"] .app-logo {
+  filter: brightness(0) invert(1);
+}
+
+/* === BADGES PERSONALIZADOS === */
+.badge-endereco {
+  font-weight: bold;
+  padding: 0.4em 0.6em;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+/* Badge padrão (endereçado corretamente) */
+.badge-endereco-localizado {
+  background-color: var(--color-primary);
+  color: var(--color-white);
+}
+
+/* Badge para sem local */
+.badge-endereco-sem-local {
+  background-color: var(--color-danger);
+  color: var(--color-white);
+}
+
+/* Badge para pré-venda */
+.badge-endereco-pre-venda {
+  background-color: #ffc107;
+  color: #212529;
+}
+
+/* Badge para número de box no histórico */
+.badge-box {
+  background-color: var(--color-primary);
+  color: var(--color-white);
+  font-weight: 700;
+  font-size: clamp(1.5rem, 1.2vw, 1.5rem);
+  width: 3rem;
+  height: 3rem;
+  border-radius: 10px;
+  line-height: 2.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+[data-theme="dark"] .badge-box {
+  background-color: var(--color-primary-dark);
+}
+
+.card-info,
+.badge-box {
+  transition: background-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease,
+    border-color 0.3s ease;
+}
+
+.btn-pesar:hover {
+  background-color: rgb(255 255 255 / 5%);
+  color: var(--color-white);
+}
+
+.badge-endereco-localizado {
+  background-color: var(--color-primary);
+  color: var(--color-white);
+}
+
+[data-theme="dark"] .badge-endereco-localizado {
+  background-color: var(--color-primary-dark);
+}
+
+.badge-endereco-sem-local {
+  background-color: var(--color-danger);
+  color: var(--color-white);
+}
+
+[data-theme="dark"] .badge-endereco-sem-local {
+  background-color: var(--color-danger-dark);
+}
+
+@media (width <= 576px) {
+  #colInputs.col-12 {
+    max-width: 100%;
+    padding: 0 1rem;
+  }
+}
+
+[data-theme="dark"] .card-produto {
+  box-shadow: 0 0 10px rgb(255 255 255 / 5%);
+}
+
+#btnAbrirRemessaModal {
+  background-color: var(--color-text);
+  color: var(--color-bg);
+  border-radius: 6px;
+  font-weight: 600;
+}
+
+[data-theme="dark"] #btnAbrirRemessaModal {
+  background-color: #fff;
+  color: #121212;
+}
+
+body {
+  font-size: clamp(14px, 1.1vw, 16px);
+}
+
+:root {
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+}
+
+[data-theme="dark"] body {
+  background-color: #0f1115;
+}
+
+/* ===============================
+   PADRÕES DE INTERAÇÃO VISUAL
+   =============================== */
+
+/* Transições suaves aplicadas por padrão */
+.btn,
+input,
+select,
+textarea,
+.card-produto,
+.badge-endereco {
+  transition: background-color var(--transition-base),
+    color var(--transition-base), border-color var(--transition-base),
+    transform var(--transition-base), box-shadow var(--transition-base);
+}
+
+/* ========================
+   BOTÕES (.btn, variantes)
+   ======================== */
+.btn:hover,
+.btn:focus {
+  transform: scale(1.02);
+  box-shadow: var(--shadow-md);
+}
+
+.btn:active {
+  transform: scale(0.98);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ========================
+   CARTÕES (.card-produto)
+   ======================== */
+.card-produto:hover,
+.card-produto:focus-within {
+  transform: scale(1.02);
+  box-shadow: var(--shadow-lg);
+}
+
+.card-produto:active {
+  transform: scale(0.99);
+  box-shadow: var(--shadow-md);
+}
+
+/* ========================
+   BADGES (.badge-endereco)
+   ======================== */
+.badge-endereco:hover {
+  opacity: 0.9;
+  transform: scale(1.05);
+}
+
+/* ========================
+   CAMPOS DE FORMULÁRIO
+   ======================== */
+input:hover,
+select:hover,
+textarea:hover {
+  border-color: var(--color-primary);
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: 2px solid var(--color-primary);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgb(28 63 96 / 20%);
+}
+
+input:active,
+select:active,
+textarea:active {
+  background-color: var(--color-primary-light);
+}
+
+.btn,
+.btn-primary,
+.btn-success,
+.btn-outline-primary,
+.btn-outline-danger,
+.btn-outline-secondary,
+.btn-warning,
+.btn-dark {
+  transition: background-color var(--transition-base),
+    color var(--transition-base), border-color var(--transition-base),
+    transform var(--transition-base), box-shadow var(--transition-base);
+}
+
+.btn:hover,
+.btn:focus,
+.btn-primary:hover,
+.btn-success:hover,
+.btn-outline-primary:hover,
+.btn-outline-danger:hover,
+.btn-outline-secondary:hover,
+.btn-warning:hover,
+.btn-dark:hover {
+  transform: scale(1.02);
+  box-shadow: var(--shadow-md);
+}
+
+.btn:active,
+.btn-primary:active,
+.btn-success:active,
+.btn-outline-primary:active,
+.btn-outline-danger:active,
+.btn-outline-secondary:active,
+.btn-warning:active,
+.btn-dark:active {
+  transform: scale(0.97);
+  box-shadow: var(--shadow-sm);
+}
+
+.card-produto,
+.card-info {
+  transition: background-color var(--transition-base),
+    color var(--transition-base), box-shadow var(--transition-base),
+    transform var(--transition-base);
+}
+
+.card-produto:hover,
+.card-produto:focus-within {
+  transform: scale(1.02);
+  box-shadow: var(--shadow-lg);
+}
+
+.card-produto:active {
+  transform: scale(0.99);
+  box-shadow: var(--shadow-md);
+}
+
+.badge-endereco,
+.badge-box {
+  transition: background-color var(--transition-base),
+    color var(--transition-base), transform var(--transition-base),
+    box-shadow var(--transition-base);
+}
+
+.badge-endereco:hover,
+.badge-box:hover {
+  transform: scale(1.05);
+  opacity: 0.95;
+  box-shadow: var(--shadow-sm);
+}
+
+input,
+select,
+textarea {
+  transition: background-color var(--transition-base),
+    color var(--transition-base), border-color var(--transition-base),
+    box-shadow var(--transition-base);
+}
+
+input:hover,
+select:hover,
+textarea:hover {
+  border-color: var(--color-primary);
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: 2px solid var(--color-primary);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgb(28 63 96 / 20%);
+}
+
+input:active,
+select:active,
+textarea:active {
+  background-color: var(--color-primary-light);
+}
+
+/* ========== GLASSMORPHISM MODAL ========== */
+#cronometroModal {
+  position: fixed;
+  top: 105px;
+  right: 20px;
+  width: 720px;
+  max-height: 90vh;
+  z-index: 9999;
+  background: rgb(255 255 255 / 65%);
+  border: 1px solid rgb(255 255 255 / 30%);
+  box-shadow: var(--shadow-lg);
+  display: none;
+  overflow-y: auto;
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+}
+
+[data-theme="dark"] #cronometroModal {
+  background: rgb(30 30 30 / 55%);
+  border: 1px solid rgb(255 255 255 / 10%);
+}
+
+.glass {
+  background: rgb(255 255 255 / 60%);
+  border: 1px solid rgb(255 255 255 / 30%);
+}
+
+[data-theme="dark"] .glass {
+  background: rgb(20 20 20 / 40%);
+}
+
+/* ========== GRID PARA CARDS ========== */
+#boxContainer {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--space-sm);
+  padding: var(--space-sm);
+}
+
+.box-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  padding: var(--space-sm);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  background-color: var(--color-white);
+}
+
+[data-theme="dark"] .box-wrapper {
+  background-color: var(--color-white);
+}
+
+button.btn:hover {
+  transform: scale(1.02);
+  transition: transform 0.2s ease-in-out;
+}
+
+[data-theme] {
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+#progressoConferencia {
+  border-radius: 1rem;
+}
+
+#progressoConferencia.bg-danger {
+  background-color: #dc3545 !important;
+}
+
+#progressoConferencia.bg-warning {
+  background-color: #ffc107 !important;
+}
+
+#progressoConferencia.bg-success {
+  background-color: #198754 !important;
+}
+
+.progress-container {
+  background: rgb(255 255 255 / 70%);
+  border: 1px solid #ddd;
+  position: relative;
+}
+
+.progress-badge {
+  position: absolute;
+  top: -14px;
+  left: 12px;
+  background-color: #198754;
+  color: white;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  box-shadow: 0 2px 5px rgb(0 0 0 / 15%);
+  z-index: 1;
+  text-align: center;
+  min-width: 58px;
+}
+
+.progress-badge {
+  transition: background-color 0.3s ease, transform 0.3s ease;
+  min-width: 64px;
+  text-align: center;
+  color: white;
+  font-size: 0.8rem;
+  line-height: 1.2;
+  padding: 4px 10px;
+  border-radius: 999px;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 15%);
+  background-color: #198754;
+}
+
+.progress-badge {
+  position: absolute;
+  top: -18px;
+  left: 10px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  line-height: 1.2;
+  color: white;
+  background-color: #198754;
+  box-shadow: 0 2px 6px rgb(0 0 0 / 20%);
+  text-align: center;
+  min-width: 64px;
+  z-index: 2;
+  transition: background-color 0.3s ease;
+}
+
+.historico-container,
+.list-group,
+.table-responsive,
+.table-light,
+#listaHistorico {
+  max-height: 320px; /* ~10 itens de 32px + margem */
+  overflow-y: auto;
+  border: 1px solid #dee2e6;
+  border-radius: 0.5rem;
+  background: rgb(255 255 255 / 70%);
+  border: 1px solid #ddd;
+  position: relative;
+}
+
+.historico-container,
+.list-group,
+.pendentes-scroll-container,
+.table-light,
+#listaHistorico,
+#listaPendentes {
+  background-color: rgb(255 255 255 / 70%);
+  border: 1px solid var(--color-info-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-xs);
+}
