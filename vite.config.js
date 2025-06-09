@@ -1,12 +1,14 @@
+// vite.config.js
 import { defineConfig } from 'vite';
 
 export default defineConfig({
-  root: 'src', // onde está seu index.html
+  root: 'src',
+  base: './',
   build: {
-    outDir: '../dist',     // saída que o Vercel irá usar
-    emptyOutDir: true,     // limpa antes de construir
+    outDir: '../dist',
+    emptyOutDir: true,
   },
   server: {
     port: 3000,
-  }
+  },
 });
