@@ -127,11 +127,13 @@ document.getElementById("btnLoginModal").addEventListener("click", async () => {
 
   if (etapaLogin === 1) {
     operador1 = data.nome_completo || data.login_usuario;
-    operador2 = null; // sem 2º operador
+    operador2 = null;
+    window.senhaOperador1 = senhaValue; // // sem 2º operador
     finalizeLogin();
   } else {
     // etapaLogin === 2
     operador2 = data.nome_completo || data.login_usuario;
+    window.senhaOperador2 = senhaValue;
     finalizeLogin();
   }
 });
@@ -1442,8 +1444,10 @@ document.getElementById("btnFinalizar").addEventListener("click", async () => {
   const confirmacao = confirm("Finalizar e atualizar o banco de dados?");
   if (!confirmacao) return;
 
+  // Atualiza o status e boxes no Supabase
   for (const pedido in caixas) {
     const { box, pesado } = caixas[pedido];
+
     await supabase
       .from("produtos_pedido")
       .update({ box })
@@ -1457,11 +1461,48 @@ document.getElementById("btnFinalizar").addEventListener("click", async () => {
     }
   }
 
-  // AQUI: apagamos o registro de “romaneios_em_uso” para este romaneio
-  await supabase.from("romaneios_em_uso").delete().eq("romaneio", romaneio);
+  // 🔐 LOGIN no GE para obter PHPSESSID
+  const responseLogin = await fetch("/api/login-ge", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      login: operador1,
+      senha: window.senhaOperador1,
+    }),
+  });
 
+  const loginData = await responseLogin.json();
+
+  if (!loginData.session) {
+    alert("❌ Erro ao logar no GE: " + loginData.error);
+    return;
+  }
+
+  const sessaoGE = loginData.session;
+
+  // 🔎 BUSCA o número da última remessa do operador
+  const responseRemessa = await fetch(
+    `/api/ultima-remessa?usuario=${encodeURIComponent(
+      operador1
+    )}&session=${sessaoGE}`
+  );
+
+  const remessaData = await responseRemessa.json();
+
+  if (remessaData.remessa) {
+    console.log("📦 Última remessa:", remessaData.remessa);
+    // Se quiser, armazene no localStorage, state, ou use no PDF
+  } else {
+    console.warn("⚠️ Nenhuma remessa encontrada:", remessaData.error);
+  }
+
+  // 🧾 Gera o PDF de resumo
   await gerarPdfResumo();
 
+  // 🔓 Libera o romaneio
+  await supabase.from("romaneios_em_uso").delete().eq("romaneio", romaneio);
+
+  // 🧹 Limpa estado local
   localStorage.removeItem(`historico-${romaneio}`);
   localStorage.removeItem(`caixas-${romaneio}`);
   localStorage.removeItem(`pendentes-${romaneio}`);
@@ -1471,6 +1512,7 @@ document.getElementById("btnFinalizar").addEventListener("click", async () => {
   pendentes = [];
   romaneio = "";
 
+  // 🧼 Reset UI
   document.getElementById("romaneioInput").value = "";
   document.getElementById("romaneioInput").disabled = false;
   document.getElementById("btnIniciar").disabled = false;
