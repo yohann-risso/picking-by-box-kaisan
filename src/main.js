@@ -1,5 +1,5 @@
 import { biparProduto } from "./components/bipagemHandler.js";
-import { supabase } from "../services/supabase.js";
+import { supabase } from "./services/supabase.js";
 import { setContadorBox } from "./utils/box.js";
 
 let romaneio = "";
