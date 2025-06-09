@@ -1,4 +1,4 @@
-import { supabase } from "../api/supabase.js";
+import { supabase } from ".../api/supabase.js";
 import { gerarBoxAleatoria } from "../utils/box.js";
 
 export async function biparProduto(skuOuEan, romaneio) {

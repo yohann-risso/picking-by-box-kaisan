@@ -1,4 +1,4 @@
-import { supabase } from '../api/supabase.js';
+import { supabase } from '.../api/supabase.js';
 
 export async function verificarRomaneioExiste(romaneio) {
   const { data, error } = await supabase
