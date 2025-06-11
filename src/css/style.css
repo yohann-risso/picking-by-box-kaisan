@@ -792,8 +792,8 @@ input::placeholder {
   background-color: var(--color-primary);
   color: var(--color-white);
   font-weight: 700;
-  font-size: clamp(1.5rem, 1.2vw, 1.5rem);
-  width: 3rem;
+  font-size: clamp(2.5rem, 1.2vw, 1.5rem);
+  width: 5rem;
   height: 3rem;
   border-radius: 10px;
   line-height: 2.5rem;
@@ -803,6 +803,18 @@ input::placeholder {
   text-align: center;
   transition: background-color 0.3s ease, color 0.3s ease;
 }
+
+.card-produto .title {
+  font-size: 1.2rem;
+  font-weight: bold;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 
 [data-theme="dark"] .badge-box {
   background-color: var(--color-primary-dark);
