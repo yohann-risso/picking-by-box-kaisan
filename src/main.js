@@ -2752,3 +2752,5 @@ async function exibirRastreiosPorMetodo(metodo) {
   win.document.write(html);
   win.document.close();
 }
+
+window.exibirRastreiosPorMetodo = exibirRastreiosPorMetodo;
