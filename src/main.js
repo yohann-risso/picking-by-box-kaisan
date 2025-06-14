@@ -2541,23 +2541,6 @@ async function gerarResumoVisualRomaneio() {
     totalNL += nl;
 
     const rowClass = nl > 0 ? "bg-warning-subtle" : "";
-    const linksRemessa = {
-      SEDEX:
-        "https://ge.kaisan.com.br/?page=nfe_arquivo_remessa/inicia_confere_remessa_transportadora&cod_bandeira=1&cod_loja=-1&cod_transportadora=2",
-      PAC: "https://ge.kaisan.com.br/?page=nfe_arquivo_remessa/inicia_confere_remessa_transportadora&cod_bandeira=1&cod_loja=-1&cod_transportadora=1",
-      "RETIRADA LOCAL":
-        "https://ge.kaisan.com.br/?page=nfe_arquivo_remessa/inicia_confere_remessa_transportadora&cod_bandeira=1&cod_loja=-1&cod_transportadora=4",
-    };
-
-    const metodoNormalizado = metodo.toUpperCase();
-    const urlRemessa = linksRemessa[metodoNormalizado] || null;
-
-    const botao = urlRemessa
-      ? `<a href="${urlRemessa}" target="_blank" title="Abrir remessa ${metodo}" 
-        class="btn btn-outline-secondary btn-sm botao-remessa">
-        🚚 Gerar Remessa
-     </a>`
-      : "";
 
     corpo.innerHTML += `
   <tr class="${rowClass}">
@@ -2733,11 +2716,22 @@ async function exibirRastreiosPorMetodo(metodo) {
     .join("\n");
 
   // Abre prompt com botão de cópia
-  const textoFinal = `📦 Rastreios (${metodo}):\n\n${lista}`;
-  mostrarModalDeTextoCopiavel(textoFinal);
+  const textoFinal = `${lista}`;
+  mostrarModalDeTextoCopiavel(textoFinal, metodo);
 }
 
-function mostrarModalDeTextoCopiavel(texto) {
+function mostrarModalDeTextoCopiavel(texto, metodo) {
+  const linksRemessa = {
+    SEDEX:
+      "https://ge.kaisan.com.br/?page=nfe_arquivo_remessa/inicia_confere_remessa_transportadora&cod_bandeira=1&cod_loja=-1&cod_transportadora=2",
+    PAC: "https://ge.kaisan.com.br/?page=nfe_arquivo_remessa/inicia_confere_remessa_transportadora&cod_bandeira=1&cod_loja=-1&cod_transportadora=1",
+    "RETIRADA LOCAL":
+      "https://ge.kaisan.com.br/?page=nfe_arquivo_remessa/inicia_confere_remessa_transportadora&cod_bandeira=1&cod_loja=-1&cod_transportadora=4",
+  };
+
+  const metodoNormalizado = metodo.toUpperCase();
+  const urlRemessa = linksRemessa[metodoNormalizado] || null;
+
   const modal = document.createElement("div");
   modal.style.position = "fixed";
   modal.style.top = "10%";
@@ -2753,10 +2747,15 @@ function mostrarModalDeTextoCopiavel(texto) {
   modal.style.borderRadius = "8px";
 
   modal.innerHTML = `
-    <div style="margin-bottom:10px;font-weight:bold;">Lista de Códigos de Rastreio</div>
+    <div style="margin-bottom:10px;font-weight:bold;">Lista de Códigos de Rastreio – ${metodo}</div>
     <textarea id="textoRastreios" style="width:100%;height:300px;" readonly>${texto}</textarea>
-    <div style="margin-top:10px;text-align:right;">
+    <div style="margin-top:10px;text-align:right; gap: 0.5rem;">
       <button id="btnCopiarTexto" class="btn btn-sm btn-primary">📋 Copiar</button>
+      ${
+        urlRemessa
+          ? `<a href="${urlRemessa}" target="_blank" class="btn btn-sm btn-outline-dark">🚚 Gerar Remessa</a>`
+          : ""
+      }
       <button id="btnFecharModal" class="btn btn-sm btn-outline-secondary">Fechar</button>
     </div>
   `;
@@ -2767,7 +2766,7 @@ function mostrarModalDeTextoCopiavel(texto) {
     const textarea = document.getElementById("textoRastreios");
     textarea.select();
     document.execCommand("copy");
-    alert("Rastreios copiados para a área de transferência!");
+    alert("✅ Códigos copiados para a área de transferência!");
   });
 
   document.getElementById("btnFecharModal").addEventListener("click", () => {
