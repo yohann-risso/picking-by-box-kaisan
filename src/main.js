@@ -2706,7 +2706,7 @@ async function exibirRastreiosPorMetodo(metodo) {
     .from("pedidos")
     .select("id")
     .eq("romaneio", romaneio)
-    .eq("metodo_envio", metodo);
+    .ilike("metodo_envio", `%${metodo}%`)
 
   if (!pedidos || pedidos.length === 0) {
     return alert("Nenhum pedido encontrado para essa transportadora.");
