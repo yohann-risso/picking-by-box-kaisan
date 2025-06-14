@@ -2566,7 +2566,6 @@ async function gerarResumoVisualRomaneio() {
     <td class="destacar-pesado">${pesado}</td>
     <td class="destacar-nl">${nl}</td>
     <td class="destacar-remessa">${remessa}</td>
-    <td class="text-center">${botao}<br/>${btnRemessa.outerHTML}</td>
   </tr>
 `;
 
