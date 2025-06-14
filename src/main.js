@@ -2566,9 +2566,16 @@ async function gerarResumoVisualRomaneio() {
     <td class="destacar-pesado">${pesado}</td>
     <td class="destacar-nl">${nl}</td>
     <td class="destacar-remessa">${remessa}</td>
-    <td class="text-align: center; vertical-align: middle">${botao}</td>
+    <td class="text-center">${botao}<br/>${btnRemessa.outerHTML}</td>
   </tr>
 `;
+
+    const btnRemessa = document.createElement("button");
+    btnRemessa.textContent = "📋 Ver Códigos";
+    btnRemessa.className = "btn btn-sm btn-outline-secondary";
+    btnRemessa.addEventListener("click", () =>
+      exibirRastreiosPorMetodo(metodo.toUpperCase())
+    );
   }
 
   document.getElementById("resTotalSub").textContent = totalSub;
@@ -2667,4 +2674,72 @@ function atualizarProgressoPro(bipado, total, inicioTimestamp = null) {
   if (perc < 40) cor = "#dc3545";
   else if (perc < 80) cor = "#ffc107";
   barra.style.backgroundColor = cor;
+}
+
+async function obterCodRastreio(pedidos) {
+  if (!Array.isArray(pedidos) || pedidos.length === 0) return [];
+
+  const { data, error } = await supabase
+    .from("pedidos_rastreio")
+    .select("id_pedido, cod_rastreio")
+    .in("id_pedido", pedidos);
+
+  if (error) {
+    console.error("Erro ao buscar rastreios:", error);
+    return [];
+  }
+
+  return data;
+}
+
+async function exibirRastreiosPorMetodo(metodo) {
+  const { data: pedidos } = await supabase
+    .from("pedidos")
+    .select("id")
+    .eq("romaneio", romaneio)
+    .eq("metodo_envio", metodo);
+
+  if (!pedidos || pedidos.length === 0) {
+    return alert("Nenhum pedido encontrado para essa transportadora.");
+  }
+
+  const pedidoIds = pedidos.map((p) => p.id);
+  const rastreios = await obterCodRastreio(pedidoIds);
+
+  if (!rastreios.length) {
+    return alert("Nenhum código de rastreio encontrado.");
+  }
+
+  const linhas = rastreios
+    .map((r) => `<tr><td>${r.id_pedido}</td><td>${r.cod_rastreio}</td></tr>`)
+    .join("");
+
+  const html = `
+    <html>
+      <head>
+        <title>Códigos de Rastreio - ${metodo}</title>
+        <style>
+          body { font-family: sans-serif; padding: 20px; }
+          table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+          th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+          th { background-color: #f0f0f0; }
+        </style>
+      </head>
+      <body>
+        <h2>Códigos de Rastreio – ${metodo}</h2>
+        <p><strong>Romaneio:</strong> ${romaneio}</p>
+        <table>
+          <thead>
+            <tr><th>Pedido</th><th>Código de Rastreio</th></tr>
+          </thead>
+          <tbody>${linhas}</tbody>
+        </table>
+        <script>window.onload = () => window.print();</script>
+      </body>
+    </html>
+  `;
+
+  const win = window.open("", "_blank");
+  win.document.write(html);
+  win.document.close();
 }
