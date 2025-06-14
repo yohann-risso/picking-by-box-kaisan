@@ -2565,7 +2565,17 @@ async function gerarResumoVisualRomaneio() {
     <td class="bg-white text-center">${sub}</td>
     <td class="destacar-pesado">${pesado}</td>
     <td class="destacar-nl">${nl}</td>
-    <td class="destacar-remessa">${remessa}</td>
+    <td class="destacar-remessa text-center">
+      ${remessa}
+      <br />
+      <button
+        class="btn btn-sm btn-outline-secondary mt-1"
+        onclick="exibirRastreiosPorMetodo('${metodo}')"
+        title="Ver códigos de rastreio para ${metodo}"
+      >
+        📋 Ver Códigos
+      </button>
+    </td>
   </tr>
 `;
 
