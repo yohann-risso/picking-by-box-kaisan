@@ -2747,14 +2747,13 @@ function mostrarModalDeTextoCopiavel(texto, metodo) {
   modal.style.borderRadius = "8px";
 
   modal.innerHTML = `
-    <div style="margin-bottom:10px;font-weight:bold;">📦 Códigos de Rastreio – ${metodo}</div>
+    <div style="margin-bottom:10px;font-weight:bold;">Lista de Códigos de Rastreio – ${metodo}</div>
     <textarea id="textoRastreios" style="width:100%;height:300px;" readonly>${texto}</textarea>
     <div style="margin-top:10px;text-align:right; gap: 0.5rem;">
       <button id="btnCopiarTexto" class="btn btn-sm btn-primary">📋 Copiar</button>
       ${
         urlRemessa
-          ? `<a href="${urlRemessa}" target="_blank" class="btn btn-sm btn-outline-dark">🚚 Abrir Remessa</a>
-             <button id="btnColarGE" class="btn btn-sm btn-success">▶️ Colar no GE</button>`
+          ? `<a href="${urlRemessa}" target="_blank" class="btn btn-sm btn-outline-dark">🚚 Gerar Remessa</a>`
           : ""
       }
       <button id="btnFecharModal" class="btn btn-sm btn-outline-secondary">Fechar</button>
@@ -2763,101 +2762,16 @@ function mostrarModalDeTextoCopiavel(texto, metodo) {
 
   document.body.appendChild(modal);
 
-  document.getElementById("btnCopiarTexto")?.addEventListener("click", () => {
+  document.getElementById("btnCopiarTexto").addEventListener("click", () => {
     const textarea = document.getElementById("textoRastreios");
     textarea.select();
     document.execCommand("copy");
     alert("✅ Códigos copiados para a área de transferência!");
   });
 
-  document.getElementById("btnFecharModal")?.addEventListener("click", () => {
+  document.getElementById("btnFecharModal").addEventListener("click", () => {
     modal.remove();
-  });
-
-  document.getElementById("btnColarGE")?.addEventListener("click", () => {
-    const codigos = document
-      .getElementById("textoRastreios")
-      .value.split("\n")
-      .filter((c) => c.trim().length > 0);
-    abrirRemessaComColagem(urlRemessa, codigos);
   });
 }
 
 window.exibirRastreiosPorMetodo = exibirRastreiosPorMetodo;
-
-function abrirRemessaComColagem(url, listaCodigos) {
-  const win = window.open(url, "_blank");
-  if (!win) {
-    alert("❌ Popup bloqueado. Permita janelas pop-up no navegador.");
-    return;
-  }
-
-  const codigo = listaCodigos
-    .map((c) => c.trim())
-    .filter((c) => c.length > 0)
-    .join(",");
-
-  const script = `
-    (function(){
-      const codigos = "${codigo}".split(",").map(c => c.trim());
-      const input = document.querySelector("#codigo_barra");
-      if (!input) return alert("❌ Campo #codigo_barra não encontrado!");
-
-      let i = 0;
-      function colarCodigo() {
-        if (i >= codigos.length) {
-          console.log("✅ Todos os códigos colados.");
-          
-          // Tenta clicar no botão iniciar
-          const btnIniciar = document.querySelector('button.btn-success[onclick*="iniciar_pre_conferencia"]');
-          if (btnIniciar) {
-            btnIniciar.click();
-            console.log("▶️ Botão 'Iniciar' clicado.");
-          }
-
-          // ⏳ Aguarda o confirm() manual e verifica a mudança
-          const polling = setInterval(() => {
-            const inputSumario = document.querySelector("#codigo_barra");
-            const step2 = document.querySelector(".etapa-2") || document.querySelector(".confirmacao-pre-remessa");
-
-            if (!btnIniciar && (step2 || !inputSumario)) {
-              clearInterval(polling);
-              console.log("✅ Usuário confirmou o popup. Continuação liberada.");
-              
-              // Aqui você pode continuar seu processo (por exemplo, enviar formulário, ativar botão etc.)
-            }
-          }, 500);
-
-          return;
-        }
-
-        const codigo = codigos[i++];
-        input.value = "";
-        input.dispatchEvent(new Event("input", { bubbles: true }));
-        setTimeout(() => {
-          input.value = codigo;
-          input.dispatchEvent(new Event("input", { bubbles: true }));
-          setTimeout(() => {
-            input.dispatchEvent(new KeyboardEvent("keydown", {
-              key: "Enter", keyCode: 13, which: 13, bubbles: true
-            }));
-            setTimeout(colarCodigo, 350);
-          }, 150);
-        }, 100);
-      }
-
-      colarCodigo();
-    })();
-  `;
-
-  const tentativa = setInterval(() => {
-    try {
-      if (win.document?.readyState === "complete") {
-        win.eval(script);
-        clearInterval(tentativa);
-      }
-    } catch (err) {
-      // janela ainda não liberada para acesso
-    }
-  }, 300);
-}
