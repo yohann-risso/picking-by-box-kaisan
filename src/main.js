@@ -2702,55 +2702,77 @@ async function obterCodRastreio(pedidos) {
 }
 
 async function exibirRastreiosPorMetodo(metodo) {
-  const { data: pedidos } = await supabase
+  const { data: pedidos, error: errPedidos } = await supabase
     .from("pedidos")
     .select("id")
     .eq("romaneio", romaneio)
     .ilike("metodo_envio", `%${metodo}%`)
+    .eq("status", "PESADO"); // ✅ só os PESADOS
 
-  if (!pedidos || pedidos.length === 0) {
-    return alert("Nenhum pedido encontrado para essa transportadora.");
+  if (errPedidos || !pedidos || pedidos.length === 0) {
+    return alert("Nenhum pedido PESADO encontrado para: " + metodo);
   }
 
   const pedidoIds = pedidos.map((p) => p.id);
-  const rastreios = await obterCodRastreio(pedidoIds);
 
-  if (!rastreios.length) {
-    return alert("Nenhum código de rastreio encontrado.");
+  const { data: rastreios, error: errRast } = await supabase
+    .from("pedidos_rastreio")
+    .select("id_pedido, cod_rastreio")
+    .in("id_pedido", pedidoIds);
+
+  if (errRast || !rastreios || rastreios.length === 0) {
+    return alert("Nenhum código de rastreio encontrado para " + metodo);
   }
 
-  const linhas = rastreios
-    .map((r) => `<tr><td>${r.id_pedido}</td><td>${r.cod_rastreio}</td></tr>`)
-    .join("");
+  // Ordena por pedido
+  rastreios.sort((a, b) => (a.id_pedido > b.id_pedido ? 1 : -1));
 
-  const html = `
-    <html>
-      <head>
-        <title>Códigos de Rastreio - ${metodo}</title>
-        <style>
-          body { font-family: sans-serif; padding: 20px; }
-          table { width: 100%; border-collapse: collapse; margin-top: 12px; }
-          th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
-          th { background-color: #f0f0f0; }
-        </style>
-      </head>
-      <body>
-        <h2>Códigos de Rastreio – ${metodo}</h2>
-        <p><strong>Romaneio:</strong> ${romaneio}</p>
-        <table>
-          <thead>
-            <tr><th>Pedido</th><th>Código de Rastreio</th></tr>
-          </thead>
-          <tbody>${linhas}</tbody>
-        </table>
-        <script>window.onload = () => window.print();</script>
-      </body>
-    </html>
+  const lista = rastreios
+    .map((r) => r.cod_rastreio?.trim())
+    .filter((r) => !!r)
+    .join("\n");
+
+  // Abre prompt com botão de cópia
+  const textoFinal = `📦 Rastreios (${metodo}):\n\n${lista}`;
+  mostrarModalDeTextoCopiavel(textoFinal);
+}
+
+function mostrarModalDeTextoCopiavel(texto) {
+  const modal = document.createElement("div");
+  modal.style.position = "fixed";
+  modal.style.top = "10%";
+  modal.style.left = "50%";
+  modal.style.transform = "translateX(-50%)";
+  modal.style.background = "#fff";
+  modal.style.border = "1px solid #ccc";
+  modal.style.padding = "20px";
+  modal.style.zIndex = "9999";
+  modal.style.width = "90%";
+  modal.style.maxWidth = "600px";
+  modal.style.boxShadow = "0 0 10px rgba(0,0,0,0.3)";
+  modal.style.borderRadius = "8px";
+
+  modal.innerHTML = `
+    <div style="margin-bottom:10px;font-weight:bold;">Lista de Códigos de Rastreio</div>
+    <textarea id="textoRastreios" style="width:100%;height:300px;" readonly>${texto}</textarea>
+    <div style="margin-top:10px;text-align:right;">
+      <button id="btnCopiarTexto" class="btn btn-sm btn-primary">📋 Copiar</button>
+      <button id="btnFecharModal" class="btn btn-sm btn-outline-secondary">Fechar</button>
+    </div>
   `;
 
-  const win = window.open("", "_blank");
-  win.document.write(html);
-  win.document.close();
+  document.body.appendChild(modal);
+
+  document.getElementById("btnCopiarTexto").addEventListener("click", () => {
+    const textarea = document.getElementById("textoRastreios");
+    textarea.select();
+    document.execCommand("copy");
+    alert("Rastreios copiados para a área de transferência!");
+  });
+
+  document.getElementById("btnFecharModal").addEventListener("click", () => {
+    modal.remove();
+  });
 }
 
 window.exibirRastreiosPorMetodo = exibirRastreiosPorMetodo;
