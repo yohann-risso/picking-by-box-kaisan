@@ -1461,41 +1461,6 @@ document.getElementById("btnFinalizar").addEventListener("click", async () => {
     }
   }
 
-  // 🔐 LOGIN no GE para obter PHPSESSID
-  const responseLogin = await fetch("/api/login-ge", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      login: operador1,
-      senha: window.senhaOperador1,
-    }),
-  });
-
-  const loginData = await responseLogin.json();
-
-  if (!loginData.session) {
-    alert("❌ Erro ao logar no GE: " + loginData.error);
-    return;
-  }
-
-  const sessaoGE = loginData.session;
-
-  // 🔎 BUSCA o número da última remessa do operador
-  const responseRemessa = await fetch(
-    `/api/ultima-remessa?usuario=${encodeURIComponent(
-      operador1
-    )}&session=${sessaoGE}`
-  );
-
-  const remessaData = await responseRemessa.json();
-
-  if (remessaData.remessa) {
-    console.log("📦 Última remessa:", remessaData.remessa);
-    // Se quiser, armazene no localStorage, state, ou use no PDF
-  } else {
-    console.warn("⚠️ Nenhuma remessa encontrada:", remessaData.error);
-  }
-
   // 🧾 Gera o PDF de resumo
   await gerarPdfResumo();
 
