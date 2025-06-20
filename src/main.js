@@ -1006,6 +1006,37 @@ function renderPendentes() {
   tooltipTriggerList.forEach((el) => new bootstrap.Tooltip(el));
 }
 
+document.getElementById("btnCopyPendentes").addEventListener("click", () => {
+  const table = document.querySelector("#listaPendentes table");
+  if (!table) {
+    alert("❌ Nenhuma tabela encontrada.");
+    return;
+  }
+
+  const linhas = [...table.querySelectorAll("tbody tr")];
+  const conteudo = linhas
+    .map((linha) => {
+      const colunas = linha.querySelectorAll("td");
+      return [
+        colunas[0]?.textContent.trim(),
+        colunas[1]?.textContent.trim(),
+        colunas[2]?.textContent.trim(),
+      ].join("\t");
+    })
+    .join("\n");
+
+  // Copiar para área de transferência
+  navigator.clipboard
+    .writeText(conteudo)
+    .then(() => {
+      alert("✅ Pendentes copiados com sucesso!");
+    })
+    .catch((err) => {
+      console.error("Erro ao copiar:", err);
+      alert("❌ Erro ao copiar pendentes.");
+    });
+});
+
 function renderCardProduto(result) {
   const area = document.getElementById("cardAtual");
   if (!area) return;
