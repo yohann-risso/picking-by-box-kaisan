@@ -1027,7 +1027,7 @@ async function registrarTodosPendentesNL() {
   // 1. REGISTRA no Google Sheets
   try {
     const res = await fetch(
-      "https://script.google.com/macros/s/SEU_DEPLOY_URL/exec",
+      "https://script.google.com/macros/s/AKfycbwUMPjyOqeMBX3vRSdMmJmtnt9-Dt8MHdPYl1aTS9cLaPZ7CuyNuw_uuEwRX0Speh5h/exec",
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
