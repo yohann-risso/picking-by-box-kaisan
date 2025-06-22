@@ -2989,23 +2989,30 @@ function gerarZPL({ pedido, produtosNL, cliente, box, cesto = "NL" }) {
 }
 
 function imprimirEtiquetaZebra(zpl, fallbackData = null) {
-  BrowserPrint.getDefaultDevice(
-    "printer",
-    function (device) {
-      device.send(
-        zpl,
-        () => {
-          console.log("✅ Etiqueta enviada para Zebra");
-        },
-        (error) => {
-          console.warn("⚠️ Zebra falhou. Gerando fallback PDF.");
-          if (fallbackData) abrirEtiquetaNL(fallbackData);
-        }
-      );
-    },
-    () => {
-      console.warn("⚠️ Impressora Zebra não detectada. Gerando fallback PDF.");
-      if (fallbackData) abrirEtiquetaNL(fallbackData);
-    }
-  );
+  if (typeof BrowserPrint !== "undefined") {
+    BrowserPrint.getDefaultDevice(
+      "printer",
+      function (device) {
+        device.send(
+          zpl,
+          () => {
+            console.log("✅ Etiqueta enviada para Zebra");
+          },
+          (error) => {
+            console.warn("⚠️ Zebra falhou. Gerando fallback PDF.");
+            if (fallbackData) abrirEtiquetaNL(fallbackData);
+          }
+        );
+      },
+      () => {
+        console.warn(
+          "⚠️ Impressora Zebra não detectada. Gerando fallback PDF."
+        );
+        if (fallbackData) abrirEtiquetaNL(fallbackData);
+      }
+    );
+  } else {
+    console.warn("⚠️ BrowserPrint não definido. Executando fallback.");
+    if (fallbackData) abrirEtiquetaNL(fallbackData);
+  }
 }
