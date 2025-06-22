@@ -1026,18 +1026,15 @@ async function registrarTodosPendentesNL() {
 
   // 1. REGISTRA no Google Sheets
   try {
-    const res = await fetch(
-      "https://script.google.com/macros/s/AKfycbwUMPjyOqeMBX3vRSdMmJmtnt9-Dt8MHdPYl1aTS9cLaPZ7CuyNuw_uuEwRX0Speh5h/exec",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          func: "registrarMultiplos",
-          pedidos,
-          cesto: "NL",
-        }),
-      }
-    );
+    const res = await fetch("/api/gas", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        func: "registrarMultiplos",
+        pedidos,
+        cesto: "NL",
+      }),
+    });
 
     const json = await res.json();
     if (json.status !== "ok") {
