@@ -618,6 +618,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   document
+    .getElementById("btnRegistrarTodosNL")
+    ?.addEventListener("click", registrarTodosPendentesNL);
+
+  document
     .getElementById("btnToggleBoxes")
     .addEventListener("click", toggleBoxes);
   document
@@ -1004,6 +1008,196 @@ function renderPendentes() {
     '[data-bs-toggle="tooltip"]'
   );
   tooltipTriggerList.forEach((el) => new bootstrap.Tooltip(el));
+}
+
+async function registrarTodosPendentesNL() {
+  const agrupadoPorPedido = {};
+
+  // Agrupa SKUs pendentes por pedido
+  for (const p of pendentes) {
+    const pedidoId = p.pedido;
+    if (!agrupadoPorPedido[pedidoId]) {
+      agrupadoPorPedido[pedidoId] = [];
+    }
+    agrupadoPorPedido[pedidoId].push({ sku: p.sku, qtd: p.qtd });
+  }
+
+  const pedidos = Object.keys(agrupadoPorPedido);
+
+  // 1. REGISTRA no Google Sheets
+  try {
+    const res = await fetch(
+      "https://script.google.com/macros/s/SEU_DEPLOY_URL/exec",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          func: "registrarMultiplos",
+          pedidos,
+          cesto: "NL",
+        }),
+      }
+    );
+
+    const json = await res.json();
+    if (json.status !== "ok") {
+      alert("❌ Erro ao registrar NL no Sheets.");
+      return;
+    }
+  } catch (err) {
+    console.error("Erro ao registrar NL:", err);
+    alert("❌ Falha de conexão com o GAS.");
+    return;
+  }
+
+  // 2. Busca os clientes
+  const { data: dadosPedido } = await supabase
+    .from("pedidos")
+    .select("id, cliente")
+    .in("id", pedidos);
+
+  // 3. Gera etiquetas por pedido
+  for (const pedido of pedidos) {
+    const cliente = dadosPedido.find((p) => p.id == pedido)?.cliente || "—";
+    const produtosNL = agrupadoPorPedido[pedido];
+    const qtdeTotal = produtosNL.reduce((acc, p) => acc + p.qtd, 0);
+
+    const zpl = gerarZPL({
+      pedido,
+      cliente,
+      produtosNL,
+      box: caixas[pedido]?.box,
+      cesto: "NL",
+    });
+    imprimirEtiquetaZebra(zpl, {
+      pedido,
+      romaneio,
+      cliente,
+      cesto: "NL",
+      operador1,
+      operador2,
+      produtosNL,
+      qtdeTotal,
+      qtdeNL: produtosNL.length,
+      qtdePreVenda: 0,
+      qtdeConferida: qtdeTotal - produtosNL.length,
+    });
+  }
+
+  alert(`✅ Registrado e impresso ${pedidos.length} pedido(s) NL.`);
+}
+
+function abrirEtiquetaNL({
+  pedido,
+  romaneio,
+  cliente,
+  cesto,
+  operador1,
+  operador2,
+  produtosNL,
+  qtdeTotal,
+  qtdeNL,
+  qtdePreVenda,
+  qtdeConferida,
+}) {
+  const operadores = operador2 ? `${operador1} e ${operador2}` : operador1;
+  const listaProdutos = produtosNL
+    .map(({ sku, qtd }) => `<tr><td>${sku}</td><td>${qtd}</td></tr>`)
+    .join("");
+
+  const html = `
+    <html>
+      <head>
+        <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+        <title>Etiqueta NL - ${pedido}</title>
+        <style>
+          body { font-family: sans-serif; font-size: 10pt; padding: 5mm; margin: 0; width: 100%; }
+          table { border-collapse: collapse; width: 100%; margin-top: 8px; }
+          th, td { border: 1px solid #000; padding: 4px; text-align: center; font-size: 10pt; }
+          h2 { margin: 0; font-size: 12pt; text-align: center; }
+          .section { margin-top: 8px; }
+          .color-purple { background: #b4b6f3; }
+          .color-green { background: #c6f7c2; }
+          .color-red { background: #f5c6cb; }
+          .color-maroon { background: #752b2b; color: #fff; }
+          .badge { padding: 2px 6px; border-radius: 4px; }
+          .a6 { width: 105mm; height: 148mm; }
+          .qrcode { float: right; }
+        </style>
+      </head>
+      <body class="a6">
+        <h2>RELATÓRIO NL</h2>
+        <div class="section">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <strong>Pedido:</strong> ${pedido}<br/>
+              <strong>Romaneio:</strong> ${romaneio}<br/>
+              <strong>Cliente:</strong> ${cliente}<br/>
+              <strong>BOX:</strong> ${caixas[pedido]?.box ?? "—"}
+            </div>
+            <div id="qrcode" style="width: 64px; height: 64px;"></div>
+          </div>
+        </div>
+
+        <div class="section">
+          <table>
+            <tr>
+              <td class="color-maroon">QTDE PEÇAS</td>
+              <td class="color-red">QTDE NL</td>
+              <td class="color-purple">QTDE PRÉ-VENDA</td>
+              <td class="color-green">QTDE CONFERIDA</td>
+            </tr>
+            <tr>
+              <td>${qtdeTotal}</td>
+              <td>${qtdeNL}</td>
+              <td>0</td>
+              <td>${qtdeConferida}</td>
+            </tr>
+          </table>
+        </div>
+
+        <div class="section">
+          <h3>Produtos NL</h3>
+          <table>
+            <thead><tr><th>SKU</th><th>QTD</th></tr></thead>
+            <tbody>
+              ${listaProdutos}
+              ${"<tr><td>&nbsp;</td><td>&nbsp;</td></tr>".repeat(
+                9 - produtosNL.length
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="section">
+          <strong>Operador(es):</strong> ${operadores}<br/>
+          <strong>Cesto NL:</strong> ${cesto}
+        </div>
+
+        <script>
+          window.onload = () => {
+            const qrEl = document.getElementById("qrcode");
+            if (qrEl) {
+              QRCode.toCanvas(qrEl, "${pedido}", { width: 64 }, (err) => {
+                if (err) console.error(err);
+                window.print();
+                window.close();
+              });
+            } else {
+              window.print();
+              window.close();
+            }
+          }
+        </script>
+      </body>
+    </html>
+  `;
+
+  const win = window.open("", "_blank");
+  if (win) {
+    win.document.write(html);
+    win.document.close();
+  }
 }
 
 document.getElementById("btnCopyPendentes").addEventListener("click", () => {
@@ -2771,3 +2965,50 @@ function mostrarModalDeTextoCopiavel(texto, metodo) {
 }
 
 window.exibirRastreiosPorMetodo = exibirRastreiosPorMetodo;
+
+function gerarZPL({ pedido, produtosNL, cliente, box, cesto = "NL" }) {
+  let zpl = `^XA
+^CF0,40
+^FO30,30^FDRELATÓRIO NL^FS
+^FO30,90^A0N,30,30^FDPedido: ${pedido}^FS
+^FO30,130^A0N,30,30^FDCliente: ${cliente}^FS
+^FO30,170^A0N,30,30^FDBox: ${box || "—"}^FS
+^FO30,210^A0N,30,30^FDCesto: ${cesto}^FS`;
+
+  let y = 250;
+  produtosNL.forEach(({ sku, qtd }) => {
+    zpl += `\n^FO30,${y}^A0N,30,30^FDSKU: ${sku} - QTD: ${qtd}^FS`;
+    y += 40;
+  });
+
+  const totalNL = produtosNL.reduce((s, p) => s + p.qtd, 0);
+  zpl += `\n^FO30,${y}^A0N,30,30^FDTOTAL NL: ${totalNL}^FS`;
+
+  // QR Code
+  zpl += `\n^FO500,90^BQN,2,6^FDLA,${pedido}^FS`;
+
+  zpl += `\n^XZ`;
+  return zpl;
+}
+
+function imprimirEtiquetaZebra(zpl, fallbackData = null) {
+  BrowserPrint.getDefaultDevice(
+    "printer",
+    function (device) {
+      device.send(
+        zpl,
+        () => {
+          console.log("✅ Etiqueta enviada para Zebra");
+        },
+        (error) => {
+          console.warn("⚠️ Zebra falhou. Gerando fallback PDF.");
+          if (fallbackData) abrirEtiquetaNL(fallbackData);
+        }
+      );
+    },
+    () => {
+      console.warn("⚠️ Impressora Zebra não detectada. Gerando fallback PDF.");
+      if (fallbackData) abrirEtiquetaNL(fallbackData);
+    }
+  );
+}
