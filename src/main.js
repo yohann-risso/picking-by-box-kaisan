@@ -1033,6 +1033,7 @@ async function registrarTodosPendentesNL() {
         func: "registrarMultiplos",
         pedidos,
         cesto: "NL",
+        produtosPorPedido: agrupadoPorPedido,
       }),
     });
 
