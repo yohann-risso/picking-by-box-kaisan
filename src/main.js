@@ -1277,7 +1277,17 @@ function abrirMultiplasEtiquetasNL(lista) {
             left: 0;
             width: 100%;
             z-index: 9999;
-            background: white;
+          }
+
+          .etiqueta-nl-print {
+            width: 105mm !important;
+            height: 148mm !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            box-shadow: none !important;
+            border: none !important;
+            page-break-after: always;
+            break-after: page;
           }
 
           .btn-imprimir-individual,
@@ -1290,14 +1300,12 @@ function abrirMultiplasEtiquetasNL(lista) {
         .etiqueta-nl-print {
           width: 105mm;
           height: 148mm;
-          border: 1px solid #ccc;
-          box-shadow: 0 0 6px rgba(0, 0, 0, 0.1);
-          margin: 10px auto;
           padding: 8mm 10mm;
+          margin: 10px auto;
+          box-shadow: 0 0 6px rgba(0, 0, 0, 0.1);
           font-family: 'Segoe UI', sans-serif;
           font-size: 10pt;
           position: relative;
-          page-break-after: always;
         }
 
         .etiqueta-nl-print h3 {
@@ -1306,7 +1314,7 @@ function abrirMultiplasEtiquetasNL(lista) {
           margin-bottom: 4mm;
         }
 
-        .etiqueta-nl-print .info {
+        .info {
           font-size: 9pt;
           margin-bottom: 4px;
         }
@@ -1318,26 +1326,25 @@ function abrirMultiplasEtiquetasNL(lista) {
           margin: 6mm 0 4mm;
         }
 
-        .etiqueta-nl-print table {
+        table {
           width: 100%;
           border-collapse: collapse;
           margin-top: 4mm;
         }
 
-        .etiqueta-nl-print th,
-        .etiqueta-nl-print td {
+        th, td {
           border: 1px solid #000;
           padding: 3px;
           text-align: center;
           font-size: 9pt;
         }
 
-        .etiqueta-nl-print .resumo td:nth-child(2) {
+        .resumo td:nth-child(2) {
           color: red;
           font-weight: bold;
         }
 
-        .etiqueta-nl-print .resumo td:nth-child(4) {
+        .resumo td:nth-child(4) {
           color: green;
           font-weight: bold;
         }
@@ -1436,7 +1443,6 @@ function abrirMultiplasEtiquetasNL(lista) {
   }
 
   html += `</div>`;
-
   const container = document.getElementById("containerEtiquetasNL");
   container.innerHTML = html;
 
@@ -1445,7 +1451,7 @@ function abrirMultiplasEtiquetasNL(lista) {
   );
   bsModal.show();
 
-  // 🧠 Gera QR Codes
+  // QR Codes
   const qrContainers = modal.querySelectorAll(".qrcode-container");
   qrContainers.forEach((div) => {
     const pedido = div.dataset.pedido;
@@ -3295,101 +3301,36 @@ function solicitarCestoNL() {
   });
 }
 
-window.imprimirEtiquetaIndividual = (pedidoId) => {
-  const el = document.querySelector(
-    `.etiqueta-nl-print[data-pedido='${pedidoId}']`
+function imprimirEtiquetaIndividual(pedido) {
+  const etiqueta = document.querySelector(
+    `.etiqueta-nl-print[data-pedido="${pedido}"]`
   );
-  if (!el) return alert("Etiqueta não encontrada.");
-
-  const htmlEtiqueta = el.outerHTML;
+  if (!etiqueta) return;
 
   const win = window.open("", "_blank");
+  if (!win) return;
+
   win.document.write(`
     <html>
       <head>
-        <title>Etiqueta NL - Pedido ${pedidoId}</title>
+        <title>Etiqueta NL - ${pedido}</title>
         <style>
           @page {
             size: 105mm 148mm;
             margin: 0;
           }
 
-          html, body {
+          body {
             margin: 0;
             padding: 0;
-            width: 100%;
-            height: 100%;
-            background: white;
-          }
-
-          .etiqueta-nl-print {
-            width: 105mm;
-            height: 148mm;
-            box-sizing: border-box;
-            margin: 0;
-            padding: 10mm;
-            font-family: 'Segoe UI', sans-serif;
-            font-size: 10pt;
-          }
-
-          .etiqueta-nl-print h3 {
-            text-align: center;
-            font-size: 16pt;
-            margin-bottom: 4mm;
-          }
-
-          .etiqueta-nl-print .info {
-            font-size: 9pt;
-            margin-bottom: 4px;
-          }
-
-          .box-destaque {
-            font-size: 28pt;
-            text-align: center;
-            font-weight: bold;
-            margin: 6mm 0 4mm;
-          }
-
-          .etiqueta-nl-print table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 4mm;
-          }
-
-          .etiqueta-nl-print th, .etiqueta-nl-print td {
-            border: 1px solid #000;
-            padding: 3px;
-            text-align: center;
-            font-size: 9pt;
-          }
-
-          .etiqueta-nl-print .resumo td:nth-child(2) {
-            color: red;
-            font-weight: bold;
-          }
-
-          .etiqueta-nl-print .resumo td:nth-child(4) {
-            color: green;
-            font-weight: bold;
-          }
-
-          .qrcode-container {
-            position: absolute;
-            top: 10mm;
-            right: 10mm;
-          }
-
-          .qrcode-nl {
-            width: 64px;
-            height: 64px;
           }
         </style>
       </head>
-      <body>
-        ${htmlEtiqueta}
-        <script>window.onload = () => { window.print(); window.close(); }</script>
-      </body>
+      <body>${etiqueta.outerHTML}</body>
     </html>
   `);
+
   win.document.close();
-};
+  win.focus();
+  win.onload = () => win.print();
+}
