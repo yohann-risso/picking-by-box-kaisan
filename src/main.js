@@ -1250,7 +1250,7 @@ function abrirEtiquetaNL({
 }
 
 function abrirMultiplasEtiquetasNL(lista) {
-  const modal = document.getElementById("etiquetaModalNL");
+  const modal = document.getElementById("modalEtiquetasNL");
   if (!modal) return;
 
   let html = `
