@@ -1114,15 +1114,37 @@ function abrirEtiquetaNL({
     <div id="etiquetaContainerNL" class="etiqueta-nl-print">
       <style>
         @media print {
-          body * { visibility: hidden !important; }
-          #etiquetasContainer, #etiquetasContainer * {
+          body * {
+            display: none !important;
+            visibility: hidden !important;
+          }
+
+          #containerEtiquetasNL,
+          #containerEtiquetasNL * {
+            display: block !important;
             visibility: visible !important;
           }
-          #etiquetasContainer {
-            position: absolute;
-            top: 0; left: 0;
-            width: 100%;
-            z-index: 9999;
+
+          #containerEtiquetasNL {
+            position: static !important;
+            width: 105mm !important;
+            height: auto !important;
+            margin: 0 auto !important;
+            background: white !important;
+          }
+
+          .modal-backdrop,
+          .modal,
+          .btn,
+          .btn-imprimir-individual {
+            display: none !important;
+          }
+
+          .etiqueta-nl-print {
+            width: 105mm !important;
+            height: 148mm !important;
+            page-break-after: always;
+            break-after: page;
           }
         }
 
@@ -3298,7 +3320,7 @@ function solicitarCestoNL() {
   });
 }
 
-function imprimirEtiquetaIndividual(pedido) {
+window.imprimirEtiquetaIndividual = function (pedido) {
   const etiqueta = document.querySelector(
     `.etiqueta-nl-print[data-pedido="${pedido}"]`
   );
@@ -3321,13 +3343,20 @@ function imprimirEtiquetaIndividual(pedido) {
             margin: 0;
             padding: 0;
           }
+
+          .etiqueta-nl-print {
+            width: 105mm;
+            height: 148mm;
+            margin: 0;
+            padding: 0;
+          }
         </style>
       </head>
       <body>${etiqueta.outerHTML}</body>
+      <script>
+        window.onload = () => { window.print(); window.close(); };
+      </script>
     </html>
   `);
-
   win.document.close();
-  win.focus();
-  win.onload = () => win.print();
-}
+};
