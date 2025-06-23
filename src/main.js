@@ -736,6 +736,11 @@ function renderBoxCards() {
       infoCard.className = `card-info ${light}`;
       infoCard.innerHTML = `
         <div class="details text-center w-100">
+          ${
+            pendentes.some((p) => p.pedido == pedidoRef)
+              ? `<div class="print-nl-btn" title="Reimprimir Etiqueta NL" data-pedido="${pedidoRef}">🖨️</div>`
+              : ""
+          }
           <div class="fs-6 fw-bold">${pedidoRef}</div>
           <div>
             <span class="badge bg-dark">${bipado}/${total}</span>
@@ -805,6 +810,34 @@ function renderBoxCards() {
         e.stopPropagation();
         btn.click();
       }
+    });
+  });
+
+  document.querySelectorAll(".print-nl-btn").forEach((btn) => {
+    btn.addEventListener("click", async (e) => {
+      const pedidoId = btn.dataset.pedido;
+      const produtosNL = pendentes.filter((p) => p.pedido == pedidoId);
+      if (!produtosNL.length)
+        return alert("❌ Nenhuma pendência NL para este pedido.");
+
+      const cliente = "—";
+      const qtdeNL = produtosNL.reduce((sum, p) => sum + p.qtd, 0);
+      const qtdeTotal = caixas[pedidoId]?.total || qtdeNL;
+      const qtdeConferida = qtdeTotal - qtdeNL;
+
+      abrirEtiquetaNL({
+        pedido: pedidoId,
+        romaneio,
+        cliente,
+        cesto: "Reimpressão",
+        operador1,
+        operador2,
+        produtosNL,
+        qtdeTotal,
+        qtdeNL,
+        qtdePreVenda: 0,
+        qtdeConferida,
+      });
     });
   });
 }
