@@ -1144,8 +1144,6 @@ function abrirEtiquetaNL({
 
         .etiqueta-nl-print h3 {
           text-align: center;
-          font-size: 16pt;
-          margin-bottom: 4mm;
           letter-spacing: 0.5px;
         }
 
@@ -1323,7 +1321,6 @@ function abrirMultiplasEtiquetasNL(lista) {
           font-size: 28pt;
           text-align: center;
           font-weight: bold;
-          margin: 6mm 0 4mm;
         }
 
         table {
@@ -1417,7 +1414,7 @@ function abrirMultiplasEtiquetasNL(lista) {
             <tbody>
               ${tabela}
               ${"<tr><td>&nbsp;</td><td>&nbsp;</td></tr>".repeat(
-                9 - produtosNL.length
+                8 - produtosNL.length
               )}
             </tbody>
           </table>
