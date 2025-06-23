@@ -1215,8 +1215,8 @@ function abrirEtiquetaNL({
         }
 
         .qrcode-nl {
-          width: 64px;
-          height: 64px;
+          width: 150px;
+          height: 150px;
         }
       </style>
 
