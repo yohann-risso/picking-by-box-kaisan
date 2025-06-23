@@ -1255,6 +1255,11 @@ function abrirMultiplasEtiquetasNL(lista) {
 
   let html = `
     <style>
+      @page {
+        size: 105mm 148mm;
+        margin: 0;
+      }
+
       @media print {
         body * { visibility: hidden !important; }
         #containerEtiquetasNL, #containerEtiquetasNL * {
@@ -1272,10 +1277,19 @@ function abrirMultiplasEtiquetasNL(lista) {
         .modal-header, .modal-footer, .btn-imprimir-individual {
           display: none !important;
         }
+
+        .etiqueta-nl-print {
+          page-break-after: always;
+          width: 105mm;
+          height: 148mm;
+          box-sizing: border-box;
+          margin: 0;
+          padding: 10mm 10mm;
+          transform: scale(1);
+        }
       }
 
       .etiqueta-nl-print {
-        page-break-after: always;
         width: 105mm;
         height: 148mm;
         border: 1px solid #ccc;
@@ -1284,7 +1298,6 @@ function abrirMultiplasEtiquetasNL(lista) {
         padding: 8mm 10mm;
         font-family: 'Segoe UI', sans-serif;
         font-size: 10pt;
-        position: relative;
         display: flex;
         flex-direction: column;
         justify-content: space-between;
