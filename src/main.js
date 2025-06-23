@@ -1287,6 +1287,9 @@ function abrirMultiplasEtiquetasNL(lista) {
       qtdeConferida,
     } = dados;
 
+    const codNfe = codNfeMap[pedido];
+    const linkPesagem = `https://ge.kaisan.com.br/index2.php?page=meta/view&id_view=nfe_pedido_conf&acao_view=cadastra&cod_del=${codNfe}&where=cod_nfe_pedido=${codNfe}#prodweightsomaproduto`;
+
     const operadores = operador2 ? `${operador1} e ${operador2}` : operador1;
 
     const tabelaProdutos =
@@ -1298,7 +1301,7 @@ function abrirMultiplasEtiquetasNL(lista) {
       );
 
     etiquetasHtml += `
-      <div class="etiqueta-nl-print" data-pedido="${pedido}">
+      <div class="etiqueta-nl-print" data-pedido="${pedido}" data-url="${linkPesagem}">
         <div class="qrcode-container">
           <canvas id="qr-${pedido}" width="64" height="64"></canvas>
         </div>
@@ -1398,9 +1401,10 @@ function abrirMultiplasEtiquetasNL(lista) {
             const etiquetas = document.querySelectorAll(".etiqueta-nl-print");
             etiquetas.forEach((el) => {
               const pedido = el.dataset.pedido;
+              const url = el.dataset.url;
               const canvas = document.getElementById("qr-" + pedido);
               if (canvas && window.QRCode) {
-                QRCode.toCanvas(canvas, pedido, { width: 64 }, (err) => {
+                QRCode.toCanvas(canvas, url, { width: 64 }, (err) => {
                   if (err) console.error("Erro ao gerar QRCode:", err);
                 });
               }
