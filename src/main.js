@@ -1066,7 +1066,9 @@ async function registrarTodosPendentesNL() {
   const etiquetas = pedidos.map((pedido) => {
     const cliente = dadosPedido.find((p) => p.id == pedido)?.cliente || "—";
     const produtosNL = agrupadoPorPedido[pedido];
-    const qtdeTotal = produtosNL.reduce((acc, p) => acc + p.qtd, 0);
+    const qtdeTotal = caixas[pedido]?.total || qtdeNL;
+    const qtdeNL = produtosNL.reduce((acc, p) => acc + p.qtd, 0);
+    const qtdeConferida = qtdeTotal - qtdeNL;
 
     return {
       pedido,
@@ -1077,9 +1079,9 @@ async function registrarTodosPendentesNL() {
       operador2,
       produtosNL,
       qtdeTotal,
-      qtdeNL: produtosNL.length,
+      qtdeNL,
       qtdePreVenda: 0,
-      qtdeConferida: qtdeTotal - produtosNL.length,
+      qtdeConferida,
     };
   });
 
@@ -1113,39 +1115,84 @@ function abrirEtiquetaNL({
       <style>
         @media print {
           body * { visibility: hidden !important; }
-          #etiquetaContainerNL, #etiquetaContainerNL * {
+          #etiquetasContainer, #etiquetasContainer * {
             visibility: visible !important;
           }
-          #etiquetaContainerNL {
+          #etiquetasContainer {
             position: absolute;
             top: 0; left: 0;
             width: 100%;
             z-index: 9999;
           }
         }
+
         .etiqueta-nl-print {
-          font-family: sans-serif;
+          font-family: 'Segoe UI', 'Helvetica Neue', sans-serif;
           background: white;
           border: 1px solid #ccc;
           width: 105mm;
           height: 148mm;
-          padding: 10mm;
-          margin: 0 auto;
-          box-shadow: 0 0 10px rgba(0,0,0,0.25);
+          padding: 8mm 10mm;
+          margin: 10px auto;
+          box-shadow: 0 0 6px rgba(0,0,0,0.15);
           font-size: 10pt;
+          position: relative;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
         }
+
+        .etiqueta-nl-print h3 {
+          text-align: center;
+          font-size: 16pt;
+          margin-bottom: 4mm;
+          letter-spacing: 0.5px;
+        }
+
+        .etiqueta-nl-print .info {
+          font-size: 9pt;
+          margin-bottom: 6px;
+        }
+
+        .etiqueta-nl-print .box-destaque {
+          font-size: 28pt;
+          font-weight: bold;
+          color: #000;
+          text-align: center;
+          margin: 4mm 0;
+          letter-spacing: 1px;
+        }
+
         .etiqueta-nl-print table {
           width: 100%;
           border-collapse: collapse;
-          margin-top: 8px;
+          margin-top: 6px;
         }
-        .etiqueta-nl-print th, .etiqueta-nl-print td {
+
+        .etiqueta-nl-print th,
+        .etiqueta-nl-print td {
           border: 1px solid #000;
-          padding: 4px;
+          padding: 3px;
           text-align: center;
+          font-size: 9pt;
         }
+
         .etiqueta-nl-print .section {
-          margin-top: 10px;
+          margin-top: 6px;
+        }
+
+        .etiqueta-nl-print .resumo td:nth-child(2) { color: red; font-weight: bold; }
+        .etiqueta-nl-print .resumo td:nth-child(4) { color: green; font-weight: bold; }
+
+        .qrcode-container {
+          position: absolute;
+          top: 10mm;
+          right: 10mm;
+        }
+
+        .qrcode-nl {
+          width: 64px;
+          height: 64px;
         }
       </style>
 
@@ -1153,7 +1200,9 @@ function abrirEtiquetaNL({
       <div><strong>Pedido:</strong> ${pedido}</div>
       <div><strong>Romaneio:</strong> ${romaneio}</div>
       <div><strong>Cliente:</strong> ${cliente}</div>
-      <div><strong>Box:</strong> ${caixas[pedido]?.box ?? "—"}</div>
+      <div style="font-size: 2rem; font-weight: bold; color: #1a1d20; margin: 6px 0;">
+        🗃️ BOX ${caixas[pedido]?.box ?? "—"}
+      </div>
       <div><strong>Operador(es):</strong> ${operadores}</div>
       <div><strong>Cesto NL:</strong> ${cesto}</div>
 
@@ -1172,14 +1221,19 @@ function abrirEtiquetaNL({
       <div class="section">
         <table>
           <thead>
-            <tr><th>Total</th><th>NL</th><th>Pré-Venda</th><th>Conferida</th></tr>
+            <tr>
+              <th>Total</th>
+              <th>NL</th>
+              <th>Pré-Venda</th>
+              <th>Conferida</th>
+            </tr>
           </thead>
           <tbody>
             <tr>
-              <td>${qtdeTotal}</td>
-              <td>${qtdeNL}</td>
-              <td>${qtdePreVenda}</td>
-              <td>${qtdeConferida}</td>
+              <td><strong>${qtdeTotal}</strong></td>
+              <td style="color: red;"><strong>${qtdeNL}</strong></td>
+              <td>0</td>
+              <td style="color: green;"><strong>${qtdeConferida}</strong></td>
             </tr>
           </tbody>
         </table>
@@ -1280,31 +1334,29 @@ function abrirMultiplasEtiquetasNL(lista) {
 
     html += `
       <div class="etiqueta-nl-print">
-        <h3 style="text-align:center;">RELATÓRIO NL</h3>
-        <div><strong>Pedido:</strong> ${pedido}</div>
+        <h3>RELATÓRIO NL</h3>
         <div class="qrcode-container" data-pedido="${pedido}">
           <canvas class="qrcode-nl"></canvas>
         </div>
-        <div><strong>Romaneio:</strong> ${romaneio}</div>
-        <div><strong>Cliente:</strong> ${cliente}</div>
-        <div><strong>Box:</strong> ${caixas[pedido]?.box ?? "—"}</div>
-        <div><strong>Operador(es):</strong> ${operadores}</div>
-        <div><strong>Cesto NL:</strong> ${cesto}</div>
+        <div class="info"><strong>Pedido:</strong> ${pedido}</div>
+        <div class="info"><strong>Romaneio:</strong> ${romaneio}</div>
+        <div class="info"><strong>Cliente:</strong> ${cliente}</div>
+        <div class="box-destaque">BOX ${caixas[pedido]?.box ?? "—"}</div>
+        <div class="info"><strong>Operador(es):</strong> ${operadores}</div>
+        <div class="info"><strong>Cesto NL:</strong> ${cesto}</div>
 
         <div class="section">
           <table>
             <thead><tr><th>SKU</th><th>QTD</th></tr></thead>
             <tbody>
               ${tabela}
-              ${"<tr><td>&nbsp;</td><td>&nbsp;</td></tr>".repeat(
-                9 - produtosNL.length
-              )}
+              ${"<tr><td>&nbsp;</td><td>&nbsp;</td></tr>".repeat(9 - produtosNL.length)}
             </tbody>
           </table>
         </div>
 
         <div class="section">
-          <table>
+          <table class="resumo">
             <thead>
               <tr><th>Total</th><th>NL</th><th>Pré-Venda</th><th>Conferida</th></tr>
             </thead>
@@ -1323,8 +1375,13 @@ function abrirMultiplasEtiquetasNL(lista) {
   }
 
   html += `</div>`;
-  modal.innerHTML = html;
-  modal.style.display = "block";
+  const container = document.getElementById("containerEtiquetasNL");
+  container.innerHTML = html;
+
+  const bsModal = new bootstrap.Modal(
+    document.getElementById("modalEtiquetasNL")
+  );
+  bsModal.show();
 
   // 🧠 Gera QR Codes
   const qrContainers = modal.querySelectorAll(".qrcode-container");

@@ -815,7 +815,6 @@ input::placeholder {
   text-overflow: ellipsis;
 }
 
-
 [data-theme="dark"] .badge-box {
   background-color: var(--color-primary-dark);
 }
@@ -1215,12 +1214,19 @@ button.btn:hover {
   padding: var(--space-xs);
 }
 
-.qrcode-container {
-  position: absolute;
-  top: 10mm;
-  right: 10mm;
-}
-.qrcode-nl {
-  width: 64px;
-  height: 64px;
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+  #modalEtiquetasNL,
+  #modalEtiquetasNL * {
+    visibility: visible !important;
+  }
+  #modalEtiquetasNL {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100%;
+    z-index: 9999;
+  }
 }
