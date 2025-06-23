@@ -30,7 +30,7 @@ window.pedidos = 0;
 let resumo = [];
 
 // --- Constantes para controle de expiração ---
-const EXPIRACAO_MS = 150 * 60 * 1000; // 150 minutos em milissegundos
+const EXPIRACAO_MS = 720 * 60 * 1000; // 720 minutos em milissegundos
 
 // --- Função auxiliar para carregar dados salvos, se ainda válidos ---
 function carregarLoginSeValido() {
