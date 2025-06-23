@@ -1250,129 +1250,121 @@ function abrirEtiquetaNL({
 }
 
 function abrirMultiplasEtiquetasNL(lista) {
-  const container = document.getElementById("containerEtiquetasNL");
-  if (!container) return;
+  const modal = document.getElementById("modalEtiquetasNL");
+  if (!modal) return;
 
   let html = `
-    <style>
-      @page {
-        size: 105mm 148mm;
-        margin: 0;
-      }
-
-      @media print {
-        body * { visibility: hidden !important; }
-        #containerEtiquetasNL, #containerEtiquetasNL * {
-          visibility: visible !important;
-        }
-        #containerEtiquetasNL {
-          position: absolute;
-          top: 0;
-          left: 0;
-          width: 100%;
-          z-index: 9999;
-          background: white;
+    <div id="containerEtiquetasNL">
+      <style>
+        @page {
+          size: 105mm 148mm;
+          margin: 0;
         }
 
-        .modal-header, .modal-footer, .btn-imprimir-individual {
-          display: none !important;
+        @media print {
+          body * {
+            visibility: hidden !important;
+          }
+
+          #containerEtiquetasNL,
+          #containerEtiquetasNL * {
+            visibility: visible !important;
+          }
+
+          #containerEtiquetasNL {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 9999;
+            background: white;
+          }
+
+          .btn-imprimir-individual,
+          .modal-footer,
+          .modal-header {
+            display: none !important;
+          }
         }
 
         .etiqueta-nl-print {
-          page-break-after: always;
           width: 105mm;
           height: 148mm;
-          box-sizing: border-box;
-          margin: 0;
-          padding: 10mm 10mm;
-          transform: scale(1);
+          border: 1px solid #ccc;
+          box-shadow: 0 0 6px rgba(0, 0, 0, 0.1);
+          margin: 10px auto;
+          padding: 8mm 10mm;
+          font-family: 'Segoe UI', sans-serif;
+          font-size: 10pt;
+          position: relative;
+          page-break-after: always;
         }
-      }
 
-      .etiqueta-nl-print {
-        width: 105mm;
-        height: 148mm;
-        border: 1px solid #ccc;
-        box-shadow: 0 0 6px rgba(0,0,0,0.1);
-        margin: 10px auto;
-        padding: 8mm 10mm;
-        font-family: 'Segoe UI', sans-serif;
-        font-size: 10pt;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        background: white;
-      }
+        .etiqueta-nl-print h3 {
+          text-align: center;
+          font-size: 16pt;
+          margin-bottom: 4mm;
+        }
 
-      .etiqueta-nl-print h3 {
-        text-align: center;
-        font-size: 16pt;
-        margin-bottom: 4mm;
-      }
+        .etiqueta-nl-print .info {
+          font-size: 9pt;
+          margin-bottom: 4px;
+        }
 
-      .etiqueta-nl-print .info {
-        font-size: 9pt;
-        margin-bottom: 4px;
-      }
+        .box-destaque {
+          font-size: 28pt;
+          text-align: center;
+          font-weight: bold;
+          margin: 6mm 0 4mm;
+        }
 
-      .box-destaque {
-        font-size: 28pt;
-        text-align: center;
-        font-weight: bold;
-        margin: 6mm 0 4mm;
-      }
+        .etiqueta-nl-print table {
+          width: 100%;
+          border-collapse: collapse;
+          margin-top: 4mm;
+        }
 
-      .etiqueta-nl-print table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 4mm;
-      }
+        .etiqueta-nl-print th,
+        .etiqueta-nl-print td {
+          border: 1px solid #000;
+          padding: 3px;
+          text-align: center;
+          font-size: 9pt;
+        }
 
-      .etiqueta-nl-print th, .etiqueta-nl-print td {
-        border: 1px solid #000;
-        padding: 3px;
-        text-align: center;
-        font-size: 9pt;
-      }
+        .etiqueta-nl-print .resumo td:nth-child(2) {
+          color: red;
+          font-weight: bold;
+        }
 
-      .etiqueta-nl-print .resumo td:nth-child(2) {
-        color: red;
-        font-weight: bold;
-      }
+        .etiqueta-nl-print .resumo td:nth-child(4) {
+          color: green;
+          font-weight: bold;
+        }
 
-      .etiqueta-nl-print .resumo td:nth-child(4) {
-        color: green;
-        font-weight: bold;
-      }
+        .btn-imprimir-individual {
+          position: absolute;
+          top: 4mm;
+          left: 4mm;
+          font-size: 8pt;
+          padding: 2px 6px;
+          z-index: 10;
+        }
 
-      .assinatura {
-        margin-top: 12px;
-        font-size: 9pt;
-      }
+        .qrcode-container {
+          position: absolute;
+          top: 10mm;
+          right: 10mm;
+        }
 
-      .btn-imprimir-individual {
-        position: absolute;
-        top: 8mm;
-        left: 8mm;
-        font-size: 9pt;
-        padding: 2px 6px;
-        z-index: 10;
-      }
-
-      .qrcode-container {
-        position: absolute;
-        top: 10mm;
-        right: 10mm;
-      }
-
-      .qrcode-nl {
-        width: 64px;
-        height: 64px;
-      }
-    </style>
+        .qrcode-nl {
+          width: 64px;
+          height: 64px;
+        }
+      </style>
   `;
 
-  lista.forEach((dados, i) => {
+  for (const dados of lista) {
     const {
       pedido,
       romaneio,
@@ -1388,23 +1380,23 @@ function abrirMultiplasEtiquetasNL(lista) {
     } = dados;
 
     const operadores = operador2 ? `${operador1} e ${operador2}` : operador1;
+
     const tabela = produtosNL
       .map(({ sku, qtd }) => `<tr><td>${sku}</td><td>${qtd}</td></tr>`)
       .join("");
-    const linhasVazias = "<tr><td>&nbsp;</td><td>&nbsp;</td></tr>".repeat(
-      9 - produtosNL.length
-    );
-
-    const idEtiqueta = `etiqueta-${i}`;
 
     html += `
-      <div class="etiqueta-nl-print" id="${idEtiqueta}">
-        <button class="btn btn-sm btn-outline-dark btn-imprimir-individual" onclick="imprimirEtiqueta('${idEtiqueta}')">🖨️ Imprimir esta</button>
+      <div class="etiqueta-nl-print" data-pedido="${pedido}">
+        <button class="btn btn-sm btn-dark btn-imprimir-individual" onclick="imprimirEtiquetaIndividual('${pedido}')">
+          🖨️ Imprimir esta
+        </button>
 
         <h3>RELATÓRIO NL</h3>
+
         <div class="qrcode-container" data-pedido="${pedido}">
           <canvas class="qrcode-nl"></canvas>
         </div>
+
         <div class="info"><strong>Pedido:</strong> ${pedido}</div>
         <div class="info"><strong>Romaneio:</strong> ${romaneio}</div>
         <div class="info"><strong>Cliente:</strong> ${cliente}</div>
@@ -1412,45 +1404,56 @@ function abrirMultiplasEtiquetasNL(lista) {
         <div class="info"><strong>Operador(es):</strong> ${operadores}</div>
         <div class="info"><strong>Cesto NL:</strong> ${cesto}</div>
 
-        <table>
-          <thead><tr><th>SKU</th><th>QTD</th></tr></thead>
-          <tbody>${tabela}${linhasVazias}</tbody>
-        </table>
+        <div class="section">
+          <table>
+            <thead><tr><th>SKU</th><th>QTD</th></tr></thead>
+            <tbody>
+              ${tabela}
+              ${"<tr><td>&nbsp;</td><td>&nbsp;</td></tr>".repeat(
+                9 - produtosNL.length
+              )}
+            </tbody>
+          </table>
+        </div>
 
-        <table class="resumo">
-          <thead>
-            <tr><th>Total</th><th>NL</th><th>Pré-Venda</th><th>Conferida</th></tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>${qtdeTotal}</td>
-              <td>${qtdeNL}</td>
-              <td>${qtdePreVenda}</td>
-              <td>${qtdeConferida}</td>
-            </tr>
-          </tbody>
-        </table>
-
-        <div class="assinatura">
-          <strong>Assinatura:</strong> ${operador1} _____________________________________
+        <div class="section">
+          <table class="resumo">
+            <thead>
+              <tr><th>Total</th><th>NL</th><th>Pré-Venda</th><th>Conferida</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>${qtdeTotal}</td>
+                <td>${qtdeNL}</td>
+                <td>${qtdePreVenda}</td>
+                <td>${qtdeConferida}</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
     `;
-  });
+  }
 
+  html += `</div>`;
+
+  const container = document.getElementById("containerEtiquetasNL");
   container.innerHTML = html;
 
-  const modalEl = document.getElementById("modalEtiquetasNL");
-  const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
-  modal.show();
+  const bsModal = new bootstrap.Modal(
+    document.getElementById("modalEtiquetasNL")
+  );
+  bsModal.show();
 
-  // Gera os QR Codes
-  container.querySelectorAll(".qrcode-container").forEach((div) => {
+  // 🧠 Gera QR Codes
+  const qrContainers = modal.querySelectorAll(".qrcode-container");
+  qrContainers.forEach((div) => {
     const pedido = div.dataset.pedido;
     const canvas = div.querySelector("canvas");
-    if (canvas) {
+
+    if (canvas && window.QRCode) {
       QRCode.toCanvas(canvas, pedido, { width: 64 }, (err) => {
-        if (err) console.error("Erro QR Code:", err);
+        if (err) console.error("QR Code erro:", err);
       });
     }
   });
@@ -3291,3 +3294,102 @@ function solicitarCestoNL() {
     modal.show();
   });
 }
+
+window.imprimirEtiquetaIndividual = (pedidoId) => {
+  const el = document.querySelector(
+    `.etiqueta-nl-print[data-pedido='${pedidoId}']`
+  );
+  if (!el) return alert("Etiqueta não encontrada.");
+
+  const htmlEtiqueta = el.outerHTML;
+
+  const win = window.open("", "_blank");
+  win.document.write(`
+    <html>
+      <head>
+        <title>Etiqueta NL - Pedido ${pedidoId}</title>
+        <style>
+          @page {
+            size: 105mm 148mm;
+            margin: 0;
+          }
+
+          html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background: white;
+          }
+
+          .etiqueta-nl-print {
+            width: 105mm;
+            height: 148mm;
+            box-sizing: border-box;
+            margin: 0;
+            padding: 10mm;
+            font-family: 'Segoe UI', sans-serif;
+            font-size: 10pt;
+          }
+
+          .etiqueta-nl-print h3 {
+            text-align: center;
+            font-size: 16pt;
+            margin-bottom: 4mm;
+          }
+
+          .etiqueta-nl-print .info {
+            font-size: 9pt;
+            margin-bottom: 4px;
+          }
+
+          .box-destaque {
+            font-size: 28pt;
+            text-align: center;
+            font-weight: bold;
+            margin: 6mm 0 4mm;
+          }
+
+          .etiqueta-nl-print table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 4mm;
+          }
+
+          .etiqueta-nl-print th, .etiqueta-nl-print td {
+            border: 1px solid #000;
+            padding: 3px;
+            text-align: center;
+            font-size: 9pt;
+          }
+
+          .etiqueta-nl-print .resumo td:nth-child(2) {
+            color: red;
+            font-weight: bold;
+          }
+
+          .etiqueta-nl-print .resumo td:nth-child(4) {
+            color: green;
+            font-weight: bold;
+          }
+
+          .qrcode-container {
+            position: absolute;
+            top: 10mm;
+            right: 10mm;
+          }
+
+          .qrcode-nl {
+            width: 64px;
+            height: 64px;
+          }
+        </style>
+      </head>
+      <body>
+        ${htmlEtiqueta}
+        <script>window.onload = () => { window.print(); window.close(); }</script>
+      </body>
+    </html>
+  `);
+  win.document.close();
+};
