@@ -1023,6 +1023,14 @@ async function registrarTodosPendentesNL() {
   }
 
   const pedidos = Object.keys(agrupadoPorPedido);
+  if (pedidos.length === 0) {
+    alert("Nenhum pedido pendente para registrar.");
+    return;
+  }
+
+  // 🧺 Solicita o cesto via modal
+  const cesto = await solicitarCestoNL();
+  if (!cesto) return;
 
   // 1. REGISTRA no Google Sheets
   try {
@@ -1032,7 +1040,7 @@ async function registrarTodosPendentesNL() {
       body: JSON.stringify({
         func: "registrarMultiplos",
         pedidos,
-        cesto: "NL",
+        cesto,
         produtosPorPedido: agrupadoPorPedido,
       }),
     });
@@ -1064,7 +1072,7 @@ async function registrarTodosPendentesNL() {
       pedido,
       romaneio,
       cliente,
-      cesto: "NL",
+      cesto,
       operador1,
       operador2,
       produtosNL,
@@ -3097,3 +3105,31 @@ function mostrarModalDeTextoCopiavel(texto, metodo) {
 }
 
 window.exibirRastreiosPorMetodo = exibirRastreiosPorMetodo;
+
+function solicitarCestoNL() {
+  return new Promise((resolve) => {
+    const modal = new bootstrap.Modal(document.getElementById("cestoModal"));
+    const input = document.getElementById("inputCestoNL");
+    input.value = "";
+    input.focus();
+
+    const btn = document.getElementById("btnConfirmarCesto");
+
+    const confirmar = () => {
+      const valor = input.value.trim();
+      if (valor) {
+        modal.hide();
+        resolve(valor);
+      } else {
+        alert("Digite um cesto válido.");
+      }
+    };
+
+    btn.onclick = confirmar;
+    input.onkeypress = (e) => {
+      if (e.key === "Enter") confirmar();
+    };
+
+    modal.show();
+  });
+}

@@ -344,11 +344,11 @@
       });
     </script>
 
-    <div class="modal fade" id="modalCesto" tabindex="-1" aria-hidden="true">
+    <div id="cestoModal" class="modal" tabindex="-1">
       <div class="modal-dialog modal-sm modal-dialog-centered">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title">Registrar Cesto</h5>
+            <h5 class="modal-title">Informe o Cesto NL</h5>
             <button
               type="button"
               class="btn-close"
@@ -357,28 +357,27 @@
             ></button>
           </div>
           <div class="modal-body">
-            <p id="modalCestoPedido" class="mb-2 small text-muted"></p>
             <input
               type="text"
-              id="inputCesto"
+              id="inputCestoNL"
               class="form-control"
-              placeholder="Digite o cesto..."
+              placeholder="Ex: NL-01"
             />
           </div>
           <div class="modal-footer">
             <button
               type="button"
-              class="btn btn-secondary btn-sm"
+              class="btn btn-secondary"
               data-bs-dismiss="modal"
             >
               Cancelar
             </button>
             <button
               type="button"
-              class="btn btn-primary btn-sm"
+              class="btn btn-primary"
               id="btnConfirmarCesto"
             >
-              Salvar
+              Confirmar
             </button>
           </div>
         </div>
