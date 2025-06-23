@@ -1055,19 +1055,12 @@ async function registrarTodosPendentesNL() {
     .in("id", pedidos);
 
   // 3. Gera etiquetas por pedido
-  for (const pedido of pedidos) {
+  const etiquetas = pedidos.map((pedido) => {
     const cliente = dadosPedido.find((p) => p.id == pedido)?.cliente || "—";
     const produtosNL = agrupadoPorPedido[pedido];
     const qtdeTotal = produtosNL.reduce((acc, p) => acc + p.qtd, 0);
 
-    const zpl = gerarZPL({
-      pedido,
-      cliente,
-      produtosNL,
-      box: caixas[pedido]?.box,
-      cesto: "NL",
-    });
-    imprimirEtiquetaZebra(zpl, {
+    return {
       pedido,
       romaneio,
       cliente,
@@ -1079,8 +1072,10 @@ async function registrarTodosPendentesNL() {
       qtdeNL: produtosNL.length,
       qtdePreVenda: 0,
       qtdeConferida: qtdeTotal - produtosNL.length,
-    });
-  }
+    };
+  });
+
+  abrirMultiplasEtiquetasNL(etiquetas);
 
   alert(`✅ Registrado e impresso ${pedidos.length} pedido(s) NL.`);
 }
@@ -1098,79 +1093,243 @@ function abrirEtiquetaNL({
   qtdePreVenda,
   qtdeConferida,
 }) {
-  if (!Array.isArray(produtosNL) || produtosNL.length === 0) {
-    alert("❌ Nenhum produto NL para imprimir.");
-    return;
-  }
-
   const operadores = operador2 ? `${operador1} e ${operador2}` : operador1;
-  const listaProdutos = produtosNL
+
+  const tabela = produtosNL
     .map(({ sku, qtd }) => `<tr><td>${sku}</td><td>${qtd}</td></tr>`)
     .join("");
 
   const modal = document.getElementById("etiquetaModalNL");
-  if (!modal) return;
-
   modal.innerHTML = `
-    <div style="
-      position:fixed; top:5%; left:50%; transform:translateX(-50%);
-      background:#fff; padding:16px; border:1px solid #ccc;
-      border-radius:8px; z-index:9999; width:105mm; height:148mm;
-      box-shadow: 0 0 10px rgba(0,0,0,0.25); font-family:sans-serif;
-      overflow:auto;
-    ">
-      <h3 style="text-align:center; margin-bottom:8px;">RELATÓRIO NL</h3>
-      <div style="font-size:10pt">
-        <strong>Pedido:</strong> ${pedido}<br/>
-        <strong>Romaneio:</strong> ${romaneio}<br/>
-        <strong>Cliente:</strong> ${cliente}<br/>
-        <strong>Box:</strong> ${caixas[pedido]?.box ?? "—"}<br/>
-        <strong>Operador(es):</strong> ${operadores}<br/>
-        <strong>Cesto NL:</strong> ${cesto}<br/><br/>
-        <table style="width:100%; border-collapse:collapse;" border="1">
-          <tr>
-            <th>SKU</th><th>QTD</th>
-          </tr>
-          ${listaProdutos}
-          ${"<tr><td>&nbsp;</td><td>&nbsp;</td></tr>".repeat(
-            9 - produtosNL.length
-          )}
+    <div id="etiquetaContainerNL" class="etiqueta-nl-print">
+      <style>
+        @media print {
+          body * { visibility: hidden !important; }
+          #etiquetaContainerNL, #etiquetaContainerNL * {
+            visibility: visible !important;
+          }
+          #etiquetaContainerNL {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%;
+            z-index: 9999;
+          }
+        }
+        .etiqueta-nl-print {
+          font-family: sans-serif;
+          background: white;
+          border: 1px solid #ccc;
+          width: 105mm;
+          height: 148mm;
+          padding: 10mm;
+          margin: 0 auto;
+          box-shadow: 0 0 10px rgba(0,0,0,0.25);
+          font-size: 10pt;
+        }
+        .etiqueta-nl-print table {
+          width: 100%;
+          border-collapse: collapse;
+          margin-top: 8px;
+        }
+        .etiqueta-nl-print th, .etiqueta-nl-print td {
+          border: 1px solid #000;
+          padding: 4px;
+          text-align: center;
+        }
+        .etiqueta-nl-print .section {
+          margin-top: 10px;
+        }
+      </style>
+
+      <h3 style="text-align:center;">RELATÓRIO NL</h3>
+      <div><strong>Pedido:</strong> ${pedido}</div>
+      <div><strong>Romaneio:</strong> ${romaneio}</div>
+      <div><strong>Cliente:</strong> ${cliente}</div>
+      <div><strong>Box:</strong> ${caixas[pedido]?.box ?? "—"}</div>
+      <div><strong>Operador(es):</strong> ${operadores}</div>
+      <div><strong>Cesto NL:</strong> ${cesto}</div>
+
+      <div class="section">
+        <table>
+          <thead><tr><th>SKU</th><th>QTD</th></tr></thead>
+          <tbody>
+            ${tabela}
+            ${"<tr><td>&nbsp;</td><td>&nbsp;</td></tr>".repeat(
+              9 - produtosNL.length
+            )}
+          </tbody>
         </table>
-        <br/>
-        <table style="width:100%; border-collapse:collapse;" border="1">
-          <tr>
-            <th>Total</th><th>NL</th><th>Pré-Venda</th><th>Conferida</th>
-          </tr>
-          <tr>
-            <td>${qtdeTotal}</td>
-            <td>${qtdeNL}</td>
-            <td>${qtdePreVenda}</td>
-            <td>${qtdeConferida}</td>
-          </tr>
-        </table>
-        <div style="margin-top:10px; text-align:right;">
-          <button onclick="window.print()" class="btn btn-sm btn-primary">🖨️ Imprimir</button>
-          <button onclick="document.getElementById('etiquetaModalNL').style.display='none'" class="btn btn-sm btn-secondary">Fechar</button>
-        </div>
       </div>
-      <canvas id="qrcodeNL" style="position:absolute; top:10px; right:10px;"></canvas>
+
+      <div class="section">
+        <table>
+          <thead>
+            <tr><th>Total</th><th>NL</th><th>Pré-Venda</th><th>Conferida</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>${qtdeTotal}</td>
+              <td>${qtdeNL}</td>
+              <td>${qtdePreVenda}</td>
+              <td>${qtdeConferida}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div style="margin-top: 12px; text-align: right;">
+        <button onclick="window.print()" class="btn btn-sm btn-primary">🖨️ Imprimir</button>
+        <button onclick="document.getElementById('etiquetaModalNL').style.display = 'none'" class="btn btn-sm btn-secondary">Fechar</button>
+      </div>
     </div>
   `;
+
+  modal.style.display = "block";
+}
+
+function abrirMultiplasEtiquetasNL(lista) {
+  const modal = document.getElementById("etiquetaModalNL");
+  if (!modal) return;
+
+  let html = `
+    <div id="etiquetasContainer">
+      <style>
+        @media print {
+          body * { visibility: hidden !important; }
+          #etiquetasContainer, #etiquetasContainer * {
+            visibility: visible !important;
+          }
+          #etiquetasContainer {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%;
+            z-index: 9999;
+          }
+        }
+
+        .etiqueta-nl-print {
+          page-break-after: always;
+          font-family: sans-serif;
+          background: white;
+          border: 1px solid #ccc;
+          width: 105mm;
+          height: 148mm;
+          padding: 10mm;
+          margin: 10px auto;
+          box-shadow: 0 0 10px rgba(0,0,0,0.25);
+          font-size: 10pt;
+        }
+
+        .etiqueta-nl-print table {
+          width: 100%;
+          border-collapse: collapse;
+          margin-top: 8px;
+        }
+
+        .etiqueta-nl-print th,
+        .etiqueta-nl-print td {
+          border: 1px solid #000;
+          padding: 4px;
+          text-align: center;
+        }
+
+        .etiqueta-nl-print .section {
+          margin-top: 10px;
+        }
+
+        .botao-container {
+          text-align: right;
+          margin-bottom: 10px;
+        }
+      </style>
+
+      <div class="botao-container">
+        <button onclick="window.print()" class="btn btn-sm btn-primary">🖨️ Imprimir todas</button>
+        <button onclick="document.getElementById('etiquetaModalNL').style.display = 'none'" class="btn btn-sm btn-secondary">Fechar</button>
+      </div>
+  `;
+
+  for (const dados of lista) {
+    const {
+      pedido,
+      romaneio,
+      cliente,
+      cesto,
+      operador1,
+      operador2,
+      produtosNL,
+      qtdeTotal,
+      qtdeNL,
+      qtdePreVenda,
+      qtdeConferida,
+    } = dados;
+
+    const operadores = operador2 ? `${operador1} e ${operador2}` : operador1;
+
+    const tabela = produtosNL
+      .map(({ sku, qtd }) => `<tr><td>${sku}</td><td>${qtd}</td></tr>`)
+      .join("");
+
+    html += `
+      <div class="etiqueta-nl-print">
+        <h3 style="text-align:center;">RELATÓRIO NL</h3>
+        <div><strong>Pedido:</strong> ${pedido}</div>
+        <div class="qrcode-container" data-pedido="${pedido}">
+          <canvas class="qrcode-nl"></canvas>
+        </div>
+        <div><strong>Romaneio:</strong> ${romaneio}</div>
+        <div><strong>Cliente:</strong> ${cliente}</div>
+        <div><strong>Box:</strong> ${caixas[pedido]?.box ?? "—"}</div>
+        <div><strong>Operador(es):</strong> ${operadores}</div>
+        <div><strong>Cesto NL:</strong> ${cesto}</div>
+
+        <div class="section">
+          <table>
+            <thead><tr><th>SKU</th><th>QTD</th></tr></thead>
+            <tbody>
+              ${tabela}
+              ${"<tr><td>&nbsp;</td><td>&nbsp;</td></tr>".repeat(
+                9 - produtosNL.length
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="section">
+          <table>
+            <thead>
+              <tr><th>Total</th><th>NL</th><th>Pré-Venda</th><th>Conferida</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>${qtdeTotal}</td>
+                <td>${qtdeNL}</td>
+                <td>${qtdePreVenda}</td>
+                <td>${qtdeConferida}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  }
+
+  html += `</div>`;
+  modal.innerHTML = html;
   modal.style.display = "block";
 
-  // Gera o QRCode
-  if (window.QRCode) {
-    QRCode.toCanvas(
-      document.getElementById("qrcodeNL"),
-      pedido,
-      { width: 64 },
-      (err) => {
-        if (err) console.error("QR Error:", err);
-      }
-    );
-  } else {
-    console.warn("QRCode lib não carregada.");
-  }
+  // 🧠 Gera QR Codes
+  const qrContainers = modal.querySelectorAll(".qrcode-container");
+  qrContainers.forEach((div) => {
+    const pedido = div.dataset.pedido;
+    const canvas = div.querySelector("canvas");
+
+    if (canvas && window.QRCode) {
+      QRCode.toCanvas(canvas, pedido, { width: 64 }, (err) => {
+        if (err) console.error("QR Code erro:", err);
+      });
+    }
+  });
 }
 
 document.getElementById("btnCopyPendentes").addEventListener("click", () => {
@@ -2938,57 +3097,3 @@ function mostrarModalDeTextoCopiavel(texto, metodo) {
 }
 
 window.exibirRastreiosPorMetodo = exibirRastreiosPorMetodo;
-
-function gerarZPL({ pedido, produtosNL, cliente, box, cesto = "NL" }) {
-  let zpl = `^XA
-^CF0,40
-^FO30,30^FDRELATÓRIO NL^FS
-^FO30,90^A0N,30,30^FDPedido: ${pedido}^FS
-^FO30,130^A0N,30,30^FDCliente: ${cliente}^FS
-^FO30,170^A0N,30,30^FDBox: ${box || "—"}^FS
-^FO30,210^A0N,30,30^FDCesto: ${cesto}^FS`;
-
-  let y = 250;
-  produtosNL.forEach(({ sku, qtd }) => {
-    zpl += `\n^FO30,${y}^A0N,30,30^FDSKU: ${sku} - QTD: ${qtd}^FS`;
-    y += 40;
-  });
-
-  const totalNL = produtosNL.reduce((s, p) => s + p.qtd, 0);
-  zpl += `\n^FO30,${y}^A0N,30,30^FDTOTAL NL: ${totalNL}^FS`;
-
-  // QR Code
-  zpl += `\n^FO500,90^BQN,2,6^FDLA,${pedido}^FS`;
-
-  zpl += `\n^XZ`;
-  return zpl;
-}
-
-function imprimirEtiquetaZebra(zpl, fallbackData = null) {
-  if (typeof BrowserPrint !== "undefined") {
-    BrowserPrint.getDefaultDevice(
-      "printer",
-      function (device) {
-        device.send(
-          zpl,
-          () => {
-            console.log("✅ Etiqueta enviada para Zebra");
-          },
-          (error) => {
-            console.warn("⚠️ Zebra falhou. Gerando fallback PDF.");
-            if (fallbackData) abrirEtiquetaNL(fallbackData);
-          }
-        );
-      },
-      () => {
-        console.warn(
-          "⚠️ Impressora Zebra não detectada. Gerando fallback PDF."
-        );
-        if (fallbackData) abrirEtiquetaNL(fallbackData);
-      }
-    );
-  } else {
-    console.warn("⚠️ BrowserPrint não definido. Executando fallback.");
-    if (fallbackData) abrirEtiquetaNL(fallbackData);
-  }
-}

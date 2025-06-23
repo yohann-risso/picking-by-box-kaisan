@@ -1214,3 +1214,13 @@ button.btn:hover {
   border-radius: var(--radius-md);
   padding: var(--space-xs);
 }
+
+.qrcode-container {
+  position: absolute;
+  top: 10mm;
+  right: 10mm;
+}
+.qrcode-nl {
+  width: 64px;
+  height: 64px;
+}
