@@ -1221,7 +1221,7 @@ function abrirEtiquetaNL({
       </style>
 
       <h3 style="text-align:center;">RELATÓRIO NL</h3>
-      <div><strong>Pedido:</strong> ${pedido}</div>
+      <div><strong>Pedido: ${pedido}</strong></div>
       <div><strong>Romaneio:</strong> ${romaneio}</div>
       <div><strong>Cliente:</strong> ${cliente}</div>
       <div style="font-size: 2rem; font-weight: bold; color: #1a1d20; margin: 6px 0;">
@@ -1307,7 +1307,7 @@ function abrirMultiplasEtiquetasNL(lista) {
     etiquetasHtml += `
       <div class="etiqueta-nl-print" data-pedido="${pedido}" data-url="${linkPesagem}">
         <div class="qrcode-container">
-          <canvas id="qr-${pedido}" width="64" height="64"></canvas>
+          <canvas id="qr-${pedido}" width="150" height="150"></canvas>
         </div>
         <h3>RELATÓRIO NL</h3>
         <div><strong>Pedido:</strong> ${pedido}</div>
@@ -1365,6 +1365,7 @@ function abrirMultiplasEtiquetasNL(lista) {
             margin: 0 auto;
             page-break-after: always;
             font-size: 10pt;
+            overflow: hidden;
             position: relative;
           }
           .qrcode-container {
