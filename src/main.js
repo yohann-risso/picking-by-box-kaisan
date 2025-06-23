@@ -1269,7 +1269,7 @@ function abrirMultiplasEtiquetasNL(lista) {
           background: white;
         }
 
-        .modal-footer, .modal-header {
+        .modal-header, .modal-footer, .btn-imprimir-individual {
           display: none !important;
         }
       }
@@ -1279,12 +1279,16 @@ function abrirMultiplasEtiquetasNL(lista) {
         width: 105mm;
         height: 148mm;
         border: 1px solid #ccc;
-        box-shadow: none;
-        margin: 0 auto 10mm;
+        box-shadow: 0 0 6px rgba(0,0,0,0.1);
+        margin: 10px auto;
         padding: 8mm 10mm;
         font-family: 'Segoe UI', sans-serif;
         font-size: 10pt;
         position: relative;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        background: white;
       }
 
       .etiqueta-nl-print h3 {
@@ -1293,11 +1297,16 @@ function abrirMultiplasEtiquetasNL(lista) {
         margin-bottom: 4mm;
       }
 
-      .etiqueta-nl-print .box-destaque {
-        font-size: 26pt;
+      .etiqueta-nl-print .info {
+        font-size: 9pt;
+        margin-bottom: 4px;
+      }
+
+      .box-destaque {
+        font-size: 28pt;
         text-align: center;
         font-weight: bold;
-        margin: 6mm 0;
+        margin: 6mm 0 4mm;
       }
 
       .etiqueta-nl-print table {
@@ -1310,6 +1319,31 @@ function abrirMultiplasEtiquetasNL(lista) {
         border: 1px solid #000;
         padding: 3px;
         text-align: center;
+        font-size: 9pt;
+      }
+
+      .etiqueta-nl-print .resumo td:nth-child(2) {
+        color: red;
+        font-weight: bold;
+      }
+
+      .etiqueta-nl-print .resumo td:nth-child(4) {
+        color: green;
+        font-weight: bold;
+      }
+
+      .assinatura {
+        margin-top: 12px;
+        font-size: 9pt;
+      }
+
+      .btn-imprimir-individual {
+        position: absolute;
+        top: 8mm;
+        left: 8mm;
+        font-size: 9pt;
+        padding: 2px 6px;
+        z-index: 10;
       }
 
       .qrcode-container {
@@ -1325,7 +1359,7 @@ function abrirMultiplasEtiquetasNL(lista) {
     </style>
   `;
 
-  for (const dados of lista) {
+  lista.forEach((dados, i) => {
     const {
       pedido,
       romaneio,
@@ -1339,8 +1373,8 @@ function abrirMultiplasEtiquetasNL(lista) {
       qtdePreVenda,
       qtdeConferida,
     } = dados;
-    const operadores = operador2 ? `${operador1} e ${operador2}` : operador1;
 
+    const operadores = operador2 ? `${operador1} e ${operador2}` : operador1;
     const tabela = produtosNL
       .map(({ sku, qtd }) => `<tr><td>${sku}</td><td>${qtd}</td></tr>`)
       .join("");
@@ -1348,57 +1382,108 @@ function abrirMultiplasEtiquetasNL(lista) {
       9 - produtosNL.length
     );
 
+    const idEtiqueta = `etiqueta-${i}`;
+
     html += `
-      <div class="etiqueta-nl-print">
+      <div class="etiqueta-nl-print" id="${idEtiqueta}">
+        <button class="btn btn-sm btn-outline-dark btn-imprimir-individual" onclick="imprimirEtiqueta('${idEtiqueta}')">🖨️ Imprimir esta</button>
+
         <h3>RELATÓRIO NL</h3>
         <div class="qrcode-container" data-pedido="${pedido}">
           <canvas class="qrcode-nl"></canvas>
         </div>
-        <div><strong>Pedido:</strong> ${pedido}</div>
-        <div><strong>Romaneio:</strong> ${romaneio}</div>
-        <div><strong>Cliente:</strong> ${cliente}</div>
+        <div class="info"><strong>Pedido:</strong> ${pedido}</div>
+        <div class="info"><strong>Romaneio:</strong> ${romaneio}</div>
+        <div class="info"><strong>Cliente:</strong> ${cliente}</div>
         <div class="box-destaque">BOX ${caixas[pedido]?.box ?? "—"}</div>
-        <div><strong>Operador(es):</strong> ${operadores}</div>
-        <div><strong>Cesto NL:</strong> ${cesto}</div>
+        <div class="info"><strong>Operador(es):</strong> ${operadores}</div>
+        <div class="info"><strong>Cesto NL:</strong> ${cesto}</div>
 
-        <div class="section">
-          <table>
-            <thead><tr><th>SKU</th><th>QTD</th></tr></thead>
-            <tbody>${tabela}${linhasVazias}</tbody>
-          </table>
-        </div>
+        <table>
+          <thead><tr><th>SKU</th><th>QTD</th></tr></thead>
+          <tbody>${tabela}${linhasVazias}</tbody>
+        </table>
 
-        <div class="section">
-          <table>
-            <thead><tr><th>Total</th><th>NL</th><th>Pré-Venda</th><th>Conferida</th></tr></thead>
-            <tbody><tr>
+        <table class="resumo">
+          <thead>
+            <tr><th>Total</th><th>NL</th><th>Pré-Venda</th><th>Conferida</th></tr>
+          </thead>
+          <tbody>
+            <tr>
               <td>${qtdeTotal}</td>
-              <td style="color:red;"><strong>${qtdeNL}</strong></td>
+              <td>${qtdeNL}</td>
               <td>${qtdePreVenda}</td>
-              <td style="color:green;"><strong>${qtdeConferida}</strong></td>
-            </tr></tbody>
-          </table>
+              <td>${qtdeConferida}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="assinatura">
+          <strong>Assinatura:</strong> ${operador1} _____________________________________
         </div>
       </div>
     `;
-  }
+  });
 
   container.innerHTML = html;
 
-  const modal = new bootstrap.Modal(
-    document.getElementById("modalEtiquetasNL")
-  );
+  const modalEl = document.getElementById("modalEtiquetasNL");
+  const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
   modal.show();
 
-  // Gerar QR Codes
+  // Gera os QR Codes
   container.querySelectorAll(".qrcode-container").forEach((div) => {
     const pedido = div.dataset.pedido;
     const canvas = div.querySelector("canvas");
-    QRCode.toCanvas(canvas, pedido, { width: 64 }, (err) => {
-      if (err) console.error("Erro QR:", err);
-    });
+    if (canvas) {
+      QRCode.toCanvas(canvas, pedido, { width: 64 }, (err) => {
+        if (err) console.error("Erro QR Code:", err);
+      });
+    }
   });
 }
+
+// 🖨️ Função auxiliar global para imprimir etiqueta individual
+window.imprimirEtiqueta = function (idEtiqueta) {
+  const originalContent = document.body.innerHTML;
+  const etiqueta = document.getElementById(idEtiqueta);
+  if (!etiqueta) return;
+
+  const html = `
+    <html>
+      <head>
+        <title>Imprimir Etiqueta</title>
+        <style>
+          @media print {
+            body * { visibility: hidden !important; }
+            #printArea, #printArea * {
+              visibility: visible !important;
+            }
+            #printArea {
+              position: absolute;
+              top: 0;
+              left: 0;
+              width: 100%;
+              z-index: 9999;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <div id="printArea">${etiqueta.outerHTML}</div>
+        <script>
+          window.onload = () => { window.print(); window.close(); };
+        </script>
+      </body>
+    </html>
+  `;
+
+  const win = window.open("", "_blank");
+  if (win) {
+    win.document.write(html);
+    win.document.close();
+  }
+};
 
 document.getElementById("btnCopyPendentes").addEventListener("click", () => {
   const table = document.querySelector("#listaPendentes table");
