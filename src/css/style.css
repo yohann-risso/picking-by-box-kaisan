@@ -1230,16 +1230,3 @@ button.btn:hover {
     z-index: 9999;
   }
 }
-
-.print-nl-btn {
-  position: absolute;
-  top: 4px;
-  left: 6px;
-  font-size: 1.2rem;
-  cursor: pointer;
-  opacity: 0.6;
-}
-.print-nl-btn:hover {
-  opacity: 1;
-  scale: 1.1;
-}

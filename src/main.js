@@ -627,6 +627,19 @@ document.addEventListener("DOMContentLoaded", async () => {
   document
     .getElementById("btnGerarPdf")
     .addEventListener("click", gerarPdfResumo);
+  document
+    .getElementById("btnReimprimirEtiquetasNL")
+    ?.addEventListener("click", () => {
+      // 🔁 Reusa os dados já salvos no localStorage
+      const historicoNL = localStorage.getItem(`etiquetasNL-${romaneio}`);
+      if (!historicoNL) {
+        alert("❌ Nenhuma etiqueta NL encontrada para este romaneio.");
+        return;
+      }
+
+      const etiquetas = JSON.parse(historicoNL);
+      abrirMultiplasEtiquetasNL(etiquetas);
+    });
 });
 
 async function carregarCodNfeMap(pedidoIds) {
@@ -736,11 +749,6 @@ function renderBoxCards() {
       infoCard.className = `card-info ${light}`;
       infoCard.innerHTML = `
         <div class="details text-center w-100">
-          ${
-            pendentes.some((p) => p.pedido == pedidoRef)
-              ? `<div class="print-nl-btn" title="Reimprimir Etiqueta NL" data-pedido="${pedidoRef}">🖨️</div>`
-              : ""
-          }
           <div class="fs-6 fw-bold">${pedidoRef}</div>
           <div>
             <span class="badge bg-dark">${bipado}/${total}</span>
@@ -810,34 +818,6 @@ function renderBoxCards() {
         e.stopPropagation();
         btn.click();
       }
-    });
-  });
-
-  document.querySelectorAll(".print-nl-btn").forEach((btn) => {
-    btn.addEventListener("click", async (e) => {
-      const pedidoId = btn.dataset.pedido;
-      const produtosNL = pendentes.filter((p) => p.pedido == pedidoId);
-      if (!produtosNL.length)
-        return alert("❌ Nenhuma pendência NL para este pedido.");
-
-      const cliente = "—";
-      const qtdeNL = produtosNL.reduce((sum, p) => sum + p.qtd, 0);
-      const qtdeTotal = caixas[pedidoId]?.total || qtdeNL;
-      const qtdeConferida = qtdeTotal - qtdeNL;
-
-      abrirEtiquetaNL({
-        pedido: pedidoId,
-        romaneio,
-        cliente,
-        cesto: "Reimpressão",
-        operador1,
-        operador2,
-        produtosNL,
-        qtdeTotal,
-        qtdeNL,
-        qtdePreVenda: 0,
-        qtdeConferida,
-      });
     });
   });
 }
@@ -1141,19 +1121,12 @@ function abrirEtiquetaNL({
   qtdeConferida,
 }) {
   const operadores = operador2 ? `${operador1} e ${operador2}` : operador1;
-  const tabela =
-    produtosNL
-      .map(({ sku, qtd }) => `<tr><td>${sku}</td><td>${qtd}</td></tr>`)
-      .join("") +
-    "<tr><td>&nbsp;</td><td>&nbsp;</td></tr>".repeat(
-      Math.max(0, 8 - produtosNL.length)
-    );
+
+  const tabela = produtosNL
+    .map(({ sku, qtd }) => `<tr><td>${sku}</td><td>${qtd}</td></tr>`)
+    .join("");
+
   const modal = document.getElementById("etiquetaModalNL");
-  if (!modal) {
-    console.error("❌ Elemento #etiquetaModalNL não encontrado.");
-    alert("Erro: componente visual para exibir etiqueta não está presente.");
-    return;
-  }
   modal.innerHTML = `
     <div id="etiquetaContainerNL" class="etiqueta-nl-print">
       <style>
@@ -1376,6 +1349,9 @@ function abrirMultiplasEtiquetasNL(lista) {
       </div>
     `;
   }
+
+  localStorage.setItem(`etiquetasNL-${romaneio}`, JSON.stringify(lista));
+
 
   const win = window.open("", "_blank");
   if (!win) {
@@ -2060,6 +2036,7 @@ document
     localStorage.removeItem(`caixas-${romaneio}`);
     localStorage.removeItem(`pendentes-${romaneio}`);
     localStorage.removeItem(`historico-${romaneio}`);
+    localStorage.removeItem(`etiquetasNL-${romaneio}`);
 
     // 3) Limpa variáveis em memória
     caixas = {};
@@ -2761,6 +2738,7 @@ function configurarListenersCronometro() {
   // Botão "Finalizar Romaneio"
   btnFinalizarRomaneio?.addEventListener("click", () => {
     finalizarEtapas(); // ou outro comportamento
+    localStorage.removeItem(`etiquetasNL-${romaneio}`);
   });
 
   // Botão "Pausar Etapa"
