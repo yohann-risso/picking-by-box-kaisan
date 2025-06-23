@@ -1098,103 +1098,78 @@ function abrirEtiquetaNL({
   qtdePreVenda,
   qtdeConferida,
 }) {
+  if (!Array.isArray(produtosNL) || produtosNL.length === 0) {
+    alert("❌ Nenhum produto NL para imprimir.");
+    return;
+  }
+
   const operadores = operador2 ? `${operador1} e ${operador2}` : operador1;
   const listaProdutos = produtosNL
     .map(({ sku, qtd }) => `<tr><td>${sku}</td><td>${qtd}</td></tr>`)
     .join("");
 
-  const html = `
-    <html>
-      <head>
-        <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
-        <title>Etiqueta NL - ${pedido}</title>
-        <style>
-          body { font-family: sans-serif; font-size: 10pt; padding: 5mm; margin: 0; width: 100%; }
-          table { border-collapse: collapse; width: 100%; margin-top: 8px; }
-          th, td { border: 1px solid #000; padding: 4px; text-align: center; font-size: 10pt; }
-          h2 { margin: 0; font-size: 12pt; text-align: center; }
-          .section { margin-top: 8px; }
-          .color-purple { background: #b4b6f3; }
-          .color-green { background: #c6f7c2; }
-          .color-red { background: #f5c6cb; }
-          .color-maroon { background: #752b2b; color: #fff; }
-          .badge { padding: 2px 6px; border-radius: 4px; }
-          .a6 { width: 105mm; height: 148mm; }
-          .qrcode { float: right; }
-        </style>
-      </head>
-      <body class="a6">
-        <h2>RELATÓRIO NL</h2>
-        <div class="section">
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <div>
-              <strong>Pedido:</strong> ${pedido}<br/>
-              <strong>Romaneio:</strong> ${romaneio}<br/>
-              <strong>Cliente:</strong> ${cliente}<br/>
-              <strong>BOX:</strong> ${caixas[pedido]?.box ?? "—"}
-            </div>
-            <div id="qrcode" style="width: 64px; height: 64px;"></div>
-          </div>
-        </div>
+  const modal = document.getElementById("etiquetaModalNL");
+  if (!modal) return;
 
-        <div class="section">
-          <table>
-            <tr>
-              <td class="color-maroon">QTDE PEÇAS</td>
-              <td class="color-red">QTDE NL</td>
-              <td class="color-purple">QTDE PRÉ-VENDA</td>
-              <td class="color-green">QTDE CONFERIDA</td>
-            </tr>
-            <tr>
-              <td>${qtdeTotal}</td>
-              <td>${qtdeNL}</td>
-              <td>0</td>
-              <td>${qtdeConferida}</td>
-            </tr>
-          </table>
+  modal.innerHTML = `
+    <div style="
+      position:fixed; top:5%; left:50%; transform:translateX(-50%);
+      background:#fff; padding:16px; border:1px solid #ccc;
+      border-radius:8px; z-index:9999; width:105mm; height:148mm;
+      box-shadow: 0 0 10px rgba(0,0,0,0.25); font-family:sans-serif;
+      overflow:auto;
+    ">
+      <h3 style="text-align:center; margin-bottom:8px;">RELATÓRIO NL</h3>
+      <div style="font-size:10pt">
+        <strong>Pedido:</strong> ${pedido}<br/>
+        <strong>Romaneio:</strong> ${romaneio}<br/>
+        <strong>Cliente:</strong> ${cliente}<br/>
+        <strong>Box:</strong> ${caixas[pedido]?.box ?? "—"}<br/>
+        <strong>Operador(es):</strong> ${operadores}<br/>
+        <strong>Cesto NL:</strong> ${cesto}<br/><br/>
+        <table style="width:100%; border-collapse:collapse;" border="1">
+          <tr>
+            <th>SKU</th><th>QTD</th>
+          </tr>
+          ${listaProdutos}
+          ${"<tr><td>&nbsp;</td><td>&nbsp;</td></tr>".repeat(
+            9 - produtosNL.length
+          )}
+        </table>
+        <br/>
+        <table style="width:100%; border-collapse:collapse;" border="1">
+          <tr>
+            <th>Total</th><th>NL</th><th>Pré-Venda</th><th>Conferida</th>
+          </tr>
+          <tr>
+            <td>${qtdeTotal}</td>
+            <td>${qtdeNL}</td>
+            <td>${qtdePreVenda}</td>
+            <td>${qtdeConferida}</td>
+          </tr>
+        </table>
+        <div style="margin-top:10px; text-align:right;">
+          <button onclick="window.print()" class="btn btn-sm btn-primary">🖨️ Imprimir</button>
+          <button onclick="document.getElementById('etiquetaModalNL').style.display='none'" class="btn btn-sm btn-secondary">Fechar</button>
         </div>
-
-        <div class="section">
-          <h3>Produtos NL</h3>
-          <table>
-            <thead><tr><th>SKU</th><th>QTD</th></tr></thead>
-            <tbody>
-              ${listaProdutos}
-              ${"<tr><td>&nbsp;</td><td>&nbsp;</td></tr>".repeat(
-                9 - produtosNL.length
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        <div class="section">
-          <strong>Operador(es):</strong> ${operadores}<br/>
-          <strong>Cesto NL:</strong> ${cesto}
-        </div>
-
-        <script>
-          window.onload = () => {
-            const qrEl = document.getElementById("qrcode");
-            if (qrEl) {
-              QRCode.toCanvas(qrEl, "${pedido}", { width: 64 }, (err) => {
-                if (err) console.error(err);
-                window.print();
-                window.close();
-              });
-            } else {
-              window.print();
-              window.close();
-            }
-          }
-        </script>
-      </body>
-    </html>
+      </div>
+      <canvas id="qrcodeNL" style="position:absolute; top:10px; right:10px;"></canvas>
+    </div>
   `;
+  modal.style.display = "block";
 
-  const win = window.open("", "_blank");
-  if (win) {
-    win.document.write(html);
-    win.document.close();
+  // Gera o QRCode
+  if (window.QRCode) {
+    QRCode.toCanvas(
+      document.getElementById("qrcodeNL"),
+      pedido,
+      { width: 64 },
+      (err) => {
+        if (err) console.error("QR Error:", err);
+      }
+    );
+  } else {
+    console.warn("QRCode lib não carregada.");
   }
 }
 
