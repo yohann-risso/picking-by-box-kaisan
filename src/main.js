@@ -1250,65 +1250,79 @@ function abrirEtiquetaNL({
 }
 
 function abrirMultiplasEtiquetasNL(lista) {
-  const modal = document.getElementById("modalEtiquetasNL");
-  if (!modal) return;
+  const container = document.getElementById("containerEtiquetasNL");
+  if (!container) return;
 
   let html = `
-    <div id="etiquetasContainer">
-      <style>
-        @media print {
-          body * { visibility: hidden !important; }
-          #etiquetasContainer, #etiquetasContainer * {
-            visibility: visible !important;
-          }
-          #etiquetasContainer {
-            position: absolute;
-            top: 0; left: 0;
-            width: 100%;
-            z-index: 9999;
-          }
+    <style>
+      @media print {
+        body * { visibility: hidden !important; }
+        #containerEtiquetasNL, #containerEtiquetasNL * {
+          visibility: visible !important;
         }
-
-        .etiqueta-nl-print {
-          page-break-after: always;
-          font-family: sans-serif;
-          background: white;
-          border: 1px solid #ccc;
-          width: 105mm;
-          height: 148mm;
-          padding: 10mm;
-          margin: 10px auto;
-          box-shadow: 0 0 10px rgba(0,0,0,0.25);
-          font-size: 10pt;
-        }
-
-        .etiqueta-nl-print table {
+        #containerEtiquetasNL {
+          position: absolute;
+          top: 0;
+          left: 0;
           width: 100%;
-          border-collapse: collapse;
-          margin-top: 8px;
+          z-index: 9999;
+          background: white;
         }
 
-        .etiqueta-nl-print th,
-        .etiqueta-nl-print td {
-          border: 1px solid #000;
-          padding: 4px;
-          text-align: center;
+        .modal-footer, .modal-header {
+          display: none !important;
         }
+      }
 
-        .etiqueta-nl-print .section {
-          margin-top: 10px;
-        }
+      .etiqueta-nl-print {
+        page-break-after: always;
+        width: 105mm;
+        height: 148mm;
+        border: 1px solid #ccc;
+        box-shadow: none;
+        margin: 0 auto 10mm;
+        padding: 8mm 10mm;
+        font-family: 'Segoe UI', sans-serif;
+        font-size: 10pt;
+        position: relative;
+      }
 
-        .botao-container {
-          text-align: right;
-          margin-bottom: 10px;
-        }
-      </style>
+      .etiqueta-nl-print h3 {
+        text-align: center;
+        font-size: 16pt;
+        margin-bottom: 4mm;
+      }
 
-      <div class="botao-container">
-        <button onclick="window.print()" class="btn btn-sm btn-primary">🖨️ Imprimir todas</button>
-        <button onclick="document.getElementById('etiquetaModalNL').style.display = 'none'" class="btn btn-sm btn-secondary">Fechar</button>
-      </div>
+      .etiqueta-nl-print .box-destaque {
+        font-size: 26pt;
+        text-align: center;
+        font-weight: bold;
+        margin: 6mm 0;
+      }
+
+      .etiqueta-nl-print table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 4mm;
+      }
+
+      .etiqueta-nl-print th, .etiqueta-nl-print td {
+        border: 1px solid #000;
+        padding: 3px;
+        text-align: center;
+      }
+
+      .qrcode-container {
+        position: absolute;
+        top: 10mm;
+        right: 10mm;
+      }
+
+      .qrcode-nl {
+        width: 64px;
+        height: 64px;
+      }
+    </style>
   `;
 
   for (const dados of lista) {
@@ -1325,12 +1339,14 @@ function abrirMultiplasEtiquetasNL(lista) {
       qtdePreVenda,
       qtdeConferida,
     } = dados;
-
     const operadores = operador2 ? `${operador1} e ${operador2}` : operador1;
 
     const tabela = produtosNL
       .map(({ sku, qtd }) => `<tr><td>${sku}</td><td>${qtd}</td></tr>`)
       .join("");
+    const linhasVazias = "<tr><td>&nbsp;</td><td>&nbsp;</td></tr>".repeat(
+      9 - produtosNL.length
+    );
 
     html += `
       <div class="etiqueta-nl-print">
@@ -1338,62 +1354,49 @@ function abrirMultiplasEtiquetasNL(lista) {
         <div class="qrcode-container" data-pedido="${pedido}">
           <canvas class="qrcode-nl"></canvas>
         </div>
-        <div class="info"><strong>Pedido:</strong> ${pedido}</div>
-        <div class="info"><strong>Romaneio:</strong> ${romaneio}</div>
-        <div class="info"><strong>Cliente:</strong> ${cliente}</div>
+        <div><strong>Pedido:</strong> ${pedido}</div>
+        <div><strong>Romaneio:</strong> ${romaneio}</div>
+        <div><strong>Cliente:</strong> ${cliente}</div>
         <div class="box-destaque">BOX ${caixas[pedido]?.box ?? "—"}</div>
-        <div class="info"><strong>Operador(es):</strong> ${operadores}</div>
-        <div class="info"><strong>Cesto NL:</strong> ${cesto}</div>
+        <div><strong>Operador(es):</strong> ${operadores}</div>
+        <div><strong>Cesto NL:</strong> ${cesto}</div>
 
         <div class="section">
           <table>
             <thead><tr><th>SKU</th><th>QTD</th></tr></thead>
-            <tbody>
-              ${tabela}
-              ${"<tr><td>&nbsp;</td><td>&nbsp;</td></tr>".repeat(9 - produtosNL.length)}
-            </tbody>
+            <tbody>${tabela}${linhasVazias}</tbody>
           </table>
         </div>
 
         <div class="section">
-          <table class="resumo">
-            <thead>
-              <tr><th>Total</th><th>NL</th><th>Pré-Venda</th><th>Conferida</th></tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>${qtdeTotal}</td>
-                <td>${qtdeNL}</td>
-                <td>${qtdePreVenda}</td>
-                <td>${qtdeConferida}</td>
-              </tr>
-            </tbody>
+          <table>
+            <thead><tr><th>Total</th><th>NL</th><th>Pré-Venda</th><th>Conferida</th></tr></thead>
+            <tbody><tr>
+              <td>${qtdeTotal}</td>
+              <td style="color:red;"><strong>${qtdeNL}</strong></td>
+              <td>${qtdePreVenda}</td>
+              <td style="color:green;"><strong>${qtdeConferida}</strong></td>
+            </tr></tbody>
           </table>
         </div>
       </div>
     `;
   }
 
-  html += `</div>`;
-  const container = document.getElementById("containerEtiquetasNL");
   container.innerHTML = html;
 
-  const bsModal = new bootstrap.Modal(
+  const modal = new bootstrap.Modal(
     document.getElementById("modalEtiquetasNL")
   );
-  bsModal.show();
+  modal.show();
 
-  // 🧠 Gera QR Codes
-  const qrContainers = modal.querySelectorAll(".qrcode-container");
-  qrContainers.forEach((div) => {
+  // Gerar QR Codes
+  container.querySelectorAll(".qrcode-container").forEach((div) => {
     const pedido = div.dataset.pedido;
     const canvas = div.querySelector("canvas");
-
-    if (canvas && window.QRCode) {
-      QRCode.toCanvas(canvas, pedido, { width: 64 }, (err) => {
-        if (err) console.error("QR Code erro:", err);
-      });
-    }
+    QRCode.toCanvas(canvas, pedido, { width: 64 }, (err) => {
+      if (err) console.error("Erro QR:", err);
+    });
   });
 }
 
