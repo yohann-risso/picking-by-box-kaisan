@@ -1141,12 +1141,19 @@ function abrirEtiquetaNL({
   qtdeConferida,
 }) {
   const operadores = operador2 ? `${operador1} e ${operador2}` : operador1;
-
-  const tabela = produtosNL
-    .map(({ sku, qtd }) => `<tr><td>${sku}</td><td>${qtd}</td></tr>`)
-    .join("");
-
+  const tabela =
+    produtosNL
+      .map(({ sku, qtd }) => `<tr><td>${sku}</td><td>${qtd}</td></tr>`)
+      .join("") +
+    "<tr><td>&nbsp;</td><td>&nbsp;</td></tr>".repeat(
+      Math.max(0, 8 - produtosNL.length)
+    );
   const modal = document.getElementById("etiquetaModalNL");
+  if (!modal) {
+    console.error("❌ Elemento #etiquetaModalNL não encontrado.");
+    alert("Erro: componente visual para exibir etiqueta não está presente.");
+    return;
+  }
   modal.innerHTML = `
     <div id="etiquetaContainerNL" class="etiqueta-nl-print">
       <style>
