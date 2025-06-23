@@ -1015,11 +1015,10 @@ async function registrarTodosPendentesNL() {
 
   // Agrupa SKUs pendentes por pedido
   for (const p of pendentes) {
-    const pedidoId = p.pedido;
-    if (!agrupadoPorPedido[pedidoId]) {
-      agrupadoPorPedido[pedidoId] = [];
+    if (!agrupadoPorPedido[p.pedido]) {
+      agrupadoPorPedido[p.pedido] = [];
     }
-    agrupadoPorPedido[pedidoId].push({ sku: p.sku, qtd: p.qtd });
+    agrupadoPorPedido[p.pedido].push({ sku: p.sku, qtd: p.qtd });
   }
 
   const pedidos = Object.keys(agrupadoPorPedido);
@@ -1032,43 +1031,35 @@ async function registrarTodosPendentesNL() {
   const cesto = await solicitarCestoNL();
   if (!cesto) return;
 
-  // 1. REGISTRA no Google Sheets
-  try {
-    const res = await fetch("/api/gas", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        func: "registrarMultiplos",
-        pedidos,
-        cesto,
-        produtosPorPedido: agrupadoPorPedido,
-      }),
-    });
+  // 🔁 Dispara o registro no backend sem bloquear a UI
+  const promRegistro = fetch("/api/gas", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      func: "registrarMultiplos",
+      pedidos,
+      cesto,
+      produtosPorPedido: agrupadoPorPedido,
+    }),
+  }).then((res) => res.json());
 
-    const json = await res.json();
-    if (json.status !== "ok") {
-      alert("❌ Erro ao registrar NL no Sheets.");
-      return;
-    }
-  } catch (err) {
-    console.error("Erro ao registrar NL:", err);
-    alert("❌ Falha de conexão com o GAS.");
-    return;
-  }
-
-  // 2. Busca os clientes
-  const { data: dadosPedido } = await supabase
+  // 🔎 Busca dados de cliente (para etiquetas)
+  const { data: dadosPedido, error } = await supabase
     .from("pedidos")
     .select("id, cliente")
     .in("id", pedidos);
 
-  // 3. Gera etiquetas por pedido
+  if (error) {
+    console.warn("Erro ao buscar clientes:", error);
+  }
+
+  // 🧾 Gera dados para etiquetas NL
   const etiquetas = pedidos.map((pedido) => {
-    const cliente = dadosPedido.find((p) => p.id == pedido)?.cliente || "—";
+    const cliente = dadosPedido?.find((p) => p.id == pedido)?.cliente || "—";
     const produtosNL = agrupadoPorPedido[pedido];
-    const qtdeTotal = caixas[pedido]?.total || qtdeNL;
     const qtdeNL = produtosNL.reduce((acc, p) => acc + p.qtd, 0);
-    const qtdeConferida = qtdeTotal - qtdeNL;
+    const qtdeTotal = caixas[pedido]?.total ?? qtdeNL;
+    const qtdeConferida = Math.max(0, qtdeTotal - qtdeNL);
 
     return {
       pedido,
@@ -1085,9 +1076,22 @@ async function registrarTodosPendentesNL() {
     };
   });
 
+  // 🖨️ Mostra imediatamente o modal com etiquetas
   abrirMultiplasEtiquetasNL(etiquetas);
 
-  alert(`✅ Registrado e impresso ${pedidos.length} pedido(s) NL.`);
+  // ✅ Exibe mensagem de confirmação enquanto o registro ainda está em andamento
+  alert(
+    `✅ Gerado(s) ${pedidos.length} pedido(s) NL. Registro sendo finalizado...`
+  );
+
+  // 📦 Verifica se houve erro no registro depois
+  const json = await promRegistro;
+  if (!json || json.status !== "ok") {
+    console.warn("Erro no registro GAS:", json);
+    alert(
+      "⚠️ Registro pode ter falhado no backend (Sheets). Verifique manualmente."
+    );
+  }
 }
 
 function abrirEtiquetaNL({
