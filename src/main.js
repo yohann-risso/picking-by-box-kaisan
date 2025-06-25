@@ -1352,7 +1352,6 @@ function abrirMultiplasEtiquetasNL(lista) {
 
   localStorage.setItem(`etiquetasNL-${romaneio}`, JSON.stringify(lista));
 
-
   const win = window.open("", "_blank");
   if (!win) {
     alert("❌ Não foi possível abrir a nova janela de impressão.");
@@ -3323,21 +3322,40 @@ window.imprimirEtiquetaIndividual = function (pedido) {
   win.document.close();
 };
 
-document.getElementById("btnAtualizarEnderecos")?.addEventListener("click", async () => {
-  const confirmacao = confirm("Deseja forçar a atualização dos endereços agora?");
-  if (!confirmacao) return;
+document
+  .getElementById("btnAtualizarEnderecos")
+  ?.addEventListener("click", async () => {
+    const confirmacao = confirm(
+      "Deseja forçar a atualização dos endereços agora?"
+    );
+    if (!confirmacao) return;
 
-  try {
-    const resp = await fetch("/api/atualizar-enderecos", { method: "POST" });
-    const json = await resp.json();
+    const pedidos = Object.keys(window.caixas || {}); // ou lista carregada no romaneio
+    const romaneio = window.romaneio || "";
 
-    if (json.status === "ok") {
-      alert("✅ Endereços atualizados com sucesso!");
-    } else {
-      alert("❌ Erro ao atualizar endereços: " + (json.message || json.status));
+    if (!pedidos.length) {
+      alert("❌ Nenhum pedido carregado no romaneio.");
+      return;
     }
-  } catch (err) {
-    console.error("Erro:", err);
-    alert("❌ Falha ao conectar com o backend.");
-  }
-});
+
+    try {
+      const resp = await fetch("/api/atualizar-enderecos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pedidos, romaneio }),
+      });
+
+      const json = await resp.json();
+
+      if (json.status === "ok") {
+        alert("✅ Endereços atualizados com sucesso!");
+      } else {
+        alert(
+          "❌ Erro ao atualizar endereços: " + (json.message || json.status)
+        );
+      }
+    } catch (err) {
+      console.error("Erro:", err);
+      alert("❌ Falha ao conectar com o backend.");
+    }
+  });
