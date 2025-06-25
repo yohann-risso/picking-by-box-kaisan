@@ -3322,3 +3322,22 @@ window.imprimirEtiquetaIndividual = function (pedido) {
   `);
   win.document.close();
 };
+
+document.getElementById("btnAtualizarEnderecos")?.addEventListener("click", async () => {
+  const confirmacao = confirm("Deseja forçar a atualização dos endereços agora?");
+  if (!confirmacao) return;
+
+  try {
+    const resp = await fetch("/api/atualizar-enderecos", { method: "POST" });
+    const json = await resp.json();
+
+    if (json.status === "ok") {
+      alert("✅ Endereços atualizados com sucesso!");
+    } else {
+      alert("❌ Erro ao atualizar endereços: " + (json.message || json.status));
+    }
+  } catch (err) {
+    console.error("Erro:", err);
+    alert("❌ Falha ao conectar com o backend.");
+  }
+});
