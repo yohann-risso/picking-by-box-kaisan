@@ -252,43 +252,47 @@
               <h5 class="mt-4">Histórico</h5>
               <ul id="listaHistorico" class="list-group mb-3"></ul>
 
-              <div
-                class="d-flex justify-content-between align-items-center mt-4"
-              >
-                <h5 class="mb-0">Pendentes</h5>
+              <div class="d-flex flex-wrap gap-2 align-items-center mt-4">
+                <h5 class="mb-0 me-auto">📦 Pendentes</h5>
+
                 <button
                   id="btnCopyPendentes"
-                  class="btn btn-sm btn-outline-secondary me-2"
-                  title="Copiar pendentes"
-                  style="margin-bottom: 5px"
-                >
-                  <i class="bi bi-clipboard"></i>
-                </button>
-                <button
-                  id="btnRegistrarTodosNL"
-                  class="btn btn-primary btn-sm my-2"
-                >
-                  📥 Registrar todos os pedidos NL
-                </button>
-                <button
-                  id="btnReimprimirEtiquetasNL"
-                  class="btn btn-outline-primary btn-sm mt-2"
-                >
-                  🔁 Reimprimir Etiquetas NL
-                </button>
-                <button
-                  id="btnAtualizarEnderecos"
                   class="btn btn-sm btn-outline-secondary"
+                  title="📋 Copiar pendentes para a área de transferência"
                 >
-                  🔄️ Atualizar Endereços
+                  📋
                 </button>
+
                 <button
                   id="btnPrintPendentes"
                   class="btn btn-sm btn-outline-dark"
-                  title="Imprimir pendentes"
-                  style="margin-bottom: 5px"
+                  title="🖨️ Imprimir lista de pendentes"
                 >
-                  <i class="bi bi-printer-fill"></i>
+                  🖨️
+                </button>
+
+                <button
+                  id="btnRegistrarTodosNL"
+                  class="btn btn-sm btn-outline-primary"
+                  title="📥 Registrar todos os pedidos como NL"
+                >
+                  📥
+                </button>
+
+                <button
+                  id="btnReimprimirEtiquetasNL"
+                  class="btn btn-sm btn-outline-primary"
+                  title="🔁 Reimprimir etiquetas NL já geradas"
+                >
+                  🔁
+                </button>
+
+                <button
+                  id="btnAtualizarEnderecos"
+                  class="btn btn-sm btn-outline-secondary"
+                  title="🔄 Atualizar endereços dos pedidos deste romaneio"
+                >
+                  🔄
                 </button>
               </div>
               <div class="pendentes-container">
