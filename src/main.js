@@ -1681,7 +1681,7 @@ async function undoLastBipagem() {
   localStorage.setItem(`historico-${romaneio}`, JSON.stringify(historico));
 
   renderPendentes();
-  renderBoxCards();
+  renderBoxCards(window.pedidosEsperados);
   renderHistorico();
   renderProgressoConferencia();
 
@@ -1714,7 +1714,7 @@ async function carregarBipagemAnterior(romaneio) {
     .select("pedido")
     .eq("romaneio", romaneio);
 
-  const pedidosEsperados = esperados?.map((r) => r.pedido) || [];
+  window.pedidosEsperados = esperados?.map((r) => r.pedido) || [];
 
   // 3) reset estado
   caixas = {};
@@ -1954,7 +1954,7 @@ document.getElementById("btnBipar").addEventListener("click", async () => {
     localStorage.setItem(`pendentes-${romaneio}`, JSON.stringify(pendentes));
 
     // 9) atualiza UI com progresso recalculado após atualizar o estado
-    renderBoxCards();
+    renderBoxCards(window.pedidosEsperados);
     renderPendentes();
     renderHistorico();
 
