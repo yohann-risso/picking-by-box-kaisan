@@ -867,6 +867,8 @@ function renderBoxCards(pedidosEsperados = []) {
 
       if (btnFoco) {
         btnFoco.focus();
+        btnFoco.classList.add("foco-destaque");
+        setTimeout(() => btnFoco.classList.remove("foco-destaque"), 1500);
         btnFoco.scrollIntoView({ behavior: "smooth", block: "center" });
       }
     }, 100);
