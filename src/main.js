@@ -658,34 +658,34 @@ async function carregarCodNfeMap(pedidoIds) {
   });
 }
 
-function renderBoxCards() {
+function renderBoxCards(pedidosEsperados = []) {
   const boxContainer = document.getElementById("boxContainer");
+  if (!boxContainer) return;
   boxContainer.innerHTML = "";
 
-  const entradas = Object.entries(caixas).filter(
-    ([_, info]) => info.box != null
-  );
-  if (!entradas.length) return;
-
+  // Agrupar por número da box
   const agrupado = {};
-  for (const [pedido, info] of entradas) {
-    const boxNum = String(info.box);
-    if (!agrupado[boxNum]) {
-      agrupado[boxNum] = {
-        bipado: 0,
-        total: 0,
-        pedidos: [],
-        codNfes: [],
-        pedidosPesados: [],
-      };
-    }
-    agrupado[boxNum].bipado += Number(info.bipado);
-    agrupado[boxNum].total += Number(info.total);
-    agrupado[boxNum].pedidos.push(pedido);
-    if (info.pesado) agrupado[boxNum].pedidosPesados.push(pedido);
-    if (codNfeMap[pedido]) agrupado[boxNum].codNfes.push(codNfeMap[pedido]);
-  }
+  Object.entries(caixas)
+    .filter(([_, info]) => info.box != null)
+    .forEach(([pedido, info]) => {
+      const boxNum = String(info.box);
+      if (!agrupado[boxNum]) {
+        agrupado[boxNum] = {
+          bipado: 0,
+          total: 0,
+          pedidos: [],
+          codNfes: [],
+          pedidosPesados: [],
+        };
+      }
+      agrupado[boxNum].bipado += Number(info.bipado);
+      agrupado[boxNum].total += Number(info.total);
+      agrupado[boxNum].pedidos.push(pedido);
+      if (info.pesado) agrupado[boxNum].pedidosPesados.push(pedido);
+      if (codNfeMap[pedido]) agrupado[boxNum].codNfes.push(codNfeMap[pedido]);
+    });
 
+  // Renderizar boxes normais
   Object.keys(agrupado)
     .sort((a, b) => Number(a) - Number(b))
     .forEach((boxNum) => {
@@ -711,33 +711,25 @@ function renderBoxCards() {
         solid = "bg-danger text-white";
       }
 
-      let botaoHtml = "";
-      if (isPesado) {
-        botaoHtml = `<button class="btn-undo-simple btn-pesar ${solid}" 
-          data-box="${boxNum}" 
-          data-codnfe="${codNfe}" 
-          data-pedidos='${JSON.stringify(pedidos)}'
-          style="border:none;box-shadow:none;" tabindex="0">
-          <i class="bi bi-check-circle-fill"></i> PESADO ✅
-        </button>`;
-      } else {
-        botaoHtml = `<button class="btn-undo-simple btn-pesar ${solid}" style="border:none;box-shadow:none;" 
-          data-box="${boxNum}" data-codnfe="${codNfe}" data-pedidos='${JSON.stringify(
-          pedidos
-        )}' tabindex="0">
-          <i class="bi bi-balance-scale"></i> PESAR PEDIDO
-        </button>`;
-      }
-
       const shadowColor = solid.includes("primary")
         ? "rgba(13, 110, 253, 0.3)"
         : solid.includes("success")
         ? "rgba(25, 135, 84, 0.3)"
         : solid.includes("warning")
         ? "rgba(255, 193, 7, 0.3)"
-        : solid.includes("danger")
-        ? "rgba(220, 53, 69, 0.3)"
-        : "rgba(108, 117, 125, 0.2)";
+        : "rgba(220, 53, 69, 0.3)";
+
+      const botaoHtml = isPesado
+        ? `<button class="btn-undo-simple btn-pesar ${solid}" disabled style="border:none;box-shadow:none;" tabindex="0">
+             <i class="bi bi-check-circle-fill"></i> PESADO ✅
+           </button>`
+        : `<button class="btn-undo-simple btn-pesar ${solid}" 
+             data-box="${boxNum}" 
+             data-codnfe="${codNfe}" 
+             data-pedidos='${JSON.stringify(pedidos)}' 
+             style="border:none;box-shadow:none;" tabindex="0">
+             <i class="bi bi-balance-scale"></i> PESAR PEDIDO
+           </button>`;
 
       const wrapper = document.createElement("div");
       wrapper.className = "card-produto";
@@ -766,49 +758,75 @@ function renderBoxCards() {
       boxContainer.appendChild(wrapper);
     });
 
+  // Renderizar pedidos esperados sem box (cinza)
+  const pedidosComBox = new Set(
+    Object.entries(caixas)
+      .filter(([_, info]) => info.box != null)
+      .map(([pedido]) => pedido)
+  );
+
+  pedidosEsperados
+    .filter((pedido) => !pedidosComBox.has(pedido))
+    .forEach((pedido) => {
+      const info = caixas[pedido] || { bipado: 0, total: 0 };
+      const wrapper = document.createElement("div");
+      wrapper.className = "card-produto";
+      wrapper.style.boxShadow = "0 2px 8px rgba(108, 117, 125, 0.2)";
+      wrapper.style.borderRadius = "12px";
+      wrapper.style.transition = "all 0.2s ease-in-out";
+
+      const infoCard = document.createElement("div");
+      infoCard.className = `card-info bg-secondary-subtle text-dark`;
+      infoCard.innerHTML = `
+        <div class="details text-center w-100">
+          <div class="fs-6 fw-bold">${pedido}</div>
+          <div><span class="badge bg-dark">${info.bipado}/${info.total}</span></div>
+          <div class="mt-2 small text-muted">Aguardando alocação</div>
+        </div>
+      `;
+
+      const numCard = document.createElement("div");
+      numCard.className = `card-number bg-secondary text-white`;
+      numCard.innerHTML = `<div>—</div>`;
+
+      wrapper.appendChild(infoCard);
+      wrapper.appendChild(numCard);
+      boxContainer.appendChild(wrapper);
+    });
+
+  // Reaplica os listeners nos botões de pesar
   document.querySelectorAll(".btn-pesar").forEach((btn) => {
     btn.addEventListener("click", async (e) => {
       e.preventDefault();
-      const thisBtn = e.currentTarget;
-
-      const pedidos = JSON.parse(btn.dataset.pedidos || "[]");
-      const codNfe = btn.dataset.codnfe;
       const boxNum = btn.dataset.box;
+      const codNfe = btn.dataset.codnfe;
+      const pedidos = JSON.parse(btn.dataset.pedidos || "[]");
 
-      const boxIncompleta = pedidos.some((pedidoId) => {
-        const info = caixas[pedidoId];
-        return info && info.bipado < info.total;
-      });
+      const incompleta = pedidos.some(
+        (pid) => caixas[pid]?.bipado < caixas[pid]?.total
+      );
+      if (
+        incompleta &&
+        !confirm(`Box ${boxNum} incompleta. Deseja pesar assim mesmo?`)
+      )
+        return;
 
-      if (boxIncompleta) {
-        const confirmar = confirm(
-          `⚠️ Atenção!\n\nEsta box (${boxNum}) ainda não está completamente bipada.\n\nDeseja pesar assim mesmo?`
-        );
-        if (!confirmar) return;
-      }
+      window.open(
+        `https://ge.kaisan.com.br/index2.php?page=meta/view&id_view=nfe_pedido_conf&acao_view=cadastra&cod_del=${codNfe}&where=cod_nfe_pedido=${codNfe}#prodweightsomaproduto`,
+        "_blank"
+      );
 
-      const url = `https://ge.kaisan.com.br/index2.php?page=meta/view&id_view=nfe_pedido_conf&acao_view=cadastra&cod_del=${codNfe}&where=cod_nfe_pedido=${codNfe}#prodweightsomaproduto`;
-      window.open(url, "_blank");
-
-      for (const pedidoId of pedidos) {
-        caixas[pedidoId].pesado = true;
-        await atualizarStatusPedido(pedidoId, "PESADO");
+      for (const pid of pedidos) {
+        caixas[pid].pesado = true;
+        await atualizarStatusPedido(pid, "PESADO");
       }
 
       localStorage.setItem(`caixas-${romaneio}`, JSON.stringify(caixas));
       await carregarBipagemAnterior(romaneio);
       await gerarResumoVisualRomaneio();
-
-      // Espera a renderização terminar antes de devolver o foco
       setTimeout(() => {
-        renderBoxCards();
+        renderBoxCards(pedidosEsperados);
         renderProgressoConferencia();
-
-        // foca novamente no botão da mesma box
-        const novoBotao = document.querySelector(
-          `.btn-pesar[data-box="${boxNum}"]`
-        );
-        if (novoBotao) novoBotao.focus();
       }, 200);
     });
 
@@ -1677,7 +1695,7 @@ async function carregarBipagemAnterior(romaneio) {
   const cardAtual = document.getElementById("cardAtual");
   if (cardAtual) cardAtual.innerHTML = "";
 
-  // 1) fetch de pedidos
+  // 1) fetch de pedidos reais (da tabela `pedidos`)
   const { data: pedidos } = await supabase
     .from("pedidos")
     .select("id, status")
@@ -1688,26 +1706,33 @@ async function carregarBipagemAnterior(romaneio) {
     pedidoStatusMap[p.id] = p.status;
   });
 
-  // 2) reset estado
+  const pedidoIds = pedidos.map((p) => p.id);
+
+  // 2) fetch de pedidos esperados (nova tabela `pedidos_por_romaneio`)
+  const { data: esperados, error: erroEsperados } = await supabase
+    .from("pedidos_por_romaneio")
+    .select("pedido")
+    .eq("romaneio", romaneio);
+
+  const pedidosEsperados = esperados?.map((r) => r.pedido) || [];
+
+  // 3) reset estado
   caixas = {};
   historico = [];
   pendentes = [];
 
-  const pedidoIds = pedidos.map((p) => p.id);
-
   await carregarCodNfeMap(pedidoIds);
 
-  // 3) fetch de produtos
+  // 4) fetch de produtos
   const { data: produtos } = await supabase
     .from("produtos_pedido")
-    .select("pedido_id,sku,qtd,qtd_bipada,box,endereco,descricao")
+    .select("pedido_id, sku, qtd, qtd_bipada, box, endereco, descricao")
     .in("pedido_id", pedidoIds);
 
-  // 4) montar caixas, histórico e pendentes
+  // 5) montar caixas, histórico e pendentes
   produtos.forEach((p) => {
     const qtdBip = p.qtd_bipada || 0;
 
-    // cria a entrada de caixa somente uma vez
     if (!caixas[p.pedido_id]) {
       caixas[p.pedido_id] = {
         box: p.box != null ? p.box : null,
@@ -1719,25 +1744,22 @@ async function carregarBipagemAnterior(romaneio) {
       caixas[p.pedido_id].pesado = pedidoStatusMap[p.pedido_id] === "PESADO";
     }
 
-    // só atualiza box se existir
     if (p.box != null) {
       caixas[p.pedido_id].box = p.box;
     }
 
-    // acumula totais
     caixas[p.pedido_id].total += p.qtd;
     caixas[p.pedido_id].bipado += qtdBip;
 
-    // histórico
     if (qtdBip > 0) {
       historico.push({
         sku: p.sku,
         pedido: p.pedido_id,
         box: caixas[p.pedido_id].box,
+        id: p.id,
       });
     }
 
-    // pendentes (sempre decrementar 1 por bipagem)
     const restante = p.qtd - qtdBip;
     if (restante > 0) {
       pendentes.push({
@@ -1750,19 +1772,19 @@ async function carregarBipagemAnterior(romaneio) {
     }
   });
 
-  // 5) persiste no localStorage
+  // 6) persistência local
   localStorage.setItem(`caixas-${romaneio}`, JSON.stringify(caixas));
   localStorage.setItem(`historico-${romaneio}`, JSON.stringify(historico));
   localStorage.setItem(`pendentes-${romaneio}`, JSON.stringify(pendentes));
 
-  // 6) acerta o próximo número de box
+  // 7) acerta o próximo número de box
   const numeros = Object.values(caixas)
     .map((c) => parseInt(c.box, 10))
     .filter((n) => !isNaN(n));
   setContadorBox(numeros.length ? Math.max(...numeros) + 1 : 1);
 
-  // 7) renderiza de fato os boxes e listas
-  renderBoxCards();
+  // 8) renderiza os componentes, incluindo os boxes cinza
+  renderBoxCards(pedidosEsperados);
   renderHistorico();
   renderPendentes();
   renderProgressoConferencia();

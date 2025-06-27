@@ -1230,3 +1230,7 @@ button.btn:hover {
     z-index: 9999;
   }
 }
+
+.card-produto .card-info.bg-secondary-subtle {
+  border: 1px dashed #6c757d;
+}
