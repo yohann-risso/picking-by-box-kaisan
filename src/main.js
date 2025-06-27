@@ -3387,32 +3387,44 @@ document
     );
     if (!confirmacao) return;
 
-    const pedidos = Object.keys(window.caixas || {}); // ou lista carregada no romaneio
-    const romaneio = window.romaneio || "";
-
-    if (!pedidos.length) {
-      alert("❌ Nenhum pedido carregado no romaneio.");
-      return;
-    }
-
     try {
-      const resp = await fetch("/api/atualizar-enderecos", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pedidos, romaneio }),
+      // 1. Buscar mapeamento de SKUs e seus endereços da tabela Supabase
+      const { data: enderecosSupabase, error } = await supabase
+        .from("enderecamentos")
+        .select("sku, endereco");
+
+      if (error) {
+        console.error("Erro ao buscar endereços:", error);
+        return alert("❌ Falha ao buscar endereços no Supabase.");
+      }
+
+      const mapaEnderecos = {};
+      enderecosSupabase.forEach((item) => {
+        const sku = item.sku?.trim().toUpperCase();
+        const endereco = item.endereco?.trim();
+        if (!sku || !endereco) return;
+
+        if (!mapaEnderecos[sku]) mapaEnderecos[sku] = [];
+        if (!mapaEnderecos[sku].includes(endereco)) {
+          mapaEnderecos[sku].push(endereco);
+        }
       });
 
-      const json = await resp.json();
+      // 2. Atualizar objetos em `pendentes`
+      pendentes.forEach((p) => {
+        const skuKey = p.sku?.trim().toUpperCase();
+        const novos = mapaEnderecos[skuKey];
+        if (novos && novos.length) {
+          p.endereco = novos.join(" • "); // separa por " • "
+        }
+      });
 
-      if (json.status === "ok") {
-        alert("✅ Endereços atualizados com sucesso!");
-      } else {
-        alert(
-          "❌ Erro ao atualizar endereços: " + (json.message || json.status)
-        );
-      }
-    } catch (err) {
-      console.error("Erro:", err);
-      alert("❌ Falha ao conectar com o backend.");
+      // 3. Atualizar localStorage e re-renderizar
+      localStorage.setItem(`pendentes-${romaneio}`, JSON.stringify(pendentes));
+      renderPendentes();
+      alert("✅ Endereços atualizados com sucesso!");
+    } catch (e) {
+      console.error("Erro inesperado:", e);
+      alert("❌ Erro inesperado ao atualizar endereços.");
     }
   });
