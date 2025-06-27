@@ -851,9 +851,23 @@ function renderBoxCards(pedidosEsperados = []) {
   // 🔁 Após renderizar, restaura foco no último botão pressionado
   if (window.ultimoBoxPesado) {
     setTimeout(() => {
-      const btnFoco = document.querySelector(
-        `.btn-pesar[data-box="${window.ultimoBoxPesado}"]`
+      const botoesValidos = Array.from(
+        document.querySelectorAll(".btn-pesar")
+      ).filter((btn) => {
+        const card = btn.closest(".card-produto");
+        return (
+          card &&
+          !card.querySelector(".card-info")?.classList.contains("bg-danger") &&
+          !card
+            .querySelector(".card-info")
+            ?.classList.contains("bg-danger-subtle")
+        );
+      });
+
+      const btnFoco = botoesValidos.find(
+        (btn) => btn.dataset.box === String(window.ultimoBoxPesado)
       );
+
       if (btnFoco) {
         btnFoco.focus();
         btnFoco.scrollIntoView({ behavior: "smooth", block: "center" });
