@@ -1234,3 +1234,8 @@ button.btn:hover {
 .card-produto .card-info.bg-secondary-subtle {
   border: 1px dashed #6c757d;
 }
+
+.btn-pesar:focus {
+  outline: auto;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.5);
+}

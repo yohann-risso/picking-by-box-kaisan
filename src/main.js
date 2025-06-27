@@ -29,6 +29,8 @@ window.pecas = 0;
 window.pedidos = 0;
 let resumo = [];
 
+let ultimoBoxPesado = null;
+
 // --- Constantes para controle de expiração ---
 const EXPIRACAO_MS = 720 * 60 * 1000; // 720 minutos em milissegundos
 
@@ -659,6 +661,11 @@ async function carregarCodNfeMap(pedidoIds) {
 }
 
 function renderBoxCards(pedidosEsperados = []) {
+  if (!Array.isArray(pedidosEsperados)) {
+    console.warn("⚠️ renderBoxCards chamado sem pedidosEsperados");
+    pedidosEsperados = window.pedidosEsperados || [];
+  }
+
   const boxContainer = document.getElementById("boxContainer");
   if (!boxContainer) return;
   boxContainer.innerHTML = "";
@@ -799,6 +806,8 @@ function renderBoxCards(pedidosEsperados = []) {
     btn.addEventListener("click", async (e) => {
       e.preventDefault();
       const boxNum = btn.dataset.box;
+      window.ultimoBoxPesado = boxNum;
+
       const codNfe = btn.dataset.codnfe;
       const pedidos = JSON.parse(btn.dataset.pedidos || "[]");
 
@@ -838,6 +847,19 @@ function renderBoxCards(pedidosEsperados = []) {
       }
     });
   });
+
+  // 🔁 Após renderizar, restaura foco no último botão pressionado
+  if (window.ultimoBoxPesado) {
+    setTimeout(() => {
+      const btnFoco = document.querySelector(
+        `.btn-pesar[data-box="${window.ultimoBoxPesado}"]`
+      );
+      if (btnFoco) {
+        btnFoco.focus();
+        btnFoco.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    }, 100);
+  }
 }
 
 async function atualizarStatusPedido(pedidoId, status) {
