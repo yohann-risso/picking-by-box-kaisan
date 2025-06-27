@@ -726,17 +726,14 @@ function renderBoxCards(pedidosEsperados = []) {
         ? "rgba(255, 193, 7, 0.3)"
         : "rgba(220, 53, 69, 0.3)";
 
-      const botaoHtml = isPesado
-        ? `<button class="btn-undo-simple btn-pesar ${solid}" disabled style="border:none;box-shadow:none;" tabindex="0">
-             <i class="bi bi-check-circle-fill"></i> PESADO ✅
-           </button>`
-        : `<button class="btn-undo-simple btn-pesar ${solid}" 
-             data-box="${boxNum}" 
-             data-codnfe="${codNfe}" 
-             data-pedidos='${JSON.stringify(pedidos)}' 
-             style="border:none;box-shadow:none;" tabindex="0">
-             <i class="bi bi-balance-scale"></i> PESAR PEDIDO
-           </button>`;
+      const botaoHtml = `
+        <button class="btn-undo-simple btn-pesar ${solid}" 
+                data-box="${boxNum}" 
+                data-codnfe="${codNfe}" 
+                data-pedidos='${JSON.stringify(pedidos)}' 
+                style="border:none;box-shadow:none;" tabindex="0">
+          <i class="bi bi-balance-scale"></i> PESAR PEDIDO
+        </button>`;
 
       const wrapper = document.createElement("div");
       wrapper.className = "card-produto";
