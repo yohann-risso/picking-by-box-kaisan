@@ -3494,10 +3494,11 @@ async function pesarPedidoManual() {
   const pedidoId = document.getElementById("inputPedidoManual").value.trim();
   if (!pedidoId) return alert("Digite o número do pedido");
 
+  // Busca o cod_nfe da tabela pedidos_nfe
   const { data: pedido, error } = await supabase
-    .from("pedidos")
-    .select("id, cod_nfe, cliente, metodo_envio")
-    .eq("id", `${pedidoId}`) // garante que seja string
+    .from("pedidos_nfe")
+    .select("pedido_id, cod_nfe")
+    .eq("pedido_id", `${pedidoId}`)
     .maybeSingle();
 
   if (!pedido) {
@@ -3506,9 +3507,16 @@ async function pesarPedidoManual() {
     return;
   }
 
+  // Busca a transportadora do pedido
+  const { data: pedidoInfo } = await supabase
+    .from("pedidos")
+    .select("metodo_envio")
+    .eq("id", pedidoId)
+    .maybeSingle();
+
   const codNfe = pedido.cod_nfe;
   const transportadora =
-    pedido.metodo_envio?.trim().toUpperCase() || "DESCONHECIDA";
+    pedidoInfo?.metodo_envio?.trim().toUpperCase() || "DESCONHECIDA";
 
   const url = `https://ge.kaisan.com.br/index2.php?page=meta/view&id_view=nfe_pedido_conf&acao_view=cadastra&cod_del=${codNfe}&where=cod_nfe_pedido=${codNfe}#prodweightsomaproduto`;
 
@@ -3543,14 +3551,19 @@ async function pesarPedidoManual() {
   }
 }
 
-// Ativa Enter para pesar diretamente
-document.getElementById("inputPedidoManual").addEventListener("keydown", (e) => {
-  if (e.key === "Enter") {
-    e.preventDefault();
-    pesarPedidoManual(); // dispara a função diretamente
-  }
-});
+document
+  .getElementById("btnPesarManual")
+  ?.addEventListener("click", pesarPedidoManual);
 
+// Ativa Enter para pesar diretamente
+document
+  .getElementById("inputPedidoManual")
+  .addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      pesarPedidoManual(); // dispara a função diretamente
+    }
+  });
 
 window.abrirModalRastreiosManuais = async function () {
   const { data, error } = await supabase
