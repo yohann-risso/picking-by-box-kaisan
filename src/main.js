@@ -3476,8 +3476,14 @@ window.abrirModalPesagemIndividual = function () {
   modal.show();
 };
 
-window.mapaEnderecos = await carregarEnderecosComCache();
-
+carregarEnderecosComCache()
+  .then((resultado) => {
+    window.mapaEnderecos = resultado;
+  })
+  .catch((err) => {
+    console.error("Erro ao carregar mapaEnderecos:", err);
+    window.mapaEnderecos = {};
+  });
 
 document
   .getElementById("btnPesarManual")
