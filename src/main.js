@@ -1797,11 +1797,17 @@ async function carregarBipagemAnterior(romaneio) {
 
     const restante = p.qtd - qtdBip;
     if (restante > 0) {
+      const key = p.sku?.trim().toUpperCase();
+      const enderecos = mapaEnderecos[key] || [];
+      const enderecoFinal = enderecos.length
+        ? enderecos.join(" • ")
+        : "SEM LOCAL";
+
       pendentes.push({
         sku: p.sku,
         pedido: p.pedido_id,
         qtd: restante,
-        endereco: p.endereco,
+        endereco: enderecoFinal,
         descricao: p.descricao,
       });
     }
@@ -1826,6 +1832,77 @@ async function carregarBipagemAnterior(romaneio) {
 
   const { bipado, total } = calcularPecasTotaisEBipadas();
   atualizarProgressoPro(bipado, total, window.inicioRomaneioTimestamp);
+}
+
+const CACHE_TTL_MINUTOS = 10;
+
+async function carregarEnderecosComCache() {
+  const cacheKey = "enderecamentos-cache";
+  const timestampKey = "enderecamentos-cache-timestamp";
+
+  const now = Date.now();
+  const last = parseInt(localStorage.getItem(timestampKey) || "0", 10);
+  const ttl = CACHE_TTL_MINUTOS * 60 * 1000;
+
+  if (now - last < ttl) {
+    const raw = localStorage.getItem(cacheKey);
+    try {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === "object") return parsed;
+    } catch (e) {
+      console.warn("⚠️ Cache corrompido, recarregando Supabase");
+    }
+  }
+
+  // fetch fresh
+  const { data, error } = await supabase
+    .from("enderecamentos")
+    .select("sku, endereco");
+
+  if (error || !Array.isArray(data)) {
+    console.error("❌ Erro ao carregar endereçamentos:", error);
+    return {};
+  }
+
+  const mapa = {};
+  data.forEach(({ sku, endereco }) => {
+    const key = sku?.trim().toUpperCase();
+    if (!key || !endereco) return;
+    if (!mapa[key]) mapa[key] = [];
+    if (!mapa[key].includes(endereco.trim())) {
+      mapa[key].push(endereco.trim());
+    }
+  });
+
+  // salva no localStorage
+  localStorage.setItem(cacheKey, JSON.stringify(mapa));
+  localStorage.setItem(timestampKey, now.toString());
+
+  return mapa;
+}
+
+let mapaEnderecos = {};
+
+async function carregarMapaEnderecos() {
+  const { data, error } = await supabase
+    .from("enderecamentos")
+    .select("sku, endereco");
+
+  if (error) {
+    console.error("Erro ao carregar endereços:", error);
+    mapaEnderecos = {};
+    return;
+  }
+
+  mapaEnderecos = {};
+  data.forEach(({ sku, endereco }) => {
+    const key = sku?.trim().toUpperCase();
+    if (!key || !endereco) return;
+    if (!mapaEnderecos[key]) mapaEnderecos[key] = [];
+    if (!mapaEnderecos[key].includes(endereco.trim())) {
+      mapaEnderecos[key].push(endereco.trim());
+    }
+  });
 }
 
 document.getElementById("btnIniciar").addEventListener("click", async () => {
@@ -1868,6 +1945,7 @@ document.getElementById("btnIniciar").addEventListener("click", async () => {
   const pedidoIds = pedidos.map((p) => p.id);
 
   await carregarCodNfeMap(pedidoIds);
+  mapaEnderecos = await carregarEnderecosComCache();
 
   const { data: produtos } = await supabase
     .from("produtos_pedido")
@@ -3388,44 +3466,26 @@ document
     if (!confirmacao) return;
 
     try {
-      // 1. Buscar mapeamento de SKUs e seus endereços da tabela Supabase
-      const { data: enderecosSupabase, error } = await supabase
-        .from("enderecamentos")
-        .select("sku, endereco");
+      // Força atualização ignorando cache
+      localStorage.removeItem("enderecamentos-cache");
+      localStorage.removeItem("enderecamentos-cache-timestamp");
 
-      if (error) {
-        console.error("Erro ao buscar endereços:", error);
-        return alert("❌ Falha ao buscar endereços no Supabase.");
-      }
+      mapaEnderecos = await carregarEnderecosComCache();
 
-      const mapaEnderecos = {};
-      enderecosSupabase.forEach((item) => {
-        const sku = item.sku?.trim().toUpperCase();
-        const endereco = item.endereco?.trim();
-        if (!sku || !endereco) return;
-
-        if (!mapaEnderecos[sku]) mapaEnderecos[sku] = [];
-        if (!mapaEnderecos[sku].includes(endereco)) {
-          mapaEnderecos[sku].push(endereco);
-        }
-      });
-
-      // 2. Atualizar objetos em `pendentes`
+      // Atualiza objetos em `pendentes`
       pendentes.forEach((p) => {
-        const skuKey = p.sku?.trim().toUpperCase();
-        const novos = mapaEnderecos[skuKey];
-        if (novos && novos.length) {
-          p.endereco = novos.join(" • "); // separa por " • "
-        }
+        const key = p.sku?.trim().toUpperCase();
+        const lista = mapaEnderecos[key] || [];
+        p.endereco = lista.length ? lista.join(" • ") : "SEM LOCAL";
       });
 
-      // 3. Atualizar localStorage e re-renderizar
+      // Atualiza localStorage e UI
       localStorage.setItem(`pendentes-${romaneio}`, JSON.stringify(pendentes));
       renderPendentes();
       alert("✅ Endereços atualizados com sucesso!");
-    } catch (e) {
-      console.error("Erro inesperado:", e);
-      alert("❌ Erro inesperado ao atualizar endereços.");
+    } catch (err) {
+      console.error("Erro ao atualizar endereços:", err);
+      alert("❌ Erro ao atualizar endereços.");
     }
   });
 
