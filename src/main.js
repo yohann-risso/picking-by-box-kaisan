@@ -3490,63 +3490,67 @@ carregarEnderecosComCache()
     window.mapaEnderecos = {};
   });
 
-document
-  .getElementById("btnPesarManual")
-  .addEventListener("click", async () => {
-    const pedidoId = document.getElementById("inputPedidoManual").value.trim();
-    if (!pedidoId) return alert("Digite o número do pedido");
+async function pesarPedidoManual() {
+  const pedidoId = document.getElementById("inputPedidoManual").value.trim();
+  if (!pedidoId) return alert("Digite o número do pedido");
 
-    const { data: pedido, error } = await supabase
-      .from("pedidos")
-      .select("id, cod_nfe, cliente, metodo_envio")
-      .eq("id", `${pedidoId}`)
-      .single();
+  const { data: pedido, error } = await supabase
+    .from("pedidos")
+    .select("id, cod_nfe, cliente, metodo_envio")
+    .eq("id", `${pedidoId}`) // garante que seja string
+    .maybeSingle();
 
-    if (error || !pedido) {
-      document.getElementById("infoPedidoManual").textContent =
-        "❌ Pedido não encontrado.";
-      return;
-    }
+  if (!pedido) {
+    document.getElementById("infoPedidoManual").textContent =
+      "❌ Pedido não encontrado.";
+    return;
+  }
 
-    const codNfe = pedido.cod_nfe;
-    const transportadora =
-      pedido.metodo_envio?.trim().toUpperCase() || "DESCONHECIDA";
+  const codNfe = pedido.cod_nfe;
+  const transportadora =
+    pedido.metodo_envio?.trim().toUpperCase() || "DESCONHECIDA";
 
-    const url = `https://ge.kaisan.com.br/index2.php?page=meta/view&id_view=nfe_pedido_conf&acao_view=cadastra&cod_del=${codNfe}&where=cod_nfe_pedido=${codNfe}#prodweightsomaproduto`;
+  const url = `https://ge.kaisan.com.br/index2.php?page=meta/view&id_view=nfe_pedido_conf&acao_view=cadastra&cod_del=${codNfe}&where=cod_nfe_pedido=${codNfe}#prodweightsomaproduto`;
 
-    // Marca o pedido como pesado
-    await supabase
-      .from("pedidos")
-      .update({ status: "PESADO" })
-      .eq("id", pedidoId);
+  await supabase
+    .from("pedidos")
+    .update({ status: "PESADO" })
+    .eq("id", pedidoId);
 
-    // Abre pesagem
-    window.open(url, "_blank");
+  window.open(url, "_blank");
 
-    // ⚠️ Se quiser armazenar rastreio logo após (manual input, por exemplo), você pode criar uma função de coleta:
-    const cod = prompt(
-      `Digite o(s) código(s) de rastreio do pedido ${pedidoId} (${transportadora})`,
-      ""
+  const cod = prompt(
+    `Digite o(s) código(s) de rastreio do pedido ${pedidoId} (${transportadora})`,
+    ""
+  );
+  if (cod) {
+    const lista = cod
+      .split(/\s|,|;/)
+      .map((r) => r.trim())
+      .filter((r) => r.length >= 8);
+
+    const registros = lista.map((cod_rastreio) => ({
+      id_pedido: pedidoId,
+      cod_rastreio,
+      transportadora,
+      manual: true,
+    }));
+
+    await supabase.from("pedidos_rastreio").insert(registros);
+    alert(
+      `✅ ${lista.length} código(s) de rastreio salvo(s) para ${transportadora}.`
     );
-    if (cod) {
-      const lista = cod
-        .split(/\s|,|;/)
-        .map((r) => r.trim())
-        .filter((r) => r.length >= 8); // evitar códigos inválidos
+  }
+}
 
-      const registros = lista.map((cod_rastreio) => ({
-        id_pedido: pedidoId,
-        cod_rastreio,
-        transportadora,
-        manual: true,
-      }));
+// Ativa Enter para pesar diretamente
+document.getElementById("inputPedidoManual").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    pesarPedidoManual(); // dispara a função diretamente
+  }
+});
 
-      await supabase.from("pedidos_rastreio").insert(registros);
-      alert(
-        `✅ ${lista.length} código(s) de rastreio salvo(s) para ${transportadora}.`
-      );
-    }
-  });
 
 window.abrirModalRastreiosManuais = async function () {
   const { data, error } = await supabase
