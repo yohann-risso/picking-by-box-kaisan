@@ -3499,7 +3499,7 @@ document
     const { data: pedido, error } = await supabase
       .from("pedidos")
       .select("id, cod_nfe, cliente, metodo_envio")
-      .eq("id", pedidoId)
+      .eq("id", `${pedidoId}`)
       .single();
 
     if (error || !pedido) {
