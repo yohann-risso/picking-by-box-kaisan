@@ -3494,7 +3494,6 @@ async function pesarPedidoManual() {
   const pedidoId = document.getElementById("inputPedidoManual").value.trim();
   if (!pedidoId) return alert("Digite o número do pedido");
 
-  // Busca o cod_nfe da tabela pedidos_nfe
   const { data: pedido, error } = await supabase
     .from("pedidos_nfe")
     .select("pedido_id, cod_nfe")
@@ -3507,7 +3506,6 @@ async function pesarPedidoManual() {
     return;
   }
 
-  // Busca a transportadora do pedido
   const { data: pedidoInfo } = await supabase
     .from("pedidos")
     .select("metodo_envio")
@@ -3515,9 +3513,6 @@ async function pesarPedidoManual() {
     .maybeSingle();
 
   const codNfe = pedido.cod_nfe;
-  const transportadora =
-    pedidoInfo?.metodo_envio?.trim().toUpperCase() || "DESCONHECIDA";
-
   const url = `https://ge.kaisan.com.br/index2.php?page=meta/view&id_view=nfe_pedido_conf&acao_view=cadastra&cod_del=${codNfe}&where=cod_nfe_pedido=${codNfe}#prodweightsomaproduto`;
 
   await supabase
@@ -3527,28 +3522,9 @@ async function pesarPedidoManual() {
 
   window.open(url, "_blank");
 
-  const cod = prompt(
-    `Digite o(s) código(s) de rastreio do pedido ${pedidoId} (${transportadora})`,
-    ""
+  alert(
+    `✅ Pedido ${pedidoId} marcado como PESADO. Verifique os rastreios no botão 📋 Ver Códigos.`
   );
-  if (cod) {
-    const lista = cod
-      .split(/\s|,|;/)
-      .map((r) => r.trim())
-      .filter((r) => r.length >= 8);
-
-    const registros = lista.map((cod_rastreio) => ({
-      id_pedido: pedidoId,
-      cod_rastreio,
-      transportadora,
-      manual: true,
-    }));
-
-    await supabase.from("pedidos_rastreio").insert(registros);
-    alert(
-      `✅ ${lista.length} código(s) de rastreio salvo(s) para ${transportadora}.`
-    );
-  }
 }
 
 document
