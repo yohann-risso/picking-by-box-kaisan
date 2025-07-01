@@ -1799,9 +1799,14 @@ async function carregarBipagemAnterior(romaneio) {
     if (restante > 0) {
       const key = p.sku?.trim().toUpperCase();
       const enderecos = mapaEnderecos[key] || [];
-      const enderecoFinal = enderecos.length
-        ? enderecos.join(" • ")
-        : "SEM LOCAL";
+
+      let enderecoFinal = "SEM LOCAL";
+
+      if (enderecos.length) {
+        enderecoFinal = enderecos.join(" • ");
+      } else if (p.endereco && typeof p.endereco === "string") {
+        enderecoFinal = p.endereco.trim().toUpperCase();
+      }
 
       pendentes.push({
         sku: p.sku,
