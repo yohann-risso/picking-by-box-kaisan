@@ -465,11 +465,10 @@
           <div class="modal-footer">
             <!-- Botão para abrir rastreios manuais -->
             <button
-              class="btn btn-outline-dark"
-              onclick="abrirModalRastreiosManuais()"
-              title="Ver rastreios manuais por transportadora"
+              onclick="mostrarRastreiosManuaisAgrupados()"
+              class="btn btn-sm btn-outline-dark"
             >
-              📦 Rastreios Manuais
+              📦 Ver Rastreios Manual Pesagem
             </button>
 
             <!-- Botões originais -->
@@ -516,6 +515,32 @@
             >
               📋 Copiar
             </button>
+            <button class="btn btn-secondary" data-bs-dismiss="modal">
+              Fechar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal fade" id="modalRastreiosAgrupados" tabindex="-1">
+      <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content shadow">
+          <div class="modal-header">
+            <h5 class="modal-title">Rastreios Manuais (Agrupados)</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Fechar"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <div id="containerRastreiosAgrupados" class="mb-3">
+              <!-- Aqui entram os blocos por transportadora -->
+            </div>
+          </div>
+          <div class="modal-footer">
             <button class="btn btn-secondary" data-bs-dismiss="modal">
               Fechar
             </button>

@@ -3494,10 +3494,11 @@ async function pesarPedidoManual() {
   const pedidoId = document.getElementById("inputPedidoManual").value.trim();
   if (!pedidoId) return alert("Digite o número do pedido");
 
+  // Busca o cod_nfe da tabela pedidos_nfe
   const { data: pedido, error } = await supabase
     .from("pedidos_nfe")
     .select("pedido_id, cod_nfe")
-    .eq("pedido_id", `${pedidoId}`)
+    .eq("pedido_id", pedidoId)
     .maybeSingle();
 
   if (!pedido) {
@@ -3506,6 +3507,7 @@ async function pesarPedidoManual() {
     return;
   }
 
+  // Busca a transportadora
   const { data: pedidoInfo } = await supabase
     .from("pedidos")
     .select("metodo_envio")
@@ -3513,17 +3515,45 @@ async function pesarPedidoManual() {
     .maybeSingle();
 
   const codNfe = pedido.cod_nfe;
-  const url = `https://ge.kaisan.com.br/index2.php?page=meta/view&id_view=nfe_pedido_conf&acao_view=cadastra&cod_del=${codNfe}&where=cod_nfe_pedido=${codNfe}#prodweightsomaproduto`;
+  const transportadora =
+    pedidoInfo?.metodo_envio?.trim().toUpperCase() || "DESCONHECIDA";
 
+  // Atualiza status PESADO
   await supabase
     .from("pedidos")
     .update({ status: "PESADO" })
     .eq("id", pedidoId);
 
+  // Abre pesagem
+  const url = `https://ge.kaisan.com.br/index2.php?page=meta/view&id_view=nfe_pedido_conf&acao_view=cadastra&cod_del=${codNfe}&where=cod_nfe_pedido=${codNfe}#prodweightsomaproduto`;
   window.open(url, "_blank");
 
+  // Busca rastreios existentes do pedido
+  const { data: rastreios } = await supabase
+    .from("pedidos_rastreio")
+    .select("cod_rastreio, transportadora")
+    .eq("id_pedido", pedidoId);
+
+  if (!rastreios || !rastreios.length) {
+    alert(
+      `ℹ️ Pedido ${pedidoId} marcado como PESADO, mas nenhum rastreio foi encontrado.`
+    );
+    return;
+  }
+
+  // Agrupar rastreios por transportadora
+  rastreios.forEach((r) => {
+    const transp = r.transportadora?.toUpperCase().trim() || "DESCONHECIDA";
+    if (!window.rastreiosManuaisPorTransp)
+      window.rastreiosManuaisPorTransp = {};
+    if (!window.rastreiosManuaisPorTransp[transp]) {
+      window.rastreiosManuaisPorTransp[transp] = [];
+    }
+    window.rastreiosManuaisPorTransp[transp].push(r.cod_rastreio.trim());
+  });
+
   alert(
-    `✅ Pedido ${pedidoId} marcado como PESADO. Verifique os rastreios no botão 📋 Ver Códigos.`
+    `✅ Pedido ${pedidoId} pesado. ${rastreios.length} rastreio(s) armazenado(s).`
   );
 }
 
@@ -3594,4 +3624,56 @@ window.copiarRastreiosManuais = () => {
     .writeText(text)
     .then(() => alert("✅ Rastreios copiados!"))
     .catch((err) => alert("❌ Falha ao copiar."));
+};
+
+function mostrarRastreiosManuaisAgrupados() {
+  const mapa = window.rastreiosManuaisPorTransp || {};
+  const linhas = Object.entries(mapa)
+    .map(([transp, codigos]) => `📦 ${transp}:\n${codigos.join("\n")}`)
+    .join("\n\n");
+
+  alert(`📋 Rastreios manuais agrupados:\n\n${linhas}`);
+}
+
+window.mostrarRastreiosManuaisAgrupados = function () {
+  const mapa = window.rastreiosManuaisPorTransp || {};
+  const container = document.getElementById("containerRastreiosAgrupados");
+  container.innerHTML = "";
+
+  const transps = Object.keys(mapa);
+  if (!transps.length) {
+    container.innerHTML = `<div class="alert alert-warning">Nenhum rastreio manual armazenado ainda.</div>`;
+    const modal = new bootstrap.Modal(document.getElementById("modalRastreiosAgrupados"));
+    modal.show();
+    return;
+  }
+
+  transps.forEach((transp) => {
+    const lista = mapa[transp] || [];
+
+    const card = document.createElement("div");
+    card.className = "mb-4 p-3 border rounded shadow-sm bg-light";
+
+    card.innerHTML = `
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <h6 class="mb-0">📦 ${transp}</h6>
+        <button class="btn btn-sm btn-outline-primary" onclick="copiarRastreiosTransp('${transp}')">📋 Copiar</button>
+      </div>
+      <textarea class="form-control" rows="6" readonly style="font-family: monospace;">${lista.join("\n")}</textarea>
+    `;
+
+    container.appendChild(card);
+  });
+
+  const modal = new bootstrap.Modal(document.getElementById("modalRastreiosAgrupados"));
+  modal.show();
+};
+
+window.copiarRastreiosTransp = function (transp) {
+  const lista = window.rastreiosManuaisPorTransp?.[transp] || [];
+  if (!lista.length) return alert("Nenhum rastreio para copiar.");
+  navigator.clipboard
+    .writeText(lista.join("\n"))
+    .then(() => alert(`✅ Rastreios de ${transp} copiados!`))
+    .catch(() => alert("❌ Falha ao copiar rastreios."));
 };
