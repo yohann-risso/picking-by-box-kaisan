@@ -208,6 +208,13 @@
                     <i class="bi bi-box-seam"></i> Ver Remessa
                   </button>
                 </div>
+                <button
+                  class="btn btn-outline-dark"
+                  onclick="abrirModalPesagemIndividual()"
+                  title="Pesar pedido manualmente"
+                >
+                  ⚖️ Pesagem Manual
+                </button>
 
                 <!-- Linha 2: Ações críticas -->
                 <div class="col-md-6 col-6">
@@ -420,6 +427,94 @@
           <div class="modal-footer">
             <button class="btn btn-primary" onclick="window.print()">
               🖨️ Imprimir todas
+            </button>
+            <button class="btn btn-secondary" data-bs-dismiss="modal">
+              Fechar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal fade" id="modalPesagemIndividual" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow">
+          <div class="modal-header">
+            <h5 class="modal-title">Pesagem Manual de Pedido</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Fechar"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <div class="mb-3">
+              <label for="inputPedidoManual" class="form-label"
+                >Número do Pedido</label
+              >
+              <input
+                type="text"
+                id="inputPedidoManual"
+                class="form-control"
+                placeholder="Ex: 123456"
+              />
+            </div>
+            <div id="infoPedidoManual" class="small text-muted"></div>
+          </div>
+          <div class="modal-footer">
+            <!-- Botão para abrir rastreios manuais -->
+            <button
+              class="btn btn-outline-dark"
+              onclick="abrirModalRastreiosManuais()"
+              title="Ver rastreios manuais por transportadora"
+            >
+              📦 Rastreios Manuais
+            </button>
+
+            <!-- Botões originais -->
+            <button id="btnPesarManual" class="btn btn-primary">
+              ⚖️ Abrir Pesagem
+            </button>
+            <button class="btn btn-secondary" data-bs-dismiss="modal">
+              Cancelar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal fade" id="modalRastreiosManuais" tabindex="-1">
+      <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Códigos de Rastreio (Manuais)</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Fechar"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <div class="mb-3">
+              <select id="selectTransportadoraManual" class="form-select">
+                <option value="">Selecione a transportadora</option>
+              </select>
+            </div>
+            <textarea
+              id="textareaRastreiosManuais"
+              class="form-control"
+              rows="10"
+              readonly
+            ></textarea>
+          </div>
+          <div class="modal-footer">
+            <button
+              class="btn btn-outline-primary"
+              onclick="copiarRastreiosManuais()"
+            >
+              📋 Copiar
             </button>
             <button class="btn btn-secondary" data-bs-dismiss="modal">
               Fechar

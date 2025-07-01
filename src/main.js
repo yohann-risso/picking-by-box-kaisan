@@ -3428,3 +3428,125 @@ document
       alert("❌ Erro inesperado ao atualizar endereços.");
     }
   });
+
+window.abrirModalPesagemIndividual = function () {
+  document.getElementById("inputPedidoManual").value = "";
+  document.getElementById("infoPedidoManual").textContent = "";
+  const modal = new bootstrap.Modal(
+    document.getElementById("modalPesagemIndividual")
+  );
+  modal.show();
+};
+
+document
+  .getElementById("btnPesarManual")
+  .addEventListener("click", async () => {
+    const pedidoId = document.getElementById("inputPedidoManual").value.trim();
+    if (!pedidoId) return alert("Digite o número do pedido");
+
+    const { data: pedido, error } = await supabase
+      .from("pedidos")
+      .select("id, cod_nfe, cliente, metodo_envio")
+      .eq("id", pedidoId)
+      .single();
+
+    if (error || !pedido) {
+      document.getElementById("infoPedidoManual").textContent =
+        "❌ Pedido não encontrado.";
+      return;
+    }
+
+    const codNfe = pedido.cod_nfe;
+    const transportadora =
+      pedido.metodo_envio?.trim().toUpperCase() || "DESCONHECIDA";
+
+    const url = `https://ge.kaisan.com.br/index2.php?page=meta/view&id_view=nfe_pedido_conf&acao_view=cadastra&cod_del=${codNfe}&where=cod_nfe_pedido=${codNfe}#prodweightsomaproduto`;
+
+    // Marca o pedido como pesado
+    await supabase
+      .from("pedidos")
+      .update({ status: "PESADO" })
+      .eq("id", pedidoId);
+
+    // Abre pesagem
+    window.open(url, "_blank");
+
+    // ⚠️ Se quiser armazenar rastreio logo após (manual input, por exemplo), você pode criar uma função de coleta:
+    const cod = prompt(
+      `Digite o(s) código(s) de rastreio do pedido ${pedidoId} (${transportadora})`,
+      ""
+    );
+    if (cod) {
+      const lista = cod
+        .split(/\s|,|;/)
+        .map((r) => r.trim())
+        .filter((r) => r.length >= 8); // evitar códigos inválidos
+
+      const registros = lista.map((cod_rastreio) => ({
+        id_pedido: pedidoId,
+        cod_rastreio,
+        transportadora,
+        manual: true,
+      }));
+
+      await supabase.from("pedidos_rastreio").insert(registros);
+      alert(
+        `✅ ${lista.length} código(s) de rastreio salvo(s) para ${transportadora}.`
+      );
+    }
+  });
+
+window.abrirModalRastreiosManuais = async function () {
+  const { data, error } = await supabase
+    .from("pedidos_rastreio")
+    .select("id_pedido, cod_rastreio, transportadora")
+    .eq("manual", true); // ou use .eq("manual", "sim") se for texto
+
+  if (error || !data || data.length === 0) {
+    alert("❌ Nenhum rastreio manual encontrado.");
+    return;
+  }
+
+  // Agrupa por transportadora
+  const mapa = {};
+  data.forEach((item) => {
+    const transp = item.transportadora?.toUpperCase().trim() || "DESCONHECIDA";
+    if (!mapa[transp]) mapa[transp] = [];
+    mapa[transp].push(item.cod_rastreio.trim());
+  });
+
+  // Preenche o <select>
+  const select = document.getElementById("selectTransportadoraManual");
+  select.innerHTML = '<option value="">Selecione a transportadora</option>';
+
+  Object.keys(mapa)
+    .sort()
+    .forEach((nome) => {
+      const opt = document.createElement("option");
+      opt.value = nome;
+      opt.textContent = `${nome} (${mapa[nome].length})`;
+      select.appendChild(opt);
+    });
+
+  // Quando trocar o select, atualiza a textarea
+  select.onchange = () => {
+    const lista = mapa[select.value] || [];
+    document.getElementById("textareaRastreiosManuais").value =
+      lista.join("\n");
+  };
+
+  // Abre o modal
+  const modal = new bootstrap.Modal(
+    document.getElementById("modalRastreiosManuais")
+  );
+  modal.show();
+};
+
+window.copiarRastreiosManuais = () => {
+  const text = document.getElementById("textareaRastreiosManuais").value;
+  if (!text) return alert("Nenhum rastreio para copiar.");
+  navigator.clipboard
+    .writeText(text)
+    .then(() => alert("✅ Rastreios copiados!"))
+    .catch((err) => alert("❌ Falha ao copiar."));
+};
