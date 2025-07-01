@@ -1881,29 +1881,7 @@ async function carregarEnderecosComCache() {
   return mapa;
 }
 
-let mapaEnderecos = {};
-
-async function carregarMapaEnderecos() {
-  const { data, error } = await supabase
-    .from("enderecamentos")
-    .select("sku, endereco");
-
-  if (error) {
-    console.error("Erro ao carregar endereços:", error);
-    mapaEnderecos = {};
-    return;
-  }
-
-  mapaEnderecos = {};
-  data.forEach(({ sku, endereco }) => {
-    const key = sku?.trim().toUpperCase();
-    if (!key || !endereco) return;
-    if (!mapaEnderecos[key]) mapaEnderecos[key] = [];
-    if (!mapaEnderecos[key].includes(endereco.trim())) {
-      mapaEnderecos[key].push(endereco.trim());
-    }
-  });
-}
+window.mapaEnderecos = {};
 
 document.getElementById("btnIniciar").addEventListener("click", async () => {
   const input = document.getElementById("romaneioInput");
@@ -3497,6 +3475,9 @@ window.abrirModalPesagemIndividual = function () {
   );
   modal.show();
 };
+
+window.mapaEnderecos = await carregarEnderecosComCache();
+
 
 document
   .getElementById("btnPesarManual")
