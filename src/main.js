@@ -3494,7 +3494,7 @@ async function pesarPedidoManual() {
   const pedidoId = document.getElementById("inputPedidoManual").value.trim();
   if (!pedidoId) return alert("Digite o número do pedido");
 
-  // Busca o cod_nfe da tabela pedidos_nfe
+  // 1. Busca o cod_nfe na tabela correta
   const { data: pedido, error } = await supabase
     .from("pedidos_nfe")
     .select("pedido_id, cod_nfe")
@@ -3507,45 +3507,35 @@ async function pesarPedidoManual() {
     return;
   }
 
-  // Busca a transportadora
-  const { data: pedidoInfo } = await supabase
-    .from("pedidos")
-    .select("metodo_envio")
-    .eq("id", pedidoId)
-    .maybeSingle();
-
-  const codNfe = pedido.cod_nfe;
-  const transportadora =
-    pedidoInfo?.metodo_envio?.trim().toUpperCase() || "DESCONHECIDA";
-
-  // Atualiza status PESADO
+  // 2. Marca como PESADO
   await supabase
     .from("pedidos")
     .update({ status: "PESADO" })
     .eq("id", pedidoId);
 
-  // Abre pesagem
+  // 3. Abre o GE
+  const codNfe = pedido.cod_nfe;
   const url = `https://ge.kaisan.com.br/index2.php?page=meta/view&id_view=nfe_pedido_conf&acao_view=cadastra&cod_del=${codNfe}&where=cod_nfe_pedido=${codNfe}#prodweightsomaproduto`;
   window.open(url, "_blank");
 
-  // Busca rastreios existentes do pedido
-  const { data: rastreios } = await supabase
+  // 4. Busca os rastreios do Supabase
+  const { data: rastreios, error: errRast } = await supabase
     .from("pedidos_rastreio")
     .select("cod_rastreio, transportadora")
     .eq("id_pedido", pedidoId);
 
-  if (!rastreios || !rastreios.length) {
+  if (!rastreios || rastreios.length === 0) {
     alert(
-      `ℹ️ Pedido ${pedidoId} marcado como PESADO, mas nenhum rastreio foi encontrado.`
+      `ℹ️ Pedido ${pedidoId} marcado como PESADO, mas nenhum rastreio foi encontrado na tabela pedidos_rastreio.`
     );
     return;
   }
 
-  // Agrupar rastreios por transportadora
+  // 5. Agrupar por transportadora
+  window.rastreiosManuaisPorTransp = window.rastreiosManuaisPorTransp || {};
+
   rastreios.forEach((r) => {
     const transp = r.transportadora?.toUpperCase().trim() || "DESCONHECIDA";
-    if (!window.rastreiosManuaisPorTransp)
-      window.rastreiosManuaisPorTransp = {};
     if (!window.rastreiosManuaisPorTransp[transp]) {
       window.rastreiosManuaisPorTransp[transp] = [];
     }
@@ -3553,7 +3543,7 @@ async function pesarPedidoManual() {
   });
 
   alert(
-    `✅ Pedido ${pedidoId} pesado. ${rastreios.length} rastreio(s) armazenado(s).`
+    `✅ Pedido ${pedidoId} marcado como PESADO.\n${rastreios.length} rastreio(s) armazenado(s) por transportadora.`
   );
 }
 
@@ -3643,7 +3633,9 @@ window.mostrarRastreiosManuaisAgrupados = function () {
   const transps = Object.keys(mapa);
   if (!transps.length) {
     container.innerHTML = `<div class="alert alert-warning">Nenhum rastreio manual armazenado ainda.</div>`;
-    const modal = new bootstrap.Modal(document.getElementById("modalRastreiosAgrupados"));
+    const modal = new bootstrap.Modal(
+      document.getElementById("modalRastreiosAgrupados")
+    );
     modal.show();
     return;
   }
@@ -3659,13 +3651,17 @@ window.mostrarRastreiosManuaisAgrupados = function () {
         <h6 class="mb-0">📦 ${transp}</h6>
         <button class="btn btn-sm btn-outline-primary" onclick="copiarRastreiosTransp('${transp}')">📋 Copiar</button>
       </div>
-      <textarea class="form-control" rows="6" readonly style="font-family: monospace;">${lista.join("\n")}</textarea>
+      <textarea class="form-control" rows="6" readonly style="font-family: monospace;">${lista.join(
+        "\n"
+      )}</textarea>
     `;
 
     container.appendChild(card);
   });
 
-  const modal = new bootstrap.Modal(document.getElementById("modalRastreiosAgrupados"));
+  const modal = new bootstrap.Modal(
+    document.getElementById("modalRastreiosAgrupados")
+  );
   modal.show();
 };
 
