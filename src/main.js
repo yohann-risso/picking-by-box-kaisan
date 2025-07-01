@@ -3494,18 +3494,20 @@ async function pesarPedidoManual() {
   const pedidoId = document.getElementById("inputPedidoManual").value.trim();
   if (!pedidoId) return alert("Digite o número do pedido");
 
-  // 1. Busca o cod_nfe na tabela correta
-  const { data: pedido, error } = await supabase
+  // 1. Busca cod_nfe
+  const { data: pedidoNfe } = await supabase
     .from("pedidos_nfe")
-    .select("pedido_id, cod_nfe")
+    .select("cod_nfe")
     .eq("pedido_id", pedidoId)
     .maybeSingle();
 
-  if (!pedido) {
+  if (!pedidoNfe) {
     document.getElementById("infoPedidoManual").textContent =
-      "❌ Pedido não encontrado.";
+      "❌ Pedido não encontrado na tabela pedidos_nfe.";
     return;
   }
+
+  const codNfe = pedidoNfe.cod_nfe;
 
   // 2. Marca como PESADO
   await supabase
@@ -3513,37 +3515,49 @@ async function pesarPedidoManual() {
     .update({ status: "PESADO" })
     .eq("id", pedidoId);
 
-  // 3. Abre o GE
-  const codNfe = pedido.cod_nfe;
+  // 3. Abre GE
   const url = `https://ge.kaisan.com.br/index2.php?page=meta/view&id_view=nfe_pedido_conf&acao_view=cadastra&cod_del=${codNfe}&where=cod_nfe_pedido=${codNfe}#prodweightsomaproduto`;
   window.open(url, "_blank");
 
-  // 4. Busca os rastreios do Supabase
-  const { data: rastreios, error: errRast } = await supabase
+  // 4. Busca rastreios
+  const { data: rastreios } = await supabase
     .from("pedidos_rastreio")
-    .select("cod_rastreio, transportadora")
+    .select("cod_rastreio")
     .eq("id_pedido", pedidoId);
 
   if (!rastreios || rastreios.length === 0) {
     alert(
-      `ℹ️ Pedido ${pedidoId} marcado como PESADO, mas nenhum rastreio foi encontrado na tabela pedidos_rastreio.`
+      `ℹ️ Pedido ${pedidoId} marcado como PESADO, mas nenhum rastreio foi encontrado.`
     );
     return;
   }
 
-  // 5. Agrupar por transportadora
+  // 5. Buscar transportadora do pedido
+  const { data: pedidoData } = await supabase
+    .from("pedidos")
+    .select("metodo_envio")
+    .eq("id", pedidoId)
+    .maybeSingle();
+
+  const transportadora =
+    pedidoData?.metodo_envio?.trim().toUpperCase() || "DESCONHECIDA";
+
+  // 6. Armazena os rastreios agrupados por transportadora
   window.rastreiosManuaisPorTransp = window.rastreiosManuaisPorTransp || {};
 
+  if (!window.rastreiosManuaisPorTransp[transportadora]) {
+    window.rastreiosManuaisPorTransp[transportadora] = [];
+  }
+
   rastreios.forEach((r) => {
-    const transp = r.transportadora?.toUpperCase().trim() || "DESCONHECIDA";
-    if (!window.rastreiosManuaisPorTransp[transp]) {
-      window.rastreiosManuaisPorTransp[transp] = [];
+    const cod = r.cod_rastreio?.trim();
+    if (cod) {
+      window.rastreiosManuaisPorTransp[transportadora].push(cod);
     }
-    window.rastreiosManuaisPorTransp[transp].push(r.cod_rastreio.trim());
   });
 
   alert(
-    `✅ Pedido ${pedidoId} marcado como PESADO.\n${rastreios.length} rastreio(s) armazenado(s) por transportadora.`
+    `✅ Pedido ${pedidoId} marcado como PESADO.\n${rastreios.length} rastreio(s) armazenado(s) para ${transportadora}.`
   );
 }
 
