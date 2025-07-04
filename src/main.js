@@ -3076,14 +3076,17 @@ function calcularETabelaTempoIdeal(tempoObjMap, totalPedidos, totalPecas) {
 
 async function enviarEtapaParaPlanilha(etapa) {
   try {
-    const response = await fetch("/api/registrar-etapa", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        func: "registrarEtapaPickingBox",
-        data: etapa,
-      }),
-    });
+    const response = await fetch(
+      "https://picking-by-box-kaisan.vercel.app/api/registrar-etapa",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          func: "registrarEtapaPickingBox",
+          data: etapa,
+        }),
+      }
+    );
 
     const json = await response.json();
     if (json.status === "ok") {
