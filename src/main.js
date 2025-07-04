@@ -619,6 +619,16 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (e.key === "Enter") document.getElementById("btnBipar").click();
   });
 
+  const resumoSalvo = localStorage.getItem(`etapas-${romaneio}`);
+  if (resumoSalvo) {
+    try {
+      window.resumo = JSON.parse(resumoSalvo);
+      calcularETrocarTempos(window.pecas, window.pedidos, window.resumo);
+    } catch (e) {
+      console.warn("⚠️ Resumo inválido salvo:", e);
+    }
+  }
+
   document
     .getElementById("btnRegistrarTodosNL")
     ?.addEventListener("click", registrarTodosPendentesNL);
@@ -2740,6 +2750,10 @@ async function salvarEtapasNaPlanilha() {
     );
     const tds = linha?.querySelectorAll("td") || [];
 
+    const idEtapa = `${romaneio}-${etapaObj.etapa}-${
+      tds[2]?.textContent || ""
+    }`.trim();
+
     return {
       operador1: operador1,
       operador2: operador2 || null,
@@ -2750,12 +2764,29 @@ async function salvarEtapasNaPlanilha() {
       tempo: etapaObj.tempo,
       pedidos: window.pedidos || 0,
       pecas: window.pecas || 0,
+      id_etapa: idEtapa,
     };
   });
 
+  const etapasEnviadas = JSON.parse(
+    localStorage.getItem("etapasEnviadas") || "[]"
+  );
+
   for (const etapa of etapasParaSalvar) {
-    await enviarEtapaParaPlanilha(etapa);
+    if (etapasEnviadas.includes(etapa.id_etapa)) {
+      console.log("⏩ Etapa já enviada:", etapa.id_etapa);
+      continue;
+    }
+
+    const sucesso = await enviarEtapaParaPlanilha(etapa);
+    if (sucesso) {
+      etapasEnviadas.push(etapa.id_etapa);
+      localStorage.setItem("etapasEnviadas", JSON.stringify(etapasEnviadas));
+    }
   }
+
+  // 💾 Salva resumo completo no localStorage para persistência
+  localStorage.setItem(`etapas-${romaneio}`, JSON.stringify(resumo));
 }
 
 async function prepararDadosDoRomaneio(rom) {
@@ -3047,9 +3078,7 @@ async function enviarEtapaParaPlanilha(etapa) {
   try {
     const response = await fetch("/api/registrar-etapa", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         func: "registrarEtapaPickingBox",
         data: etapa,
@@ -3058,12 +3087,18 @@ async function enviarEtapaParaPlanilha(etapa) {
 
     const json = await response.json();
     if (json.status === "ok") {
-      console.log("✅ Etapa enviada com sucesso!");
+      console.log("✅ Etapa enviada:", etapa.id_etapa);
+      return true;
+    } else if (json.status === "duplicado") {
+      console.log("ℹ️ Etapa já existente:", etapa.id_etapa);
+      return true; // considera como sucesso
     } else {
-      console.warn("⚠️ Falha no GAS:", json.message || json);
+      console.warn("⚠️ Erro ao enviar etapa:", json.message || json);
+      return false;
     }
   } catch (error) {
     console.error("🚨 Erro ao enviar etapa via proxy:", error);
+    return false;
   }
 }
 
@@ -3687,3 +3722,64 @@ window.copiarRastreiosTransp = function (transp) {
     .then(() => alert(`✅ Rastreios de ${transp} copiados!`))
     .catch(() => alert("❌ Falha ao copiar rastreios."));
 };
+
+function reconstruirTabelaResumo() {
+  const tbody = document.getElementById("tbodyTempoIdeal");
+  if (!tbody || !Array.isArray(window.resumo)) return;
+
+  tbody.innerHTML = "";
+
+  window.resumo.forEach((item) => {
+    const tr = document.createElement("tr");
+
+    // Calcula eficiência se possível
+    const idealSegundos = converterStringParaSegundos(
+      item.tempoIdeal || "00:00:00"
+    );
+    const realSegundos = converterStringParaSegundos(item.tempo || "00:00:00");
+
+    let eficiencia = "";
+    let classeEf = "";
+
+    if (realSegundos > 0 && idealSegundos > 0) {
+      const pct = Math.round((idealSegundos / realSegundos) * 100);
+      eficiencia = `${pct}%`;
+
+      if (pct >= 100) {
+        classeEf = "text-success fw-bold";
+      } else if (pct >= 80) {
+        classeEf = "text-warning fw-bold";
+      } else {
+        classeEf = "text-danger fw-bold";
+      }
+    }
+
+    tr.innerHTML = `
+      <td>${item.etapa || "—"}</td>
+      <td>${item.tempoIdeal || "—"}</td>
+      <td>${item.inicio || "—"}</td>
+      <td>${item.fim || "—"}</td>
+      <td>${item.tempo || "—"}</td>
+      <td class="${classeEf}">${eficiencia}</td>
+    `;
+
+    tbody.appendChild(tr);
+  });
+
+  // Atualiza tempo total ideal e real
+  const idealSegsTotal = window.resumo.reduce(
+    (acc, e) => acc + converterStringParaSegundos(e.tempoIdeal || "00:00:00"),
+    0
+  );
+  const realSegsTotal = window.resumo.reduce(
+    (acc, e) => acc + converterStringParaSegundos(e.tempo || "00:00:00"),
+    0
+  );
+
+  const elIdeal = document.getElementById("displayTempoIdealTotal");
+  const elReal = document.getElementById("displayTempoTotal");
+
+  if (elIdeal)
+    elIdeal.textContent = converterSegundosParaString(idealSegsTotal);
+  if (elReal) elReal.textContent = converterSegundosParaString(realSegsTotal);
+}
