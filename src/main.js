@@ -3077,7 +3077,7 @@ function calcularETabelaTempoIdeal(tempoObjMap, totalPedidos, totalPecas) {
 async function enviarEtapaParaPlanilha(etapa) {
   try {
     const response = await fetch(
-      "https://picking-by-box-kaisan.vercel.app/api/registrar-etapa",
+      "https://script.google.com/macros/s/AKfycbwLnP9MUhfHdVjeZZFNH_rkr2gJyxQwoHC4GvMtJSykcqYvhBzB8GeMVu2NH57yWNHp/exec",
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
