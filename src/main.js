@@ -3076,17 +3076,14 @@ function calcularETabelaTempoIdeal(tempoObjMap, totalPedidos, totalPecas) {
 
 async function enviarEtapaParaPlanilha(etapa) {
   try {
-    const response = await fetch(
-      "https://script.google.com/macros/s/AKfycbwLnP9MUhfHdVjeZZFNH_rkr2gJyxQwoHC4GvMtJSykcqYvhBzB8GeMVu2NH57yWNHp/exec",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          func: "registrarEtapaPickingBox",
-          data: etapa,
-        }),
-      }
-    );
+    const response = await fetch("/api/registrar-etapa", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        func: "registrarEtapaPickingBox",
+        data: etapa,
+      }),
+    });
 
     const json = await response.json();
     if (json.status === "ok") {
