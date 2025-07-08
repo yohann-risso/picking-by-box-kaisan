@@ -1087,6 +1087,23 @@ function renderPendentes() {
   tooltipTriggerList.forEach((el) => new bootstrap.Tooltip(el));
 }
 
+// Função auxiliar para fetch com timeout
+async function fetchComTimeout(url, options = {}, timeoutMs = 10000) {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+    clearTimeout(id);
+    return response;
+  } catch (error) {
+    clearTimeout(id);
+    throw error;
+  }
+}
+
 async function registrarTodosPendentesNL() {
   const agrupadoPorPedido = {};
 
@@ -1108,20 +1125,6 @@ async function registrarTodosPendentesNL() {
   const cesto = await solicitarCestoNL();
   if (!cesto) return;
 
-  // 🔁 Dispara o registro no backend e aguarda
-  mostrarToast("Enviando registros NL...", "info");
-
-  const promRegistro = fetch("/api/gas", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      func: "registrarMultiplos",
-      pedidos,
-      cesto,
-      produtosPorPedido: agrupadoPorPedido,
-    }),
-  }).then((res) => res.json());
-
   // 🔎 Busca dados de cliente (para etiquetas)
   const { data: dadosPedido, error } = await supabase
     .from("pedidos")
@@ -1130,6 +1133,7 @@ async function registrarTodosPendentesNL() {
 
   if (error) {
     console.warn("Erro ao buscar clientes:", error);
+    mostrarToast("⚠️ Não foi possível obter os nomes dos clientes.", "warning");
   }
 
   // 🧾 Gera dados para etiquetas NL
@@ -1158,20 +1162,37 @@ async function registrarTodosPendentesNL() {
   // 🖨️ Mostra imediatamente o modal com etiquetas
   abrirMultiplasEtiquetasNL(etiquetas);
 
-  // ✅ Exibe mensagem de confirmação temporária
-  mostrarToast(
-    `Gerado(s) ${pedidos.length} pedido(s) NL. Salvando...`,
-    "success"
-  );
+  // ⏳ Mostra status de envio
+  mostrarToast("⏳ Enviando registros NL...", "info");
 
-  // 📦 Verifica se houve erro no registro depois
-  const json = await promRegistro;
+  // ⏱️ Envio com proteção contra congelamento (timeout de 10s)
+  try {
+    const res = await fetchComTimeout(
+      "/api/gas",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          func: "registrarMultiplos",
+          pedidos,
+          cesto,
+          produtosPorPedido: agrupadoPorPedido,
+        }),
+      },
+      10000
+    ); // timeout de 10s
 
-  if (json?.status === "ok") {
-    mostrarToast("✅ Registros NL enviados com sucesso!", "success");
-  } else {
-    console.warn("Erro no registro GAS:", json);
-    mostrarToast("❌ Erro ao registrar pedidos NL.", "error");
+    const json = await res.json();
+
+    if (json?.status === "ok") {
+      mostrarToast("✅ Registros NL enviados com sucesso!", "success");
+    } else {
+      console.warn("❌ Erro no backend ao registrar NL:", json);
+      mostrarToast("❌ Falha no registro de pedidos NL.", "error");
+    }
+  } catch (err) {
+    console.error("❌ Erro ao enviar registros NL:", err);
+    mostrarToast("❌ Tempo limite excedido ou erro de conexão.", "error");
   }
 }
 
