@@ -828,8 +828,9 @@ function renderBoxCards(pedidosEsperados = []) {
         return;
 
       window.open(
-        `https://ge.kaisan.com.br/index2.php?page=meta/view&id_view=nfe_pedido_conf&acao_view=cadastra&cod_del=${codNfe}&where=cod_nfe_pedido=${codNfe}#prodweightsomaproduto`,
-        "_blank"
+        `https://ge.kaisan.com.br/index2.php?page=nfe_pedido/pesa_automatico_pedido&cod_nfe_pedido=${codNfe}`,
+        "pesagem",
+        "toolbar=no,location=no,directories=no,status=no,menubar=no,scrollbars=yes,resizable=yes,menubar=no,width=800,height=600"
       );
 
       for (const pid of pedidos) {
@@ -1368,7 +1369,7 @@ function abrirMultiplasEtiquetasNL(lista) {
     } = dados;
 
     const codNfe = codNfeMap[pedido];
-    const linkPesagem = `https://ge.kaisan.com.br/index2.php?page=meta/view&id_view=nfe_pedido_conf&acao_view=cadastra&cod_del=${codNfe}&where=cod_nfe_pedido=${codNfe}#prodweightsomaproduto`;
+    const linkPesagem = `https://ge.kaisan.com.br/index2.php?page=nfe_pedido/pesa_automatico_pedido&cod_nfe_pedido=${codNfe}`;
 
     const operadores = operador2 ? `${operador1} e ${operador2}` : operador1;
 
@@ -3551,7 +3552,7 @@ async function pesarPedidoManual() {
     .eq("id", pedidoId);
 
   // 3. Abre GE
-  const url = `https://ge.kaisan.com.br/index2.php?page=meta/view&id_view=nfe_pedido_conf&acao_view=cadastra&cod_del=${codNfe}&where=cod_nfe_pedido=${codNfe}#prodweightsomaproduto`;
+  const url = `https://ge.kaisan.com.br/index2.php?page=nfe_pedido/pesa_automatico_pedido&cod_nfe_pedido=${codNfe}`;
   window.open(url, "_blank");
 
   // 4. Busca rastreios
