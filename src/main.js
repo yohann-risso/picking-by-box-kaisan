@@ -1100,7 +1100,7 @@ async function registrarTodosPendentesNL() {
 
   const pedidos = Object.keys(agrupadoPorPedido);
   if (pedidos.length === 0) {
-    alert("Nenhum pedido pendente para registrar.");
+    mostrarToast("Nenhum pedido pendente para registrar.", "info");
     return;
   }
 
@@ -1108,7 +1108,9 @@ async function registrarTodosPendentesNL() {
   const cesto = await solicitarCestoNL();
   if (!cesto) return;
 
-  // 🔁 Dispara o registro no backend sem bloquear a UI
+  // 🔁 Dispara o registro no backend e aguarda
+  mostrarToast("Enviando registros NL...", "info");
+
   const promRegistro = fetch("/api/gas", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -1156,18 +1158,20 @@ async function registrarTodosPendentesNL() {
   // 🖨️ Mostra imediatamente o modal com etiquetas
   abrirMultiplasEtiquetasNL(etiquetas);
 
-  // ✅ Exibe mensagem de confirmação enquanto o registro ainda está em andamento
-  alert(
-    `✅ Gerado(s) ${pedidos.length} pedido(s) NL. Registro sendo finalizado...`
+  // ✅ Exibe mensagem de confirmação temporária
+  mostrarToast(
+    `Gerado(s) ${pedidos.length} pedido(s) NL. Salvando...`,
+    "success"
   );
 
   // 📦 Verifica se houve erro no registro depois
   const json = await promRegistro;
-  if (!json || json.status !== "ok") {
+
+  if (json?.status === "ok") {
+    mostrarToast("✅ Registros NL enviados com sucesso!", "success");
+  } else {
     console.warn("Erro no registro GAS:", json);
-    alert(
-      "⚠️ Registro pode ter falhado no backend (Sheets). Verifique manualmente."
-    );
+    mostrarToast("❌ Erro ao registrar pedidos NL.", "error");
   }
 }
 
@@ -3784,3 +3788,45 @@ function reconstruirTabelaResumo() {
     elIdeal.textContent = converterSegundosParaString(idealSegsTotal);
   if (elReal) elReal.textContent = converterSegundosParaString(realSegsTotal);
 }
+
+window.mostrarToast = function (mensagem, tipo = "success") {
+  const container = document.getElementById("toastContainer");
+  if (!container) return;
+
+  const icones = {
+    success: "✅",
+    error: "❌",
+    info: "ℹ️",
+    warning: "⚠️",
+  };
+
+  const cor = {
+    success: "bg-success text-white",
+    error: "bg-danger text-white",
+    info: "bg-primary text-white",
+    warning: "bg-warning text-dark",
+  };
+
+  const toast = document.createElement("div");
+  toast.className = `toast align-items-center ${cor[tipo] || ""} border-0`;
+  toast.setAttribute("role", "alert");
+  toast.setAttribute("aria-live", "assertive");
+  toast.setAttribute("aria-atomic", "true");
+
+  toast.innerHTML = `
+    <div class="d-flex">
+      <div class="toast-body">
+        ${icones[tipo] || ""} ${mensagem}
+      </div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Fechar"></button>
+    </div>
+  `;
+
+  container.appendChild(toast);
+
+  const bsToast = new bootstrap.Toast(toast, { delay: 4000 });
+  bsToast.show();
+
+  // Remover do DOM após fechar
+  toast.addEventListener("hidden.bs.toast", () => toast.remove());
+};
