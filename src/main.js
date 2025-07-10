@@ -874,9 +874,9 @@ function renderBoxCards(pedidosEsperados = []) {
       const codNfe = btn.dataset.codnfe;
       if (!codNfe) return;
 
-      const urlDeclaracao = `https://ge.kaisan.com.br/?func=class__nfe_arquivo_remessa__gera_declaracao_conteudo&cod_nfe_pedido=${codNfe}_show_pdf=1`;
-      const urlDanfe = `https://ge.kaisan.com.br/index2.php?func=class__nfe_arquivo_remessa__gera_danfe_simplificado&cod_nfe_pedido=${codNfe}_show_pdf=1`;
-      const urlEtiqueta = `https://ge.kaisan.com.br/index2.php?page=nfe_arquivo_remessa/gera_etiquetas_correio&origem=pesagem&_show_pdf=1&itens_selecao=${codNfe}_show_pdf=1`;
+      const urlDeclaracao = `https://ge.kaisan.com.br/?func=class__nfe_arquivo_remessa__gera_declaracao_conteudo&cod_nfe_pedido=${codNfe}&_show_pdf=1`;
+      const urlDanfe = `https://ge.kaisan.com.br/index2.php?func=class__nfe_arquivo_remessa__gera_danfe_simplificado&cod_nfe_pedido=${codNfe}&_show_pdf=1`;
+      const urlEtiqueta = `https://ge.kaisan.com.br/index2.php?page=nfe_arquivo_remessa/gera_etiquetas_correio&origem=pesagem&_show_pdf=1&itens_selecao=${codNfe}`;
 
       window.open(urlDanfe, "_blank");
       window.open(urlDeclaracao, "_blank");
