@@ -736,14 +736,26 @@ function renderBoxCards(pedidosEsperados = []) {
         ? "rgba(255, 193, 7, 0.3)"
         : "rgba(220, 53, 69, 0.3)";
 
-      const botaoHtml = `
-        <button class="btn-undo-simple btn-pesar ${solid}" 
-                data-box="${boxNum}" 
-                data-codnfe="${codNfe}" 
-                data-pedidos='${JSON.stringify(pedidos)}' 
-                style="border:none;box-shadow:none;" tabindex="0">
-          <i class="bi bi-balance-scale"></i> PESAR PEDIDO
-        </button>`;
+      let botaoHtml = "";
+
+      if (isPesado) {
+        // ✅ Box já está PESADA — mostra botão de reimpressão
+        botaoHtml = `
+    <button class="btn btn-outline-primary w-100 btn-reimprimir"
+            data-codnfe="${codNfe}">
+      <i class="bi bi-printer-fill"></i> REIMPRIMIR ETIQUETAS
+    </button>`;
+      } else {
+        // 🧪 Ainda não pesado — mostra botão de pesagem
+        botaoHtml = `
+    <button class="btn-undo-simple btn-pesar ${solid}" 
+            data-box="${boxNum}" 
+            data-codnfe="${codNfe}" 
+            data-pedidos='${JSON.stringify(pedidos)}' 
+            style="border:none;box-shadow:none;" tabindex="0">
+      <i class="bi bi-balance-scale"></i> PESAR PEDIDO
+    </button>`;
+      }
 
       const wrapper = document.createElement("div");
       wrapper.className = "card-produto";
@@ -853,6 +865,22 @@ function renderBoxCards(pedidosEsperados = []) {
         e.stopPropagation();
         btn.click();
       }
+    });
+  });
+
+  document.querySelectorAll(".btn-reimprimir").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      const codNfe = btn.dataset.codnfe;
+      if (!codNfe) return;
+
+      const urlDeclaracao = `https://ge.kaisan.com.br/?func=class__nfe_arquivo_remessa__gera_declaracao_conteudo&cod_nfe_pedido=${codNfe}_show_pdf=1`;
+      const urlDanfe = `https://ge.kaisan.com.br/index2.php?func=class__nfe_arquivo_remessa__gera_danfe_simplificado&cod_nfe_pedido=${codNfe}_show_pdf=1`;
+      const urlEtiqueta = `https://ge.kaisan.com.br/index2.php?page=nfe_arquivo_remessa/gera_etiquetas_correio&origem=pesagem&_show_pdf=1&itens_selecao=${codNfe}_show_pdf=1`;
+
+      window.open(urlDanfe, "_blank");
+      window.open(urlDeclaracao, "_blank");
+      window.open(urlEtiqueta, "_blank");
     });
   });
 
