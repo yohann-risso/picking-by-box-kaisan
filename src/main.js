@@ -3980,9 +3980,20 @@ async function carregarProdutividadeDoOperador() {
       ? Math.round((feitosPorEsse / totalPedidosDoDia) * 100)
       : 0;
 
-    const meta = 1800; // meta fixa ou variável
+    const meta = 1800; // meta de pedidos do dia
     const resumo = `Pedidos pesados hoje: ${totalPedidosDoDia} (meta: ${meta}) — ${op} fez: ${feitosPorEsse} (${perc}%)`;
-    document.getElementById("metaResumoGeral").textContent = resumo;
+
+    const el = document.getElementById("metaResumoGeral");
+    el.textContent = resumo;
+    el.classList.remove("text-success", "text-warning", "text-danger");
+
+    if (perc >= 80) {
+      el.classList.add("text-success");
+    } else if (perc >= 40) {
+      el.classList.add("text-warning");
+    } else {
+      el.classList.add("text-danger");
+    }
   }
 }
 
