@@ -859,7 +859,10 @@ function renderBoxCards(pedidosEsperados = []) {
         await atualizarStatusPedido(pid, "PESADO");
       }
 
-      await registrarProdutividadeOperadores();
+      for (const pid of pedidos) {
+        const qtd = caixas[pid]?.bipado || 0;
+        await registrarPesagem(pid, qtd, romaneio, operador1);
+      }
 
       localStorage.setItem(`caixas-${romaneio}`, JSON.stringify(caixas));
       await carregarBipagemAnterior(romaneio);
@@ -3879,12 +3882,29 @@ async function registrarProdutividadeOperadores() {
   }, 0);
 
   const tempoHHMMSS = converterSegundosParaString(tempoTotalSegundos);
+  const dataHoje = new Date().toISOString().slice(0, 10);
 
   for (const op of operadores) {
+    // ✅ Verifica se já existe registro para este operador+romaneio+data
+    const { data: jaExiste } = await supabase
+      .from("produtividade_operadores")
+      .select("id")
+      .eq("data", dataHoje)
+      .eq("operador", op)
+      .eq("romaneio", romaneio)
+      .maybeSingle();
+
+    if (jaExiste) {
+      console.log(
+        `⏭️ Registro já existe para ${op} em ${romaneio} (${dataHoje})`
+      );
+      continue;
+    }
+
     const payload = {
-      data: new Date().toISOString().slice(0, 10),
+      data: dataHoje,
       operador: op,
-      romaneio: romaneio,
+      romaneio,
       pedidos: window.pedidos,
       pecas: window.pecas,
       tempo_total: tempoTotalSegundos,
@@ -3905,7 +3925,6 @@ async function registrarProdutividadeOperadores() {
       console.log(`✅ Produtividade registrada para ${op}`);
     }
   }
-  window.registrarProdutividadeOperadores = registrarProdutividadeOperadores;
 }
 
 async function carregarProdutividadeDoOperador() {
@@ -4046,5 +4065,53 @@ async function renderizarEAtualizarFoco() {
     requestAnimationFrame(() => {
       restaurarFocoBotaoAnterior();
     });
+  });
+}
+
+async function registrarPesagem(pedidoId, quantidade, romaneioAtual, operador) {
+  const { error } = await supabase.from("pesagens").insert([
+    {
+      pedido: pedidoId,
+      qtde_pecas: quantidade,
+      romaneio: romaneioAtual,
+      operador: operador,
+    },
+  ]);
+
+  if (error) {
+    console.error("❌ Erro ao registrar pesagem:", error);
+  } else {
+    console.log(
+      `✅ Pesagem registrada: Pedido ${pedidoId}, ${quantidade} peça(s), operador ${operador}`
+    );
+    await obterTotalPedidosPesadosHoje();
+  }
+}
+
+async function obterTotalPedidosPesadosHoje() {
+  const hoje = new Date().toISOString().slice(0, 10); // AAAA-MM-DD
+  const { data, error } = await supabase
+    .from("pesagens")
+    .select("pedido, operador")
+    .gte("created_at", `${hoje}T00:00:00`)
+    .lte("created_at", `${hoje}T23:59:59`);
+
+  if (error) {
+    console.error("Erro ao buscar pesagens:", error);
+    return;
+  }
+
+  const totalGeral = new Set(data.map((d) => d.pedido)).size;
+  const porOperador = {};
+
+  data.forEach((r) => {
+    if (!porOperador[r.operador]) porOperador[r.operador] = new Set();
+    porOperador[r.operador].add(r.pedido);
+  });
+
+  // Renderiza
+  Object.entries(porOperador).forEach(([op, set]) => {
+    const perc = Math.round((set.size / totalGeral) * 100);
+    console.log(`🧑 ${op}: ${set.size} pedidos (${perc}%)`);
   });
 }
