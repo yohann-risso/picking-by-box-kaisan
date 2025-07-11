@@ -827,7 +827,11 @@ function renderBoxCards(pedidosEsperados = []) {
     btn.addEventListener("click", async (e) => {
       e.preventDefault();
       const boxNum = btn.dataset.box;
-      ultimoBotaoClicado = btn;
+      ultimoBotaoClicado = {
+        tipo: "pesar",
+        box: btn.dataset.box,
+        codnfe: btn.dataset.codnfe,
+      };
       window.ultimoBoxPesado = boxNum;
 
       const codNfe = btn.dataset.codnfe;
@@ -877,6 +881,11 @@ function renderBoxCards(pedidosEsperados = []) {
       const codNfe = btn.dataset.codnfe;
       if (!codNfe) return;
 
+      ultimoBotaoClicado = {
+        tipo: "reimprimir",
+        codnfe: btn.dataset.codnfe,
+      };
+
       window.ultimoBoxPesado = null;
 
       const urlDeclaracao = `https://ge.kaisan.com.br/?func=class__nfe_arquivo_remessa__gera_declaracao_conteudo&cod_nfe_pedido=${codNfe}&_show_pdf=1`;
@@ -891,32 +900,23 @@ function renderBoxCards(pedidosEsperados = []) {
 
   // 🔁 Após renderizar, restaura foco no último botão pressionado
   if (ultimoBotaoClicado) {
-    const ref = ultimoBotaoClicado;
-    const box = ref.dataset.box;
-    const codnfe = ref.dataset.codnfe;
-    const isReimprimir = ref.classList.contains("btn-reimprimir");
+    const { tipo, box, codnfe } = ultimoBotaoClicado;
 
     setTimeout(() => {
-      let seletor = isReimprimir
-        ? `.btn-reimprimir[data-codnfe="${codnfe}"]`
-        : `.btn-pesar[data-box="${box}"]`;
+      let seletor =
+        tipo === "reimprimir"
+          ? `.btn-reimprimir[data-codnfe="${codnfe}"]`
+          : `.btn-pesar[data-box="${box}"]`;
 
       const novoBotao = document.querySelector(seletor);
-
       if (novoBotao) {
         novoBotao.focus();
         novoBotao.classList.add("foco-destaque");
-
-        // 🧠 Aguarda um pouco antes de remover a classe
         setTimeout(() => novoBotao.classList.remove("foco-destaque"), 1200);
-
-        // ⚠️ NÃO usar scrollIntoView — isso força rolagem ao topo
-        // novoBotao.scrollIntoView({ behavior: "smooth", block: "center" });
       }
 
-      // 💡 Só limpa se o botão realmente foi reencontrado
       ultimoBotaoClicado = null;
-    }, 250); // ⏱️ pequeno delay extra para garantir DOM renderizado
+    }, 300); // ⏱️ mais seguro com 300ms
   }
 }
 
