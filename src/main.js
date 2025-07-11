@@ -3931,6 +3931,7 @@ async function carregarProdutividadeDoOperador() {
   const hoje = new Date().toISOString().slice(0, 10);
   const op = operador1;
 
+  // 1. Busca produtividade do operador atual
   const { data, error } = await supabase
     .from("produtividade_operadores")
     .select("*")
@@ -3951,6 +3952,7 @@ async function carregarProdutividadeDoOperador() {
     : 0;
   const mediaTempo = converterSegundosParaString(mediaTempoSeg);
 
+  // Atualiza metas visuais
   const rom = document.getElementById("metaRomaneios");
   const ped = document.getElementById("metaPedidos");
   const pec = document.getElementById("metaPecas");
@@ -3961,12 +3963,11 @@ async function carregarProdutividadeDoOperador() {
   pec.textContent = totalPecas;
   tmp.textContent = mediaTempo;
 
-  // 💡 Limpa classes antigas
+  // Aplica cores por meta
   [rom, ped, tmp].forEach((el) =>
     el.classList.remove("text-success", "text-warning", "text-danger")
   );
 
-  // 🎯 Aplicar cores por meta
   if (totalRomaneios >= 9) rom.classList.add("text-success");
   else if (totalRomaneios >= 6) rom.classList.add("text-warning");
   else rom.classList.add("text-danger");
@@ -3979,9 +3980,7 @@ async function carregarProdutividadeDoOperador() {
   else if (mediaTempoSeg <= 50 * 60) tmp.classList.add("text-warning");
   else tmp.classList.add("text-danger");
 
-  document.getElementById("painelProdutividade").classList.remove("d-none");
-
-  // 🔢 Busca todos os registros do dia para saber total geral
+  // 2. Resumo geral do dia (todos operadores)
   const { data: todos, error: errTodos } = await supabase
     .from("produtividade_operadores")
     .select("operador, pedidos")
@@ -3999,7 +3998,7 @@ async function carregarProdutividadeDoOperador() {
       ? Math.round((feitosPorEsse / totalPedidosDoDia) * 100)
       : 0;
 
-    const meta = 1800; // meta de pedidos do dia
+    const meta = 1800; // Meta do dia
     const resumo = `Pedidos pesados hoje: ${totalPedidosDoDia} (meta: ${meta}) — ${op} fez: ${feitosPorEsse} (${perc}%)`;
 
     const el = document.getElementById("metaResumoGeral");
@@ -4085,6 +4084,7 @@ async function registrarPesagem(pedidoId, quantidade, romaneioAtual, operador) {
       `✅ Pesagem registrada: Pedido ${pedidoId}, ${quantidade} peça(s), operador ${operador}`
     );
     await obterTotalPedidosPesadosHoje();
+    await carregarProdutividadeDoOperador();
   }
 }
 
