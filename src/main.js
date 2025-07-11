@@ -902,23 +902,32 @@ function renderBoxCards(pedidosEsperados = []) {
 
   // 🔁 Após renderizar, restaura foco no último botão pressionado
   if (ultimoBotaoClicado) {
-    const { tipo, box, codnfe } = ultimoBotaoClicado;
-
-    setTimeout(() => {
-      let seletor =
+    const tentativaFoco = () => {
+      const { tipo, box, codnfe } = ultimoBotaoClicado;
+      const seletor =
         tipo === "reimprimir"
           ? `.btn-reimprimir[data-codnfe="${codnfe}"]`
           : `.btn-pesar[data-box="${box}"]`;
 
-      const novoBotao = document.querySelector(seletor);
-      if (novoBotao) {
-        novoBotao.focus();
-        novoBotao.classList.add("foco-destaque");
-        setTimeout(() => novoBotao.classList.remove("foco-destaque"), 1200);
+      const botaoAlvo = document.querySelector(seletor);
+      if (botaoAlvo) {
+        botaoAlvo.focus();
+        botaoAlvo.classList.add("foco-destaque");
+        setTimeout(() => botaoAlvo.classList.remove("foco-destaque"), 1200);
+        ultimoBotaoClicado = null;
+      } else {
+        // Tenta de novo após pequeno atraso, no máximo 3 vezes
+        tentativasRestantes--;
+        if (tentativasRestantes > 0) {
+          setTimeout(tentativaFoco, 100);
+        } else {
+          console.warn("⚠️ Não foi possível restaurar foco no botão desejado.");
+        }
       }
+    };
 
-      ultimoBotaoClicado = null;
-    }, 300); // ⏱️ mais seguro com 300ms
+    let tentativasRestantes = 3;
+    setTimeout(tentativaFoco, 200); // primeira tentativa após 200ms
   }
 }
 
