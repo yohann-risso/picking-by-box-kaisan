@@ -76,6 +76,8 @@ window.addEventListener("DOMContentLoaded", () => {
       display.textContent = `Operador: ${operador1}`;
     }
     document.getElementById("mainApp").style.display = "block";
+
+    carregarProdutividadeDoOperador();
   } else {
     // Exibe o modal para novos login(s)
     const loginModal = new bootstrap.Modal(
