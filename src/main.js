@@ -747,7 +747,7 @@ function renderBoxCards(pedidosEsperados = []) {
         botaoHtml = `
     <button class="btn btn-outline-primary w-100 btn-reimprimir"
             data-codnfe="${codNfe}">
-      <i class="bi bi-printer-fill"></i> REIMPRIMIR ETIQUETAS
+      <i class="bi bi-printer-fill"></i> REIMPRIMIR
     </button>`;
       } else {
         // 🧪 Ainda não pesado — mostra botão de pesagem
