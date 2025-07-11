@@ -859,6 +859,8 @@ function renderBoxCards(pedidosEsperados = []) {
         await atualizarStatusPedido(pid, "PESADO");
       }
 
+      await registrarProdutividadeOperadores();
+
       localStorage.setItem(`caixas-${romaneio}`, JSON.stringify(caixas));
       await carregarBipagemAnterior(romaneio);
       await gerarResumoVisualRomaneio();
@@ -3589,6 +3591,8 @@ async function pesarPedidoManual() {
     .update({ status: "PESADO" })
     .eq("id", pedidoId);
 
+  await registrarProdutividadeOperadores();
+
   // 3. Abre GE
   const url = `https://ge.kaisan.com.br/index2.php?page=nfe_pedido/pesa_automatico_pedido&cod_nfe_pedido=${codNfe}`;
   window.open(url, "_blank");
@@ -3901,6 +3905,7 @@ async function registrarProdutividadeOperadores() {
       console.log(`✅ Produtividade registrada para ${op}`);
     }
   }
+  window.registrarProdutividadeOperadores = registrarProdutividadeOperadores;
 }
 
 async function carregarProdutividadeDoOperador() {
@@ -3956,6 +3961,29 @@ async function carregarProdutividadeDoOperador() {
   else tmp.classList.add("text-danger");
 
   document.getElementById("painelProdutividade").classList.remove("d-none");
+
+  // 🔢 Busca todos os registros do dia para saber total geral
+  const { data: todos, error: errTodos } = await supabase
+    .from("produtividade_operadores")
+    .select("operador, pedidos")
+    .eq("data", hoje);
+
+  if (!errTodos && todos?.length) {
+    const totalPedidosDoDia = todos.reduce(
+      (acc, r) => acc + (r.pedidos || 0),
+      0
+    );
+    const feitosPorEsse = todos
+      .filter((r) => r.operador === op)
+      .reduce((acc, r) => acc + (r.pedidos || 0), 0);
+    const perc = totalPedidosDoDia
+      ? Math.round((feitosPorEsse / totalPedidosDoDia) * 100)
+      : 0;
+
+    const meta = 1800; // meta fixa ou variável
+    const resumo = `Pedidos pesados hoje: ${totalPedidosDoDia} (meta: ${meta}) — ${op} fez: ${feitosPorEsse} (${perc}%)`;
+    document.getElementById("metaResumoGeral").textContent = resumo;
+  }
 }
 
 function restaurarFocoBotaoAnterior() {
