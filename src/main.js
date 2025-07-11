@@ -3122,13 +3122,13 @@ function calcularETabelaTempoIdeal(tempoObjMap, totalPedidos, totalPecas) {
   function montaLinha(etapa, tempoHH) {
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${item.etapa}</td>
-      <td>${item.tempo_ideal}</td>
-      <td>–</td>
-      <td>–</td>
-      <td>–</td>
-      <td>–</td>
-    `;
+    <td>${etapa}</td>
+    <td>${tempoHH}</td>
+    <td>–</td>
+    <td>–</td>
+    <td>–</td>
+    <td>–</td>
+  `;
     return tr;
   }
 
@@ -4028,5 +4028,11 @@ async function renderizarEAtualizarFoco() {
   renderHistorico();
   renderPendentes();
   renderProgressoConferencia();
-  setTimeout(restaurarFocoBotaoAnterior, 400);
+
+  // Espera o DOM atualizar antes de tentar o foco
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      restaurarFocoBotaoAnterior();
+    });
+  });
 }
