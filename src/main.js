@@ -3962,7 +3962,7 @@ function restaurarFocoBotaoAnterior() {
   if (!ultimoBotaoClicado) return;
 
   const { tipo, box, codnfe } = ultimoBotaoClicado;
-  const seletor =
+  let seletor =
     tipo === "reimprimir"
       ? `.btn-reimprimir[data-codnfe="${codnfe}"]`
       : `.btn-pesar[data-box="${box}"]`;
@@ -3970,14 +3970,19 @@ function restaurarFocoBotaoAnterior() {
   let tentativasRestantes = 5;
 
   const tentativaFoco = () => {
-    const botaoAlvo = document.querySelector(seletor);
+    let botaoAlvo = document.querySelector(seletor);
+
+    // 🧠 Se tipo era "pesar", mas botão virou "reimprimir"
+    if (!botaoAlvo && tipo === "pesar") {
+      seletor = `.btn-reimprimir[data-codnfe="${codnfe}"]`;
+      botaoAlvo = document.querySelector(seletor);
+    }
+
     if (botaoAlvo) {
       botaoAlvo.focus();
       botaoAlvo.classList.add("foco-destaque");
       setTimeout(() => botaoAlvo.classList.remove("foco-destaque"), 1200);
-
-      // Limpa apenas após sucesso
-      ultimoBotaoClicado = null;
+      ultimoBotaoClicado = null; // só limpa após sucesso
     } else {
       tentativasRestantes--;
       if (tentativasRestantes > 0) {
@@ -3988,7 +3993,7 @@ function restaurarFocoBotaoAnterior() {
     }
   };
 
-  setTimeout(tentativaFoco, 300); // dá mais tempo para o DOM carregar
+  setTimeout(tentativaFoco, 300);
 }
 
 async function renderizarEAtualizarFoco() {
