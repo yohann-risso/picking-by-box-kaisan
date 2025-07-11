@@ -862,10 +862,7 @@ function renderBoxCards(pedidosEsperados = []) {
       localStorage.setItem(`caixas-${romaneio}`, JSON.stringify(caixas));
       await carregarBipagemAnterior(romaneio);
       await gerarResumoVisualRomaneio();
-      setTimeout(() => {
-        renderProgressoConferencia();
-        restaurarFocoBotaoAnterior();
-      }, 200);
+      await renderizarEAtualizarFoco();
     });
 
     btn.addEventListener("keydown", (e) => {
@@ -4002,14 +3999,34 @@ function restaurarFocoBotaoAnterior() {
       ? `.btn-reimprimir[data-codnfe="${codnfe}"]`
       : `.btn-pesar[data-box="${box}"]`;
 
-  const botaoAlvo = document.querySelector(seletor);
-  if (botaoAlvo) {
-    botaoAlvo.focus();
-    botaoAlvo.classList.add("foco-destaque");
-    setTimeout(() => botaoAlvo.classList.remove("foco-destaque"), 1200);
-  } else {
-    console.warn("⚠️ Ainda não foi possível restaurar foco no botão desejado.");
-  }
+  let tentativasRestantes = 5;
 
-  ultimoBotaoClicado = null;
+  const tentativaFoco = () => {
+    const botaoAlvo = document.querySelector(seletor);
+    if (botaoAlvo) {
+      botaoAlvo.focus();
+      botaoAlvo.classList.add("foco-destaque");
+      setTimeout(() => botaoAlvo.classList.remove("foco-destaque"), 1200);
+
+      // Limpa apenas após sucesso
+      ultimoBotaoClicado = null;
+    } else {
+      tentativasRestantes--;
+      if (tentativasRestantes > 0) {
+        setTimeout(tentativaFoco, 200);
+      } else {
+        console.warn("⚠️ Não foi possível restaurar foco no botão desejado.");
+      }
+    }
+  };
+
+  setTimeout(tentativaFoco, 300); // dá mais tempo para o DOM carregar
+}
+
+async function renderizarEAtualizarFoco() {
+  await renderBoxCards(window.pedidosEsperados);
+  renderHistorico();
+  renderPendentes();
+  renderProgressoConferencia();
+  setTimeout(restaurarFocoBotaoAnterior, 400);
 }
