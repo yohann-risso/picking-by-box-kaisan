@@ -209,6 +209,8 @@ function finalizeLogin() {
 
   // Exibe o mainApp
   document.getElementById("mainApp").style.display = "block";
+
+  carregarProdutividadeDoOperador();
 }
 
 // Logout: limpa tudo e retorna ao modal de login
@@ -2943,6 +2945,7 @@ function configurarListenersCronometro() {
 
   // Botão "Finalizar Romaneio"
   btnFinalizarRomaneio?.addEventListener("click", () => {
+    registrarProdutividadeOperadores();
     finalizarEtapas(); // ou outro comportamento
     localStorage.removeItem(`etiquetasNL-${romaneio}`);
   });
@@ -3883,3 +3886,96 @@ window.mostrarToast = function (mensagem, tipo = "success") {
   // Remover do DOM após fechar
   toast.addEventListener("hidden.bs.toast", () => toast.remove());
 };
+
+async function registrarProdutividadeOperadores() {
+  const operadores = [operador1];
+  if (operador2) operadores.push(operador2);
+
+  const tempoTotalSegundos = resumo.reduce((acc, etapa) => {
+    const [h, m, s] = etapa.tempo.split(":").map(Number);
+    return acc + (h * 3600 + m * 60 + s);
+  }, 0);
+
+  const tempoHHMMSS = converterSegundosParaString(tempoTotalSegundos);
+
+  for (const op of operadores) {
+    const payload = {
+      data: new Date().toISOString().slice(0, 10),
+      operador: op,
+      romaneio: romaneio,
+      pedidos: window.pedidos,
+      pecas: window.pecas,
+      tempo_total: tempoTotalSegundos,
+      tempo_hhmmss: tempoHHMMSS,
+      media_seg_por_pedido: window.pedidos
+        ? tempoTotalSegundos / window.pedidos
+        : 0,
+      media_seg_por_peca: window.pecas ? tempoTotalSegundos / window.pecas : 0,
+    };
+
+    const { error } = await supabase
+      .from("produtividade_operadores")
+      .insert([payload]);
+
+    if (error) {
+      console.error("❌ Erro ao registrar produtividade:", error);
+    } else {
+      console.log(`✅ Produtividade registrada para ${op}`);
+    }
+  }
+}
+
+async function carregarProdutividadeDoOperador() {
+  const hoje = new Date().toISOString().slice(0, 10);
+  const op = operador1;
+
+  const { data, error } = await supabase
+    .from("produtividade_operadores")
+    .select("*")
+    .eq("data", hoje)
+    .eq("operador", op);
+
+  if (error || !data) {
+    console.warn("Erro ao buscar produtividade:", error);
+    return;
+  }
+
+  const totalRomaneios = data.length;
+  const totalPedidos = data.reduce((acc, r) => acc + (r.pedidos || 0), 0);
+  const totalPecas = data.reduce((acc, r) => acc + (r.pecas || 0), 0);
+  const totalSegundos = data.reduce((acc, r) => acc + (r.tempo_total || 0), 0);
+  const mediaTempoSeg = totalRomaneios
+    ? Math.round(totalSegundos / totalRomaneios)
+    : 0;
+  const mediaTempo = converterSegundosParaString(mediaTempoSeg);
+
+  const rom = document.getElementById("metaRomaneios");
+  const ped = document.getElementById("metaPedidos");
+  const pec = document.getElementById("metaPecas");
+  const tmp = document.getElementById("metaTempo");
+
+  rom.textContent = totalRomaneios;
+  ped.textContent = totalPedidos;
+  pec.textContent = totalPecas;
+  tmp.textContent = mediaTempo;
+
+  // 💡 Limpa classes antigas
+  [rom, ped, tmp].forEach((el) =>
+    el.classList.remove("text-success", "text-warning", "text-danger")
+  );
+
+  // 🎯 Aplicar cores por meta
+  if (totalRomaneios >= 9) rom.classList.add("text-success");
+  else if (totalRomaneios >= 6) rom.classList.add("text-warning");
+  else rom.classList.add("text-danger");
+
+  if (totalPedidos >= 450) ped.classList.add("text-success");
+  else if (totalPedidos >= 300) ped.classList.add("text-warning");
+  else ped.classList.add("text-danger");
+
+  if (mediaTempoSeg <= 40 * 60) tmp.classList.add("text-success");
+  else if (mediaTempoSeg <= 50 * 60) tmp.classList.add("text-warning");
+  else tmp.classList.add("text-danger");
+
+  document.getElementById("painelProdutividade").classList.remove("d-none");
+}
