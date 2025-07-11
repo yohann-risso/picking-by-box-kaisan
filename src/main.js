@@ -896,38 +896,6 @@ function renderBoxCards(pedidosEsperados = []) {
       window.open(urlEtiqueta, "_blank");
     });
   });
-
-  // 🔁 Após renderizar, restaura foco no último botão pressionado
-  if (ultimoBotaoClicado) {
-    const tentativaFoco = () => {
-      if (!ultimoBotaoClicado) return;
-
-      const { tipo, box, codnfe } = ultimoBotaoClicado;
-      const seletor =
-        tipo === "reimprimir"
-          ? `.btn-reimprimir[data-codnfe="${codnfe}"]`
-          : `.btn-pesar[data-box="${box}"]`;
-
-      const botaoAlvo = document.querySelector(seletor);
-      if (botaoAlvo) {
-        botaoAlvo.focus();
-        botaoAlvo.classList.add("foco-destaque");
-        setTimeout(() => botaoAlvo.classList.remove("foco-destaque"), 1200);
-        ultimoBotaoClicado = null;
-      } else {
-        // Tenta de novo após pequeno atraso, no máximo 3 vezes
-        tentativasRestantes--;
-        if (tentativasRestantes > 0) {
-          setTimeout(tentativaFoco, 100);
-        } else {
-          console.warn("⚠️ Não foi possível restaurar foco no botão desejado.");
-        }
-      }
-    };
-
-    let tentativasRestantes = 3;
-    setTimeout(tentativaFoco, 200); // primeira tentativa após 200ms
-  }
 }
 
 async function atualizarStatusPedido(pedidoId, status) {
