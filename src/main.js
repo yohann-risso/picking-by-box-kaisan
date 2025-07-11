@@ -862,9 +862,9 @@ function renderBoxCards(pedidosEsperados = []) {
       localStorage.setItem(`caixas-${romaneio}`, JSON.stringify(caixas));
       await carregarBipagemAnterior(romaneio);
       await gerarResumoVisualRomaneio();
-      renderBoxCards(window.pedidosEsperados);
       setTimeout(() => {
         renderProgressoConferencia();
+        restaurarFocoBotaoAnterior();
       }, 200);
     });
 
@@ -3989,4 +3989,25 @@ async function carregarProdutividadeDoOperador() {
   else tmp.classList.add("text-danger");
 
   document.getElementById("painelProdutividade").classList.remove("d-none");
+}
+
+function restaurarFocoBotaoAnterior() {
+  if (!ultimoBotaoClicado) return;
+
+  const { tipo, box, codnfe } = ultimoBotaoClicado;
+  const seletor =
+    tipo === "reimprimir"
+      ? `.btn-reimprimir[data-codnfe="${codnfe}"]`
+      : `.btn-pesar[data-box="${box}"]`;
+
+  const botaoAlvo = document.querySelector(seletor);
+  if (botaoAlvo) {
+    botaoAlvo.focus();
+    botaoAlvo.classList.add("foco-destaque");
+    setTimeout(() => botaoAlvo.classList.remove("foco-destaque"), 1200);
+  } else {
+    console.warn("⚠️ Ainda não foi possível restaurar foco no botão desejado.");
+  }
+
+  ultimoBotaoClicado = null;
 }
