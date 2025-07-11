@@ -29,7 +29,7 @@ window.pecas = 0;
 window.pedidos = 0;
 let resumo = [];
 
-let ultimoBoxPesado = null;
+let ultimoBotaoClicado = null;
 
 // --- Constantes para controle de expiração ---
 const EXPIRACAO_MS = 720 * 60 * 1000; // 720 minutos em milissegundos
@@ -862,6 +862,7 @@ function renderBoxCards(pedidosEsperados = []) {
     btn.addEventListener("keydown", (e) => {
       if (e.key === " " || e.key === "Enter") {
         e.preventDefault();
+        ultimoBotaoClicado = e.currentTarget;
         e.stopPropagation();
         btn.click();
       }
@@ -887,31 +888,32 @@ function renderBoxCards(pedidosEsperados = []) {
   });
 
   // 🔁 Após renderizar, restaura foco no último botão pressionado
-  if (window.ultimoBoxPesado) {
+  if (ultimoBotaoClicado) {
+    const box = ultimoBotaoClicado.dataset.box;
+    const codnfe = ultimoBotaoClicado.dataset.codnfe;
+    const isReimprimir =
+      ultimoBotaoClicado.classList.contains("btn-reimprimir");
+
     setTimeout(() => {
-      const botoesValidos = Array.from(
-        document.querySelectorAll(".btn-pesar")
-      ).filter((btn) => {
-        const card = btn.closest(".card-produto");
-        return (
-          card &&
-          !card.querySelector(".card-info")?.classList.contains("bg-danger") &&
-          !card
-            .querySelector(".card-info")
-            ?.classList.contains("bg-danger-subtle")
+      let novoBotao = null;
+
+      if (isReimprimir) {
+        novoBotao = document.querySelector(
+          `.btn-reimprimir[data-codnfe="${codnfe}"]`
         );
-      });
-
-      const btnFoco = botoesValidos.find(
-        (btn) => btn.dataset.box === String(window.ultimoBoxPesado)
-      );
-
-      if (btnFoco) {
-        btnFoco.focus();
-        btnFoco.classList.add("foco-destaque");
-        setTimeout(() => btnFoco.classList.remove("foco-destaque"), 1500);
-        btnFoco.scrollIntoView({ behavior: "smooth", block: "center" });
+      } else {
+        novoBotao = document.querySelector(`.btn-pesar[data-box="${box}"]`);
       }
+
+      if (novoBotao) {
+        novoBotao.focus();
+        novoBotao.classList.add("foco-destaque");
+        setTimeout(() => novoBotao.classList.remove("foco-destaque"), 1500);
+        novoBotao.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+
+      // 🧼 Limpa a variável após restaurar o foco
+      ultimoBotaoClicado = null;
     }, 100);
   }
 }
