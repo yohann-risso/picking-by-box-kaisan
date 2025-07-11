@@ -827,6 +827,7 @@ function renderBoxCards(pedidosEsperados = []) {
     btn.addEventListener("click", async (e) => {
       e.preventDefault();
       const boxNum = btn.dataset.box;
+      ultimoBotaoClicado = btn;
       window.ultimoBoxPesado = boxNum;
 
       const codNfe = btn.dataset.codnfe;
@@ -864,7 +865,6 @@ function renderBoxCards(pedidosEsperados = []) {
     btn.addEventListener("keydown", (e) => {
       if (e.key === " " || e.key === "Enter") {
         e.preventDefault();
-        ultimoBotaoClicado = e.currentTarget;
         e.stopPropagation();
         btn.click();
       }
@@ -891,13 +891,13 @@ function renderBoxCards(pedidosEsperados = []) {
 
   // 🔁 Após renderizar, restaura foco no último botão pressionado
   if (ultimoBotaoClicado) {
-    const box = ultimoBotaoClicado.dataset.box;
-    const codnfe = ultimoBotaoClicado.dataset.codnfe;
-    const isReimprimir =
-      ultimoBotaoClicado.classList.contains("btn-reimprimir");
-
     setTimeout(() => {
-      let novoBotao = null;
+      const box = ultimoBotaoClicado.dataset.box;
+      const codnfe = ultimoBotaoClicado.dataset.codnfe;
+      const isReimprimir =
+        ultimoBotaoClicado.classList.contains("btn-reimprimir");
+
+      let novoBotao;
 
       if (isReimprimir) {
         novoBotao = document.querySelector(
@@ -914,7 +914,7 @@ function renderBoxCards(pedidosEsperados = []) {
         novoBotao.scrollIntoView({ behavior: "smooth", block: "center" });
       }
 
-      // 🧼 Limpa a variável após restaurar o foco
+      // Limpa referência apenas após foco real
       ultimoBotaoClicado = null;
     }, 100);
   }
