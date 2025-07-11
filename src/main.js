@@ -903,6 +903,8 @@ function renderBoxCards(pedidosEsperados = []) {
   // 🔁 Após renderizar, restaura foco no último botão pressionado
   if (ultimoBotaoClicado) {
     const tentativaFoco = () => {
+      if (!ultimoBotaoClicado) return;
+
       const { tipo, box, codnfe } = ultimoBotaoClicado;
       const seletor =
         tipo === "reimprimir"
