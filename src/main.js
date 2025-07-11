@@ -856,8 +856,8 @@ function renderBoxCards(pedidosEsperados = []) {
       localStorage.setItem(`caixas-${romaneio}`, JSON.stringify(caixas));
       await carregarBipagemAnterior(romaneio);
       await gerarResumoVisualRomaneio();
+      renderBoxCards(window.pedidosEsperados);
       setTimeout(() => {
-        renderBoxCards(pedidosEsperados);
         renderProgressoConferencia();
       }, 200);
     });
@@ -891,32 +891,32 @@ function renderBoxCards(pedidosEsperados = []) {
 
   // 🔁 Após renderizar, restaura foco no último botão pressionado
   if (ultimoBotaoClicado) {
+    const ref = ultimoBotaoClicado;
+    const box = ref.dataset.box;
+    const codnfe = ref.dataset.codnfe;
+    const isReimprimir = ref.classList.contains("btn-reimprimir");
+
     setTimeout(() => {
-      const box = ultimoBotaoClicado.dataset.box;
-      const codnfe = ultimoBotaoClicado.dataset.codnfe;
-      const isReimprimir =
-        ultimoBotaoClicado.classList.contains("btn-reimprimir");
+      let seletor = isReimprimir
+        ? `.btn-reimprimir[data-codnfe="${codnfe}"]`
+        : `.btn-pesar[data-box="${box}"]`;
 
-      let novoBotao;
-
-      if (isReimprimir) {
-        novoBotao = document.querySelector(
-          `.btn-reimprimir[data-codnfe="${codnfe}"]`
-        );
-      } else {
-        novoBotao = document.querySelector(`.btn-pesar[data-box="${box}"]`);
-      }
+      const novoBotao = document.querySelector(seletor);
 
       if (novoBotao) {
         novoBotao.focus();
         novoBotao.classList.add("foco-destaque");
-        setTimeout(() => novoBotao.classList.remove("foco-destaque"), 1500);
-        novoBotao.scrollIntoView({ behavior: "smooth", block: "center" });
+
+        // 🧠 Aguarda um pouco antes de remover a classe
+        setTimeout(() => novoBotao.classList.remove("foco-destaque"), 1200);
+
+        // ⚠️ NÃO usar scrollIntoView — isso força rolagem ao topo
+        // novoBotao.scrollIntoView({ behavior: "smooth", block: "center" });
       }
 
-      // Limpa referência apenas após foco real
+      // 💡 Só limpa se o botão realmente foi reencontrado
       ultimoBotaoClicado = null;
-    }, 100);
+    }, 250); // ⏱️ pequeno delay extra para garantir DOM renderizado
   }
 }
 
