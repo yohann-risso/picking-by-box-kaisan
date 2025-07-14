@@ -4024,33 +4024,35 @@ function restaurarFocoBotaoAnterior() {
       ? `.btn-reimprimir[data-codnfe="${codnfe}"]`
       : `.btn-pesar[data-box="${box}"]`;
 
-  let tentativasRestantes = 5;
+  let tentativasRestantes = 10;
 
   const tentativaFoco = () => {
     let botaoAlvo = document.querySelector(seletor);
 
-    // 🧠 Se tipo era "pesar", mas botão virou "reimprimir"
     if (!botaoAlvo && tipo === "pesar") {
       seletor = `.btn-reimprimir[data-codnfe="${codnfe}"]`;
       botaoAlvo = document.querySelector(seletor);
     }
 
     if (botaoAlvo) {
-      botaoAlvo.focus();
-      botaoAlvo.classList.add("foco-destaque");
-      setTimeout(() => botaoAlvo.classList.remove("foco-destaque"), 1200);
-      ultimoBotaoClicado = null; // só limpa após sucesso
+      // Garante que o usuário não já focou manualmente outro botão
+      if (document.activeElement === document.body) {
+        botaoAlvo.focus();
+        botaoAlvo.classList.add("foco-destaque");
+        setTimeout(() => botaoAlvo.classList.remove("foco-destaque"), 1200);
+        ultimoBotaoClicado = null;
+      }
     } else {
       tentativasRestantes--;
       if (tentativasRestantes > 0) {
-        setTimeout(tentativaFoco, 200);
+        setTimeout(tentativaFoco, 50);
       } else {
         console.warn("⚠️ Não foi possível restaurar foco no botão desejado.");
       }
     }
   };
 
-  setTimeout(tentativaFoco, 300);
+  requestAnimationFrame(tentativaFoco);
 }
 
 async function renderizarEAtualizarFoco() {
