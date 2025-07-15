@@ -4195,15 +4195,24 @@ async function atualizarMetaIndividual() {
   barra.textContent = `${feitos}/${metaPorOperador} (${perc}%)`;
 }
 
-const toggleProdutividadeBtn = document.getElementById("painelToggle");
-const painelProd = document.getElementById("painelProdutividade");
+document.getElementById("painelToggle").addEventListener("click", () => {
+  const wrapper = document.getElementById("painelProdutividadeWrapper");
+  const btn = document.getElementById("painelToggle");
 
-toggleProdutividadeBtn?.addEventListener("click", () => {
-  if (painelProd.classList.contains("d-none")) {
-    painelProd.classList.remove("d-none");
-    toggleProdutividadeBtn.textContent = "ESCONDER";
+  if (!wrapper || !btn) return;
+
+  const expandido = wrapper.classList.contains("expandido");
+
+  if (expandido) {
+    wrapper.classList.remove("expandido");
+    btn.textContent = "PRODUTIVIDADE";
+    btn.classList.remove("bg-danger");
+    btn.classList.add("bg-dark");
   } else {
-    painelProd.classList.add("d-none");
-    toggleProdutividadeBtn.textContent = "PRODUTIVIDADE";
+    wrapper.classList.add("expandido");
+    btn.textContent = "ESCONDER PRODUTIVIDADE";
+    btn.classList.remove("bg-dark");
+    btn.classList.add("bg-danger");
   }
 });
+

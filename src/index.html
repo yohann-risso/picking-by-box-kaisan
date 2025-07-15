@@ -98,14 +98,24 @@
           Sair
         </button>
 
+        <!-- Botão toggle -->
         <div
-          id="produtividadeWrapper"
-          class="position-fixed top-0 end-0 mt-5 me-3"
-          style="z-index: 9998"
+          id="painelToggle"
+          class="rounded px-3 py-2 fw-bold text-white bg-dark"
+          style="cursor: pointer; width: fit-content"
+        >
+          PRODUTIVIDADE
+        </div>
+
+        <!-- Painel de produtividade -->
+        <div
+          id="painelProdutividadeWrapper"
+          class="overflow-hidden"
+          style="max-height: 0; transition: max-height 0.5s ease"
         >
           <div
             id="painelProdutividade"
-            class="painel-produtividade d-flex flex-column flex-md-row flex-wrap align-items-center justify-content-between gap-4 mb-3"
+            class="shadow rounded bg-light p-3 border mt-2"
           >
             <!-- Métricas Individuais -->
             <div class="d-flex flex-wrap gap-4 align-items-center">
@@ -154,14 +164,6 @@
               </div>
             </div>
           </div>
-        </div>
-
-        <div
-          id="painelToggle"
-          class="rounded-start text-white fw-bold px-2 py-2 text-nowrap bg-dark"
-          style="cursor: pointer"
-        >
-          PRODUTIVIDADE
         </div>
 
         <div
