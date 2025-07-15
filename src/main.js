@@ -4198,23 +4198,3 @@ async function atualizarMetaIndividual() {
   );
   barra.textContent = `${feitos}/${metaPorOperador} (${perc}%)`;
 }
-
-async function atualizarMetaColetiva() {
-  const { data: todosPedidos } = await supabase
-    .from("pedidos")
-    .select("status")
-    .eq("romaneio", romaneio);
-
-  const total = todosPedidos.length;
-  const pesados = todosPedidos.filter((p) => p.status === "PESADO").length;
-
-  const perc = total > 0 ? Math.round((pesados / total) * 100) : 0;
-
-  const barra = document.getElementById("metaColetivaBarra");
-  barra.style.width = `${perc}%`;
-  barra.className = "progress-bar";
-  barra.classList.add(
-    perc < 60 ? "bg-danger" : perc < 90 ? "bg-warning" : "bg-success"
-  );
-  barra.textContent = `Meta Coletiva: ${pesados}/${total} pedidos (${perc}%)`;
-}
