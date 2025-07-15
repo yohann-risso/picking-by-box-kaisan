@@ -3992,8 +3992,6 @@ async function carregarProdutividadeDoOperador() {
   const { data: pedidosHoje, error: errPedidos } = await supabase
     .from("pedidos")
     .select("id")
-    .gte("data", `${hoje}`)
-    .lte("data", `${hoje}`);
 
   const metaDoDia = pedidosHoje?.length || 0;
   const metaIndividual = Math.ceil(metaDoDia / 4);
