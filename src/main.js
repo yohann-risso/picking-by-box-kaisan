@@ -4126,15 +4126,17 @@ async function obterTotalPedidosPesadosHoje() {
 }
 
 async function carregarTotalPedidosDoDia() {
-  const { data, error } = await supabase.rpc("contar_pedidos_nao_pesados");
+  const { data, error } = await supabase
+    .rpc("contar_pedidos_nao_pesados");
 
   if (error) {
-    console.error("Erro ao contar pedidos via RPC:", error);
+    console.error("Erro ao carregar pedidos do dia via função RPC:", error);
     return 0;
   }
 
-  return data || 0;
+  return data;
 }
+
 
 async function contarPedidosPesadosHoje() {
   const hoje = new Date().toISOString().slice(0, 10);
