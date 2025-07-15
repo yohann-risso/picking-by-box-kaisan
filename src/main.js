@@ -2172,7 +2172,6 @@ document.getElementById("btnFinalizar").addEventListener("click", async () => {
   renderProgressoConferencia();
 
   await atualizarMetaIndividual();
-  await atualizarMetaColetiva();
 });
 
 document
@@ -3644,7 +3643,6 @@ async function pesarPedidoManual() {
     `✅ Pedido ${pedidoId} marcado como PESADO.\n${rastreios.length} rastreio(s) armazenado(s) para ${transportadora}.`
   );
   await atualizarMetaIndividual();
-  await atualizarMetaColetiva();
 }
 
 document
@@ -4018,7 +4016,6 @@ async function carregarProdutividadeDoOperador() {
 
   // 6. Atualiza barras visuais
   await atualizarMetaIndividual();
-  await atualizarMetaColetiva();
 }
 
 function restaurarFocoBotaoAnterior() {
@@ -4094,7 +4091,6 @@ async function registrarPesagem(pedidoId, quantidade, romaneioAtual, operador) {
     await obterTotalPedidosPesadosHoje();
     await carregarProdutividadeDoOperador();
     await atualizarMetaIndividual();
-    await atualizarMetaColetiva();
   }
 }
 
