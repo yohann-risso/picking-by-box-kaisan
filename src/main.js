@@ -2170,6 +2170,9 @@ document.getElementById("btnFinalizar").addEventListener("click", async () => {
   document.getElementById("listaPendentes").innerHTML = "";
 
   renderProgressoConferencia();
+
+  await atualizarMetaIndividual();
+  await atualizarMetaColetiva();
 });
 
 document
@@ -3637,9 +3640,11 @@ async function pesarPedidoManual() {
     }
   });
 
-  alert(
+  toast(
     `✅ Pedido ${pedidoId} marcado como PESADO.\n${rastreios.length} rastreio(s) armazenado(s) para ${transportadora}.`
   );
+  await atualizarMetaIndividual();
+  await atualizarMetaColetiva();
 }
 
 document
@@ -4013,6 +4018,9 @@ async function carregarProdutividadeDoOperador() {
       el.classList.add("text-danger");
     }
   }
+
+  await atualizarMetaIndividual();
+  await atualizarMetaColetiva();
 }
 
 function restaurarFocoBotaoAnterior() {
@@ -4087,6 +4095,8 @@ async function registrarPesagem(pedidoId, quantidade, romaneioAtual, operador) {
     );
     await obterTotalPedidosPesadosHoje();
     await carregarProdutividadeDoOperador();
+    await atualizarMetaIndividual();
+    await atualizarMetaColetiva();
   }
 }
 
@@ -4116,4 +4126,64 @@ async function obterTotalPedidosPesadosHoje() {
     const perc = Math.round((set.size / totalGeral) * 100);
     console.log(`🧑 ${op}: ${set.size} pedidos (${perc}%)`);
   });
+}
+
+async function carregarTotalPedidosDoDia() {
+  const hoje = new Date().toISOString().slice(0, 10);
+  const { data, error } = await supabase
+    .from("pedidos")
+    .select("id")
+    .gte("created_at", `${hoje}T00:00:00`)
+    .lte("created_at", `${hoje}T23:59:59`);
+
+  if (error) {
+    console.error("Erro ao carregar pedidos do dia:", error);
+    return 0;
+  }
+
+  return data.length;
+}
+
+async function atualizarMetaIndividual() {
+  const totalDoDia = await carregarTotalPedidosDoDia();
+  const metaPorOperador = Math.ceil(totalDoDia / 4); // dividimos por 4
+
+  const hoje = new Date().toISOString().slice(0, 10);
+  const { data, error } = await supabase
+    .from("pesagens")
+    .select("pedido")
+    .eq("operador", operador1)
+    .gte("created_at", `${hoje}T00:00:00`)
+    .lte("created_at", `${hoje}T23:59:59`);
+
+  const feitos = new Set(data.map((r) => r.pedido)).size;
+  const perc = Math.round((feitos / metaPorOperador) * 100);
+
+  const barra = document.getElementById("metaProgressoBarra");
+  barra.style.width = `${Math.min(perc, 100)}%`;
+  barra.className = "progress-bar";
+  barra.classList.add(
+    perc < 60 ? "bg-danger" : perc < 90 ? "bg-warning" : "bg-success"
+  );
+  barra.textContent = `${feitos}/${metaPorOperador} (${perc}%)`;
+}
+
+async function atualizarMetaColetiva() {
+  const { data: todosPedidos } = await supabase
+    .from("pedidos")
+    .select("status")
+    .eq("romaneio", romaneio);
+
+  const total = todosPedidos.length;
+  const pesados = todosPedidos.filter((p) => p.status === "PESADO").length;
+
+  const perc = total > 0 ? Math.round((pesados / total) * 100) : 0;
+
+  const barra = document.getElementById("metaColetivaBarra");
+  barra.style.width = `${perc}%`;
+  barra.className = "progress-bar";
+  barra.classList.add(
+    perc < 60 ? "bg-danger" : perc < 90 ? "bg-warning" : "bg-success"
+  );
+  barra.textContent = `Meta Coletiva: ${pesados}/${total} pedidos (${perc}%)`;
 }
