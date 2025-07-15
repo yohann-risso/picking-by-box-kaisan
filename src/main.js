@@ -3990,7 +3990,7 @@ async function carregarProdutividadeDoOperador() {
   // 4. Busca total de pedidos do dia (meta global)
   const { data: pedidosHoje, error: errPedidos } = await supabase
     .from("pedidos")
-    .select("id")
+    .select("id");
 
   const metaDoDia = pedidosHoje?.length || 0;
   const metaIndividual = Math.ceil(metaDoDia / 4);
@@ -4126,12 +4126,10 @@ async function obterTotalPedidosPesadosHoje() {
 }
 
 async function carregarTotalPedidosDoDia() {
-  const hoje = new Date().toISOString().slice(0, 10);
   const { count, error } = await supabase
     .from("pedidos")
     .select("id", { count: "exact", head: true })
-    .gte("data", `${hoje}`)
-    .lte("data", `${hoje}`);
+    .neq("status", "PESADO"); // equivalente a WHERE status != 'PESADO'
 
   if (error) {
     console.error("Erro ao carregar pedidos do dia:", error);
@@ -4140,6 +4138,7 @@ async function carregarTotalPedidosDoDia() {
 
   return count || 0;
 }
+
 
 async function contarPedidosPesadosHoje() {
   const hoje = new Date().toISOString().slice(0, 10);
@@ -4173,8 +4172,6 @@ async function contarPedidosPesadosPorOperador(operador) {
 
   return count || 0;
 }
-
-
 
 async function atualizarMetaIndividual() {
   const totalDoDia = await carregarTotalPedidosDoDia();
