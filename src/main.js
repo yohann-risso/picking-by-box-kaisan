@@ -4007,9 +4007,9 @@ async function carregarProdutividadeDoOperador() {
   document.getElementById("metaTempo").textContent = mediaTempo;
 
   const elResumo = document.getElementById("metaResumoGeral");
-  elResumo.textContent = `Pedidos hoje: ${metaDoDia} (meta ${
+  elResumo.textContent = `Pedidos hoje: ${metaDoDia} (meta ${Math.ceil(
     metaDoDia * 0.8
-  }) — Você: ${pedidosPesadosUnicos}/${metaIndividual} (${percIndividual}%) — Equipe: ${totalPedidosPesadosHoje}/${metaDoDia} (${percEquipe}%)`;
+  )}) — Você: ${pedidosPesadosUnicos}/${metaIndividual} (${percIndividual}%) — Equipe: ${totalPedidosPesadosHoje}/${metaDoDia} (${percEquipe}%)`;
 
   elResumo.classList.remove("text-success", "text-warning", "text-danger");
   if (percIndividual >= 100) elResumo.classList.add("text-success");
