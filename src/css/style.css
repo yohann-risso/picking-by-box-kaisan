@@ -1334,12 +1334,21 @@ button.btn:hover {
   }
 }
 
-#painelProdutividadeWrapper {
+#produtividadeWrapper {
   max-height: 0;
   overflow: hidden;
-  transition: max-height 0.5s ease;
+  transition: max-height 0.4s ease;
+  display: flex;
+  justify-content: center;
 }
 
-#painelProdutividadeWrapper.expandido {
-  max-height: 800px; /* suficiente para mostrar tudo */
+#produtividadeWrapper.expandido {
+  max-height: 500px;
+  /* ajuste conforme altura real do painel */
+}
+
+#painelProdutividade {
+  width: 100%;
+  max-width: 1200px;
+  transition: transform 0.3s ease, opacity 0.3s ease;
 }
