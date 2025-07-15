@@ -4129,16 +4129,15 @@ async function carregarTotalPedidosDoDia() {
   const { count, error } = await supabase
     .from("pedidos")
     .select("id", { count: "exact", head: true })
-    .neq("status", "PESADO"); // equivalente a WHERE status != 'PESADO'
+    .neq("status", "PESADO"); // filtra os que ainda não foram pesados
 
   if (error) {
-    console.error("Erro ao carregar pedidos do dia:", error);
+    console.error("Erro ao contar pedidos:", error);
     return 0;
   }
 
   return count || 0;
 }
-
 
 async function contarPedidosPesadosHoje() {
   const hoje = new Date().toISOString().slice(0, 10);
