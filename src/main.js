@@ -4133,8 +4133,8 @@ async function carregarTotalPedidosDoDia() {
   const { data, error } = await supabase
     .from("pedidos")
     .select("id")
-    .gte("created_at", `${hoje}T00:00:00`)
-    .lte("created_at", `${hoje}T23:59:59`);
+    .gte("data", `${hoje}`)
+    .lte("data", `${hoje}`);
 
   if (error) {
     console.error("Erro ao carregar pedidos do dia:", error);
@@ -4155,6 +4155,11 @@ async function atualizarMetaIndividual() {
     .eq("operador", operador1)
     .gte("created_at", `${hoje}T00:00:00`)
     .lte("created_at", `${hoje}T23:59:59`);
+
+  if (!data || !Array.isArray(data)) {
+    console.warn("Nenhuma pesagem encontrada para o operador.");
+    return;
+  }
 
   const feitos = new Set(data.map((r) => r.pedido)).size;
   const perc = Math.round((feitos / metaPorOperador) * 100);
