@@ -3992,7 +3992,7 @@ async function carregarProdutividadeDoOperador() {
     .from("pedidos")
     .select("id");
 
-  const metaDoDia = pedidosHoje?.length || 0;
+  const metaDoDia = pedidosHoje?.length * 0.8 || 0;
   const metaIndividual = Math.ceil(metaDoDia / 4);
   const percIndividual = metaIndividual
     ? Math.round((pedidosPesadosUnicos / metaIndividual) * 100)
