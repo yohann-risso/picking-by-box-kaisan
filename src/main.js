@@ -3988,11 +3988,10 @@ async function carregarProdutividadeDoOperador() {
   const totalPedidosPesadosHoje = await contarPedidosPesadosHoje();
 
   // 4. Busca total de pedidos do dia (meta global)
-  const { data: pedidosHoje, error: errPedidos } = await supabase
-    .from("pedidos")
-    .select("id");
+  const { data: totalPedidosNaoPesados, error: errPedidos } =
+    await supabase.rpc("contar_pedidos_nao_pesados");
 
-  const metaDoDia = pedidosHoje?.length * 0.8 || 0;
+  const metaDoDia = totalPedidosNaoPesados || 0;
   const metaIndividual = Math.ceil(metaDoDia / 4);
   const percIndividual = metaIndividual
     ? Math.round((pedidosPesadosUnicos / metaIndividual) * 100)
@@ -4008,7 +4007,9 @@ async function carregarProdutividadeDoOperador() {
   document.getElementById("metaTempo").textContent = mediaTempo;
 
   const elResumo = document.getElementById("metaResumoGeral");
-  elResumo.textContent = `Pedidos hoje: ${metaDoDia} (meta ${metaDoDia}) — Você: ${pedidosPesadosUnicos}/${metaIndividual} (${percIndividual}%) — Equipe: ${totalPedidosPesadosHoje}/${metaDoDia} (${percEquipe}%)`;
+  elResumo.textContent = `Pedidos hoje: ${metaDoDia} (meta ${
+    metaDoDia * 0.8
+  }) — Você: ${pedidosPesadosUnicos}/${metaIndividual} (${percIndividual}%) — Equipe: ${totalPedidosPesadosHoje}/${metaDoDia} (${percEquipe}%)`;
 
   elResumo.classList.remove("text-success", "text-warning", "text-danger");
   if (percIndividual >= 100) elResumo.classList.add("text-success");
@@ -4126,8 +4127,7 @@ async function obterTotalPedidosPesadosHoje() {
 }
 
 async function carregarTotalPedidosDoDia() {
-  const { data, error } = await supabase
-    .rpc("contar_pedidos_nao_pesados");
+  const { data, error } = await supabase.rpc("contar_pedidos_nao_pesados");
 
   if (error) {
     console.error("Erro ao carregar pedidos do dia via função RPC:", error);
@@ -4136,7 +4136,6 @@ async function carregarTotalPedidosDoDia() {
 
   return data;
 }
-
 
 async function contarPedidosPesadosHoje() {
   const hoje = new Date().toISOString().slice(0, 10);
