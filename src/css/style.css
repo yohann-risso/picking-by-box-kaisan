@@ -1333,3 +1333,9 @@ button.btn:hover {
     box-shadow: 0 0 0 0 rgba(13, 110, 253, 0.6);
   }
 }
+
+#produtividadeWrapper {
+  right: 0;
+  top: 100px;
+  /* abaixo do header */
+}

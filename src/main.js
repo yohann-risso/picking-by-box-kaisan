@@ -4194,3 +4194,16 @@ async function atualizarMetaIndividual() {
   );
   barra.textContent = `${feitos}/${metaPorOperador} (${perc}%)`;
 }
+
+const toggleProdutividadeBtn = document.getElementById("painelToggle");
+const painelProd = document.getElementById("painelProdutividade");
+
+toggleProdutividadeBtn?.addEventListener("click", () => {
+  if (painelProd.classList.contains("d-none")) {
+    painelProd.classList.remove("d-none");
+    toggleProdutividadeBtn.textContent = "ESCONDER";
+  } else {
+    painelProd.classList.add("d-none");
+    toggleProdutividadeBtn.textContent = "PRODUTIVIDADE";
+  }
+});
