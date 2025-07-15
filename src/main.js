@@ -4126,17 +4126,14 @@ async function obterTotalPedidosPesadosHoje() {
 }
 
 async function carregarTotalPedidosDoDia() {
-  const { count, error } = await supabase
-    .from("pedidos")
-    .select("id", { count: "exact", head: true })
-    .neq("status", "PESADO"); // filtra os que ainda não foram pesados
+  const { data, error } = await supabase.rpc("contar_pedidos_nao_pesados");
 
   if (error) {
-    console.error("Erro ao contar pedidos:", error);
+    console.error("Erro ao contar pedidos via RPC:", error);
     return 0;
   }
 
-  return count || 0;
+  return data || 0;
 }
 
 async function contarPedidosPesadosHoje() {
