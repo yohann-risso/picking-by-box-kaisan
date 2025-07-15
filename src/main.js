@@ -3972,7 +3972,7 @@ async function carregarProdutividadeDoOperador() {
     return;
   }
 
-  const pedidosPesadosUnicos = new Set(pesagensOp.map((r) => r.pedido)).size;
+  const pedidosPesadosUnicos = await contarPedidosPesadosPorOperador(op);
   const pecasPesadas = pesagensOp.reduce(
     (acc, r) => acc + (r.qtde_pecas || 0),
     0
@@ -3985,8 +3985,7 @@ async function carregarProdutividadeDoOperador() {
     .gte("data", `${hoje}T00:00:00`)
     .lte("data", `${hoje}T23:59:59`);
 
-  const totalPedidosPesadosHoje = new Set(pesagensDia.map((p) => p.pedido))
-    .size;
+  const totalPedidosPesadosHoje = await contarPedidosPesadosHoje();
 
   // 4. Busca total de pedidos do dia (meta global)
   const { data: pedidosHoje, error: errPedidos } = await supabase
@@ -4128,9 +4127,9 @@ async function obterTotalPedidosPesadosHoje() {
 
 async function carregarTotalPedidosDoDia() {
   const hoje = new Date().toISOString().slice(0, 10);
-  const { data, error } = await supabase
+  const { count, error } = await supabase
     .from("pedidos")
-    .select("id")
+    .select("id", { count: "exact", head: true })
     .gte("data", `${hoje}`)
     .lte("data", `${hoje}`);
 
@@ -4139,8 +4138,43 @@ async function carregarTotalPedidosDoDia() {
     return 0;
   }
 
-  return data.length;
+  return count || 0;
 }
+
+async function contarPedidosPesadosHoje() {
+  const hoje = new Date().toISOString().slice(0, 10);
+  const { count, error } = await supabase
+    .from("pesagens")
+    .select("pedido", { count: "exact", head: true })
+    .gte("created_at", `${hoje}T00:00:00`)
+    .lte("created_at", `${hoje}T23:59:59`);
+
+  if (error) {
+    console.error("Erro ao contar pedidos pesados hoje:", error);
+    return 0;
+  }
+
+  return count || 0;
+}
+
+async function contarPedidosPesadosPorOperador(operador) {
+  const hoje = new Date().toISOString().slice(0, 10);
+  const { count, error } = await supabase
+    .from("pesagens")
+    .select("pedido", { count: "exact", head: true })
+    .eq("operador", operador)
+    .gte("created_at", `${hoje}T00:00:00`)
+    .lte("created_at", `${hoje}T23:59:59`);
+
+  if (error) {
+    console.error("Erro ao contar pedidos do operador:", error);
+    return 0;
+  }
+
+  return count || 0;
+}
+
+
 
 async function atualizarMetaIndividual() {
   const totalDoDia = await carregarTotalPedidosDoDia();
