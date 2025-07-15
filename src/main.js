@@ -4146,8 +4146,8 @@ async function contarPedidosPesadosHoje() {
   const { count, error } = await supabase
     .from("pesagens")
     .select("pedido", { count: "exact", head: true })
-    .gte("created_at", `${hoje}T00:00:00`)
-    .lte("created_at", `${hoje}T23:59:59`);
+    .gte("data", `${hoje}T00:00:00`)
+    .lte("data", `${hoje}T23:59:59`);
 
   if (error) {
     console.error("Erro ao contar pedidos pesados hoje:", error);
@@ -4163,8 +4163,8 @@ async function contarPedidosPesadosPorOperador(operador) {
     .from("pesagens")
     .select("pedido", { count: "exact", head: true })
     .eq("operador", operador)
-    .gte("created_at", `${hoje}T00:00:00`)
-    .lte("created_at", `${hoje}T23:59:59`);
+    .gte("data", `${hoje}T00:00:00`)
+    .lte("data", `${hoje}T23:59:59`);
 
   if (error) {
     console.error("Erro ao contar pedidos do operador:", error);
