@@ -4206,15 +4206,15 @@ document.getElementById("painelToggle").addEventListener("click", () => {
 
   if (expandido) {
     wrapper.classList.remove("expandido");
-    painel.classList.add("d-none");
     btn.textContent = "PRODUTIVIDADE";
     btn.classList.remove("bg-danger");
     btn.classList.add("bg-dark");
   } else {
-    painel.classList.remove("d-none");
     wrapper.classList.add("expandido");
     btn.textContent = "ESCONDER PRODUTIVIDADE";
     btn.classList.remove("bg-dark");
     btn.classList.add("bg-danger");
   }
 });
+
+
