@@ -3964,8 +3964,8 @@ async function carregarProdutividadeDoOperador() {
     .from("pesagens")
     .select("pedido, qtde_pecas")
     .eq("operador", op)
-    .gte("created_at", `${hoje}T00:00:00`)
-    .lte("created_at", `${hoje}T23:59:59`);
+    .gte("data", `${hoje}T00:00:00`)
+    .lte("data", `${hoje}T23:59:59`);
 
   if (errPes || !pesagensOp) {
     console.warn("Erro ao buscar pesagens:", errPes);
@@ -3982,8 +3982,8 @@ async function carregarProdutividadeDoOperador() {
   const { data: pesagensDia, error: errTodos } = await supabase
     .from("pesagens")
     .select("pedido")
-    .gte("created_at", `${hoje}T00:00:00`)
-    .lte("created_at", `${hoje}T23:59:59`);
+    .gte("data", `${hoje}T00:00:00`)
+    .lte("data", `${hoje}T23:59:59`);
 
   const totalPedidosPesadosHoje = new Set(pesagensDia.map((p) => p.pedido))
     .size;
@@ -4105,8 +4105,8 @@ async function obterTotalPedidosPesadosHoje() {
   const { data, error } = await supabase
     .from("pesagens")
     .select("pedido, operador")
-    .gte("created_at", `${hoje}T00:00:00`)
-    .lte("created_at", `${hoje}T23:59:59`);
+    .gte("data", `${hoje}T00:00:00`)
+    .lte("data", `${hoje}T23:59:59`);
 
   if (error) {
     console.error("Erro ao buscar pesagens:", error);
@@ -4153,8 +4153,8 @@ async function atualizarMetaIndividual() {
     .from("pesagens")
     .select("pedido")
     .eq("operador", operador1)
-    .gte("created_at", `${hoje}T00:00:00`)
-    .lte("created_at", `${hoje}T23:59:59`);
+    .gte("data", `${hoje}T00:00:00`)
+    .lte("data", `${hoje}T23:59:59`);
 
   if (!data || !Array.isArray(data)) {
     console.warn("Nenhuma pesagem encontrada para o operador.");
