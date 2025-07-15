@@ -100,7 +100,7 @@
 
         <div
           id="painelProdutividade"
-          class="px-3 py-3 rounded d-flex flex-column flex-md-row flex-wrap align-items-center justify-content-between gap-3 mb-3"
+          class="px-3 py-3 rounded d-flex flex-column flex-md-row flex-wrap align-items-center justify-content-between gap-4 mb-3"
           style="
             background-color: var(--color-info-bg);
             box-shadow: var(--shadow-sm);
@@ -109,51 +109,49 @@
             font-family: var(--font-default);
           "
         >
-          <!-- Bloco de contadores -->
+          <!-- Métricas Individuais -->
           <div class="d-flex flex-wrap gap-4 align-items-center">
             <div>
               <div class="text-muted small">Romaneios</div>
-              <div id="metaRomaneios" class="fw-bold fs-5 text-center">–</div>
+              <div id="metaRomaneios" class="fw-bold fs-5">–</div>
             </div>
             <div>
               <div class="text-muted small">Pedidos</div>
-              <div id="metaPedidos" class="fw-bold fs-5 text-center">–</div>
+              <div id="metaPedidos" class="fw-bold fs-5">–</div>
             </div>
             <div>
               <div class="text-muted small">Peças</div>
-              <div id="metaPecas" class="fw-bold fs-5 text-center">–</div>
+              <div id="metaPecas" class="fw-bold fs-5">–</div>
             </div>
             <div>
               <div class="text-muted small">Tempo médio</div>
-              <div id="metaTempo" class="fw-bold fs-5 text-center">–</div>
+              <div id="metaTempo" class="fw-bold fs-5">–</div>
             </div>
           </div>
 
           <!-- Desempenho Geral -->
-          <div class="text-center text-md-end">
+          <div class="text-md-end text-center flex-grow-1">
             <div class="text-muted small">Desempenho Geral</div>
             <div
               id="metaResumoGeral"
               class="fw-bold text-nowrap"
-              style="font-size: 0.95rem"
+              style="font-size: 0.92rem"
             >
               –
             </div>
           </div>
 
-          <!-- Barra de progresso individual -->
+          <!-- Meta Individual -->
           <div class="w-100">
-            <div class="d-flex justify-content-between align-items-center">
-              <label class="form-label fw-bold mb-1">Meta Individual</label>
-            </div>
-            <div class="progress" style="height: 26px; border-radius: 0.75rem">
+            <div class="form-label fw-bold mb-1">Meta Individual</div>
+            <div class="progress" style="height: 30px; border-radius: 1rem">
               <div
                 id="metaProgressoBarra"
                 class="progress-bar text-white fw-semibold"
                 role="progressbar"
                 style="width: 0%"
               >
-                <!-- Conteúdo inserido dinamicamente pelo JS -->
+                <!-- será preenchido dinamicamente -->
               </div>
             </div>
           </div>

@@ -3936,89 +3936,89 @@ async function carregarProdutividadeDoOperador() {
   const hoje = new Date().toISOString().slice(0, 10);
   const op = operador1;
 
-  // 1. Busca produtividade do operador atual
-  const { data, error } = await supabase
+  // 1. Busca produtividade (romaneios finalizados)
+  const { data: prodData, error: errProd } = await supabase
     .from("produtividade_operadores")
     .select("*")
     .eq("data", hoje)
     .eq("operador", op);
 
-  if (error || !data) {
-    console.warn("Erro ao buscar produtividade:", error);
+  if (errProd || !prodData) {
+    console.warn("Erro ao buscar produtividade:", errProd);
     return;
   }
 
-  const totalRomaneios = data.length;
-  const totalPedidos = data.reduce((acc, r) => acc + (r.pedidos || 0), 0);
-  const totalPecas = data.reduce((acc, r) => acc + (r.pecas || 0), 0);
-  const totalSegundos = data.reduce((acc, r) => acc + (r.tempo_total || 0), 0);
+  const totalRomaneios = prodData.length;
+  const totalPecas = prodData.reduce((acc, r) => acc + (r.pecas || 0), 0);
+  const tempoTotalSegundos = prodData.reduce(
+    (acc, r) => acc + (r.tempo_total || 0),
+    0
+  );
   const mediaTempoSeg = totalRomaneios
-    ? Math.round(totalSegundos / totalRomaneios)
+    ? Math.round(tempoTotalSegundos / totalRomaneios)
     : 0;
   const mediaTempo = converterSegundosParaString(mediaTempoSeg);
 
-  // Atualiza metas visuais
-  const rom = document.getElementById("metaRomaneios");
-  const ped = document.getElementById("metaPedidos");
-  const pec = document.getElementById("metaPecas");
-  const tmp = document.getElementById("metaTempo");
+  // 2. Busca todos os pedidos pesados hoje pelo operador
+  const { data: pesagensOp, error: errPes } = await supabase
+    .from("pesagens")
+    .select("pedido, qtde_pecas")
+    .eq("operador", op)
+    .gte("created_at", `${hoje}T00:00:00`)
+    .lte("created_at", `${hoje}T23:59:59`);
 
-  rom.textContent = totalRomaneios;
-  ped.textContent = totalPedidos;
-  pec.textContent = totalPecas;
-  tmp.textContent = mediaTempo;
-
-  // Aplica cores por meta
-  [rom, ped, tmp].forEach((el) =>
-    el.classList.remove("text-success", "text-warning", "text-danger")
-  );
-
-  if (totalRomaneios >= 9) rom.classList.add("text-success");
-  else if (totalRomaneios >= 6) rom.classList.add("text-warning");
-  else rom.classList.add("text-danger");
-
-  if (totalPedidos >= 450) ped.classList.add("text-success");
-  else if (totalPedidos >= 300) ped.classList.add("text-warning");
-  else ped.classList.add("text-danger");
-
-  if (mediaTempoSeg <= 40 * 60) tmp.classList.add("text-success");
-  else if (mediaTempoSeg <= 50 * 60) tmp.classList.add("text-warning");
-  else tmp.classList.add("text-danger");
-
-  // 2. Resumo geral do dia (todos operadores)
-  const { data: todos, error: errTodos } = await supabase
-    .from("produtividade_operadores")
-    .select("operador, pedidos")
-    .eq("data", hoje);
-
-  if (!errTodos && todos?.length) {
-    const totalPedidosDoDia = todos.reduce(
-      (acc, r) => acc + (r.pedidos || 0),
-      0
-    );
-    const feitosPorEsse = todos
-      .filter((r) => r.operador === op)
-      .reduce((acc, r) => acc + (r.pedidos || 0), 0);
-    const perc = totalPedidosDoDia
-      ? Math.round((feitosPorEsse / totalPedidosDoDia) * 100)
-      : 0;
-
-    const meta = 1800; // Meta do dia
-    const resumo = `Pedidos pesados hoje: ${totalPedidosDoDia} (meta: ${meta}) — ${op} fez: ${feitosPorEsse} (${perc}%)`;
-
-    const el = document.getElementById("metaResumoGeral");
-    el.textContent = resumo;
-    el.classList.remove("text-success", "text-warning", "text-danger");
-
-    if (perc >= 80) {
-      el.classList.add("text-success");
-    } else if (perc >= 40) {
-      el.classList.add("text-warning");
-    } else {
-      el.classList.add("text-danger");
-    }
+  if (errPes || !pesagensOp) {
+    console.warn("Erro ao buscar pesagens:", errPes);
+    return;
   }
 
+  const pedidosPesadosUnicos = new Set(pesagensOp.map((r) => r.pedido)).size;
+  const pecasPesadas = pesagensOp.reduce(
+    (acc, r) => acc + (r.qtde_pecas || 0),
+    0
+  );
+
+  // 3. Busca todos os pedidos pesados hoje por todos
+  const { data: pesagensDia, error: errTodos } = await supabase
+    .from("pesagens")
+    .select("pedido")
+    .gte("created_at", `${hoje}T00:00:00`)
+    .lte("created_at", `${hoje}T23:59:59`);
+
+  const totalPedidosPesadosHoje = new Set(pesagensDia.map((p) => p.pedido))
+    .size;
+
+  // 4. Busca total de pedidos do dia (meta global)
+  const { data: pedidosHoje, error: errPedidos } = await supabase
+    .from("pedidos")
+    .select("id")
+    .gte("data", `${hoje}`)
+    .lte("data", `${hoje}`);
+
+  const metaDoDia = pedidosHoje?.length || 0;
+  const metaIndividual = Math.ceil(metaDoDia / 4);
+  const percIndividual = metaIndividual
+    ? Math.round((pedidosPesadosUnicos / metaIndividual) * 100)
+    : 0;
+  const percEquipe = metaDoDia
+    ? Math.round((totalPedidosPesadosHoje / metaDoDia) * 100)
+    : 0;
+
+  // 5. Atualiza DOM
+  document.getElementById("metaRomaneios").textContent = totalRomaneios;
+  document.getElementById("metaPedidos").textContent = pedidosPesadosUnicos;
+  document.getElementById("metaPecas").textContent = pecasPesadas;
+  document.getElementById("metaTempo").textContent = mediaTempo;
+
+  const elResumo = document.getElementById("metaResumoGeral");
+  elResumo.textContent = `Pedidos hoje: ${metaDoDia} (meta ${metaDoDia}) — Você: ${pedidosPesadosUnicos}/${metaIndividual} (${percIndividual}%) — Equipe: ${totalPedidosPesadosHoje}/${metaDoDia} (${percEquipe}%)`;
+
+  elResumo.classList.remove("text-success", "text-warning", "text-danger");
+  if (percIndividual >= 100) elResumo.classList.add("text-success");
+  else if (percIndividual >= 70) elResumo.classList.add("text-warning");
+  else elResumo.classList.add("text-danger");
+
+  // 6. Atualiza barras visuais
   await atualizarMetaIndividual();
   await atualizarMetaColetiva();
 }
