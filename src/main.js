@@ -1241,13 +1241,11 @@ function abrirEtiquetaNL({
             display: none !important;
             visibility: hidden !important;
           }
-
           #containerEtiquetasNL,
           #containerEtiquetasNL * {
             display: block !important;
             visibility: visible !important;
           }
-
           #containerEtiquetasNL {
             position: static !important;
             width: 105mm !important;
@@ -1255,14 +1253,12 @@ function abrirEtiquetaNL({
             margin: 0 auto !important;
             background: white !important;
           }
-
           .modal-backdrop,
           .modal,
           .btn,
           .btn-imprimir-individual {
             display: none !important;
           }
-
           .etiqueta-nl-print {
             width: 105mm !important;
             height: 148mm !important;
@@ -1327,17 +1323,18 @@ function abrirEtiquetaNL({
         .etiqueta-nl-print .resumo td:nth-child(2) { color: red; font-weight: bold; }
         .etiqueta-nl-print .resumo td:nth-child(4) { color: green; font-weight: bold; }
 
-        .qrcode-container {
+        .barcode-container {
           position: absolute;
           top: 10mm;
           right: 10mm;
-        }
-
-        .qrcode-nl {
-          width: 150px;
-          height: 150px;
+          width: 120px;
+          height: 60px;
         }
       </style>
+
+      <div class="barcode-container">
+        <svg id="barcode-individual-${pedido}"></svg>
+      </div>
 
       <h3 style="text-align:center;">RELATÓRIO NL</h3>
       <div><strong>Pedido: ${pedido}</strong></div>
@@ -1386,6 +1383,23 @@ function abrirEtiquetaNL({
         <button onclick="window.print()" class="btn btn-sm btn-primary">🖨️ Imprimir</button>
         <button onclick="document.getElementById('etiquetaModalNL').style.display = 'none'" class="btn btn-sm btn-secondary">Fechar</button>
       </div>
+
+      <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+      <script>
+        window.onload = () => {
+          const svg = document.getElementById("barcode-individual-${pedido}");
+          if (svg && window.JsBarcode) {
+            JsBarcode(svg, "${pedido}", {
+              format: "CODE128",
+              displayValue: true,
+              fontSize: 14,
+              height: 40,
+              width: 2,
+              margin: 0
+            });
+          }
+        };
+      </script>
     </div>
   `;
 
@@ -1410,9 +1424,6 @@ function abrirMultiplasEtiquetasNL(lista) {
       qtdeConferida,
     } = dados;
 
-    const codNfe = codNfeMap[pedido];
-    const linkPesagem = `https://ge.kaisan.com.br/index2.php?page=nfe_pedido/pesa_automatico_pedido&cod_nfe_pedido=${codNfe}`;
-
     const operadores = operador2 ? `${operador1} e ${operador2}` : operador1;
 
     const tabelaProdutos =
@@ -1424,9 +1435,9 @@ function abrirMultiplasEtiquetasNL(lista) {
       );
 
     etiquetasHtml += `
-      <div class="etiqueta-nl-print" data-pedido="${pedido}" data-url="${linkPesagem}">
-        <div class="qrcode-container">
-          <canvas id="qr-${pedido}" width="150" height="150"></canvas>
+      <div class="etiqueta-nl-print" data-pedido="${pedido}">
+        <div class="barcode-container">
+          <svg id="barcode-${pedido}"></svg>
         </div>
         <h3>RELATÓRIO NL</h3>
         <div><strong>Pedido:</strong> ${pedido}</div>
@@ -1468,7 +1479,7 @@ function abrirMultiplasEtiquetasNL(lista) {
     <html>
       <head>
         <title>Etiquetas NL</title>
-        <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
         <style>
           @page {
             size: 105mm 148mm;
@@ -1489,10 +1500,12 @@ function abrirMultiplasEtiquetasNL(lista) {
             overflow: hidden;
             position: relative;
           }
-          .qrcode-container {
+          .barcode-container {
             position: absolute;
             top: 10mm;
             right: 10mm;
+            width: 120px;
+            height: 60px;
           }
           h3 {
             text-align: center;
@@ -1527,11 +1540,15 @@ function abrirMultiplasEtiquetasNL(lista) {
             const etiquetas = document.querySelectorAll(".etiqueta-nl-print");
             etiquetas.forEach((el) => {
               const pedido = el.dataset.pedido;
-              const url = el.dataset.url;
-              const canvas = document.getElementById("qr-" + pedido);
-              if (canvas && window.QRCode) {
-                QRCode.toCanvas(canvas, url, { width: 64 }, (err) => {
-                  if (err) console.error("Erro ao gerar QRCode:", err);
+              const svg = document.getElementById("barcode-" + pedido);
+              if (svg && window.JsBarcode) {
+                JsBarcode(svg, pedido, {
+                  format: "CODE128",
+                  displayValue: true,
+                  fontSize: 14,
+                  height: 40,
+                  width: 2,
+                  margin: 0,
                 });
               }
             });
