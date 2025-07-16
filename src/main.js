@@ -3598,6 +3598,15 @@ async function pesarPedidoManual() {
 
   await registrarProdutividadeOperadores();
 
+  const { data: qtdData } = await supabase
+    .from("produtos_pedido")
+    .select("qtd")
+    .eq("pedido_id", pedidoId);
+
+  const totalPecas = qtdData?.reduce((acc, r) => acc + (r.qtd || 0), 0) || 0;
+
+  await registrarPesagem(pedidoId, totalPecas, romaneio, operador1);
+
   // 3. Abre GE
   const url = `https://ge.kaisan.com.br/index2.php?page=nfe_pedido/pesa_automatico_pedido&cod_nfe_pedido=${codNfe}`;
   window.open(url, "_blank");
@@ -4216,5 +4225,3 @@ document.getElementById("painelToggle").addEventListener("click", () => {
     btn.classList.add("bg-danger");
   }
 });
-
-
