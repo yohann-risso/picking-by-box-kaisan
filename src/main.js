@@ -1324,11 +1324,11 @@ function abrirEtiquetaNL({
         .etiqueta-nl-print .resumo td:nth-child(4) { color: green; font-weight: bold; }
 
         .barcode-container {
-          position: absolute;
-          top: 10mm;
-          right: 10mm;
-          width: 120px;
-          height: 60px;
+          position: relative;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          margin: 8px 0;
         }
       </style>
 
@@ -1499,13 +1499,6 @@ function abrirMultiplasEtiquetasNL(lista) {
             font-size: 10pt;
             overflow: hidden;
             position: relative;
-          }
-          .barcode-container {
-            position: absolute;
-            top: 10mm;
-            right: 10mm;
-            width: 120px;
-            height: 60px;
           }
           h3 {
             text-align: center;
