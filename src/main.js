@@ -1531,6 +1531,18 @@ function abrirMultiplasEtiquetasNL(lista) {
           }
           .resumo td:nth-child(2) { color: red; font-weight: bold; }
           .resumo td:nth-child(4) { color: green; font-weight: bold; }
+          .barcode-container {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 8px 0;
+          }
+
+          .barcode-container svg {
+            width: 80%;
+            height: 60px;
+          }
         </style>
       </head>
       <body>
@@ -1546,8 +1558,6 @@ function abrirMultiplasEtiquetasNL(lista) {
                   format: "CODE128",
                   displayValue: true,
                   fontSize: 14,
-                  height: 40,
-                  width: 2,
                   margin: 0,
                 });
               }
