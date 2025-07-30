@@ -1356,8 +1356,20 @@ button.btn:hover {
 }
 
 .tooltip-inner {
-  padding: 4px;
+  padding: 8px 10px;
   background-color: #fff !important;
   border: 1px solid #ccc;
-  max-width: none;
+  border-radius: 6px;
+  max-width: 360px;
+  white-space: normal;
+  color: var(--color-text);
+  text-align: left;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.tooltip-inner img {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
 }
