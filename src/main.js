@@ -1081,18 +1081,25 @@ function renderPendentes() {
     const row = document.createElement("tr");
     row.innerHTML = `
       <td>
-  <span
-    data-bs-toggle="tooltip"
-    data-bs-html="true"
-    title="<img src='${
-      imagensRef[sku?.trim().toUpperCase()] ||
-      "https://via.placeholder.com/80?text=Sem+Imagem"
-    }' style='max-width:120px;max-height:120px;' />"
-    style="cursor: help"
-  >
-    ${sku || "SEM SKU"}
-  </span>
-</td>
+        <span
+          data-bs-toggle="tooltip"
+          data-bs-html="true"
+          title="<div style='display:flex; gap:8px; align-items:center;'>
+            <img src='${
+              imagensRef[sku?.trim().toUpperCase()] ||
+              "https://via.placeholder.com/80?text=Sem+Imagem"
+            }' style='max-width:80px; max-height:80px; border:1px solid #ccc; border-radius:4px;' />
+            <div style='max-width:240px;'>
+              <div style='font-weight:bold;'>${sku}</div>
+              <div>${descricao || "Sem descrição"}</div>
+              <div style='font-size:0.85em; color:#555;'>${colecao || "—"}</div>
+            </div>
+          </div>"
+          style="cursor: help;"
+        >
+          ${sku || "SEM SKU"}
+        </span>
+      </td>
       <td><span class="badge bg-dark">${qtd}</span></td>
       <td>${pedido || "-"}</td>
       <td>
