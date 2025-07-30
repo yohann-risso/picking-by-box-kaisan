@@ -1080,7 +1080,19 @@ function renderPendentes() {
 
     const row = document.createElement("tr");
     row.innerHTML = `
-      <td>${sku || "SEM SKU"}</td>
+      <td>
+  <span
+    data-bs-toggle="tooltip"
+    data-bs-html="true"
+    title="<img src='${
+      imagensRef[sku?.trim().toUpperCase()] ||
+      "https://via.placeholder.com/80?text=Sem+Imagem"
+    }' style='max-width:120px;max-height:120px;' />"
+    style="cursor: help"
+  >
+    ${sku || "SEM SKU"}
+  </span>
+</td>
       <td><span class="badge bg-dark">${qtd}</span></td>
       <td>${pedido || "-"}</td>
       <td>
