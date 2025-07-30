@@ -1346,10 +1346,18 @@ button.btn:hover {
 }
 
 #produtividadeWrapper.expandido {
-  max-height: 500px; /* Ajuste conforme necessário */
+  max-height: 500px;
+  /* Ajuste conforme necessário */
 }
 
 #painelProdutividade {
   width: 100%;
   max-width: 900px;
+}
+
+.tooltip-inner {
+  padding: 4px;
+  background-color: #fff !important;
+  border: 1px solid #ccc;
+  max-width: none;
 }
