@@ -1045,7 +1045,7 @@ function renderPendentes() {
   const table = document.createElement("table");
   table.className = "table table-bordered table-sm align-middle mb-0";
   table.innerHTML = `
-    <thead class="table-light" style="text-align: center">
+    <thead class="table-light text-center">
       <tr>
         <th>SKU</th>
         <th>Qtde.</th>
@@ -1058,44 +1058,50 @@ function renderPendentes() {
 
   const tbody = table.querySelector("tbody");
 
-  listaOrdenada.forEach(({ sku, qtd, pedido, endereco }) => {
-    const enderecos = (endereco || "SEM LOCAL")
-      .split(/\s*•\s*/)
-      .map((e) => e.trim())
-      .filter(Boolean);
+  listaOrdenada.forEach(
+    ({ sku, qtd, pedido, endereco, descricao, colecao }) => {
+      const skuNorm = sku?.trim().toUpperCase();
+      const enderecos = (endereco || "SEM LOCAL")
+        .split(/\s*•\s*/)
+        .map((e) => e.trim())
+        .filter(Boolean);
 
-    const primeiro = enderecos[0] || "SEM LOCAL";
-    const tooltip = enderecos.join(" • ").replace(/"/g, "&quot;");
+      const primeiro = enderecos[0] || "SEM LOCAL";
+      const tooltipEndereco = enderecos.join(" • ").replace(/"/g, "&quot;");
 
-    let badgeClass = "badge-endereco badge-endereco-localizado";
-    let badgeIcon = "📦";
+      let badgeClass = "badge-endereco badge-endereco-localizado";
+      let badgeIcon = "📦";
+      if (primeiro === "SEM LOCAL") {
+        badgeClass = "badge-endereco badge-endereco-sem-local";
+        badgeIcon = "❌";
+      } else if (primeiro.toUpperCase() === "PRÉ-VENDA") {
+        badgeClass = "badge-endereco badge-endereco-pre-venda";
+        badgeIcon = "⏳";
+      }
 
-    if (primeiro === "SEM LOCAL") {
-      badgeClass = "badge-endereco badge-endereco-sem-local";
-      badgeIcon = "❌";
-    } else if (primeiro.toUpperCase() === "PRÉ-VENDA") {
-      badgeClass = "badge-endereco badge-endereco-pre-venda";
-      badgeIcon = "⏳";
-    }
+      const tooltipHtml = `
+      <div style='display:flex; gap:8px; align-items:center;'>
+        <img src='${
+          imagensRef[skuNorm] ||
+          "https://via.placeholder.com/80?text=Sem+Imagem"
+        }'
+             style='max-width:80px; max-height:80px; border:1px solid #ccc; border-radius:4px;' />
+        <div style='max-width:240px;'>
+          <div style='font-weight:bold;'>${sku}</div>
+          <div>${descricao || "Sem descrição"}</div>
+          <div style='font-size:0.85em; color:#555;'>${colecao || "—"}</div>
+        </div>
+      </div>
+    `.replace(/"/g, "&quot;"); // Escapa aspas para o atributo title
 
-    const row = document.createElement("tr");
-    row.innerHTML = `
+      const row = document.createElement("tr");
+      row.innerHTML = `
       <td>
         <span
           data-bs-toggle="tooltip"
           data-bs-html="true"
-          title="<div style='display:flex; gap:8px; align-items:center;'>
-            <img src='${
-              imagensRef[sku?.trim().toUpperCase()] ||
-              "https://via.placeholder.com/80?text=Sem+Imagem"
-            }' style='max-width:80px; max-height:80px; border:1px solid #ccc; border-radius:4px;' />
-            <div style='max-width:240px;'>
-              <div style='font-weight:bold;'>${sku}</div>
-              <div>${descricao || "Sem descrição"}</div>
-              <div style='font-size:0.85em; color:#555;'>${colecao || "—"}</div>
-            </div>
-          </div>"
-          style="cursor: help;"
+          title="${tooltipHtml}"
+          style="cursor: help"
         >
           ${sku || "SEM SKU"}
         </span>
@@ -1103,16 +1109,19 @@ function renderPendentes() {
       <td><span class="badge bg-dark">${qtd}</span></td>
       <td>${pedido || "-"}</td>
       <td>
-        <span class="badge ${badgeClass} badge-endereco"
-              data-bs-toggle="tooltip"
-              data-bs-placement="top"
-              title="${tooltip}">
+        <span
+          class="badge ${badgeClass} badge-endereco"
+          data-bs-toggle="tooltip"
+          data-bs-placement="top"
+          title="${tooltipEndereco}"
+        >
           ${badgeIcon} ${primeiro}
         </span>
       </td>
     `;
-    tbody.appendChild(row);
-  });
+      tbody.appendChild(row);
+    }
+  );
 
   lista.appendChild(table);
 
