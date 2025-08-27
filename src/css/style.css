@@ -863,6 +863,7 @@ input::placeholder {
 
 [data-theme="dark"] .badge-box {
   background-color: var(--color-primary-dark);
+  color: var(--color-white);
 }
 
 .card-info,
