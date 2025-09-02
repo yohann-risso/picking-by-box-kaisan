@@ -1096,29 +1096,24 @@ function renderPendentes() {
 
       const row = document.createElement("tr");
       row.innerHTML = `
-      <td>
-        <span
-          data-bs-toggle="tooltip"
-          data-bs-html="true"
-          title="${tooltipHtml}"
-          style="cursor: help"
-        >
-          ${sku || "SEM SKU"}
-        </span>
-      </td>
-      <td><span class="badge bg-dark">${qtd}</span></td>
-      <td>${pedido || "-"}</td>
-      <td>
-        <span
-          class="badge ${badgeClass} badge-endereco"
-          data-bs-toggle="tooltip"
-          data-bs-placement="top"
-          title="${tooltipEndereco}"
-        >
-          ${badgeIcon} ${primeiro}
-        </span>
-      </td>
-    `;
+        <td>
+          <span data-bs-toggle="tooltip" data-bs-html="true" title="${tooltipHtml}">
+            ${sku || "SEM SKU"}
+          </span>
+        </td>
+        <td><span class="badge bg-dark">${qtd}</span></td>
+        <td>${pedido || "-"}</td>
+        <td>
+          <span 
+            id="addr-${pedido}-${skuNorm}" 
+            class="badge ${badgeClass} badge-endereco"
+            data-bs-toggle="tooltip"
+            data-bs-placement="top"
+            title="${tooltipEndereco}">
+            ${badgeIcon} ${primeiro}
+          </span>
+        </td>
+      `;
       tbody.appendChild(row);
     }
   );
@@ -3578,16 +3573,28 @@ document
     if (!confirmacao) return;
 
     try {
-      for (let p of pendentes) {
+      // 1) coloca loader em todos de uma vez
+      pendentes.forEach((p) => {
         const skuNorm = p.sku?.trim().toUpperCase();
-        if (!skuNorm) continue;
-        p.endereco = await buscarEnderecosPorSku(skuNorm);
-      }
+        if (skuNorm) setLoaderOnEndereco(p.pedido, skuNorm);
+      });
 
-      // Atualiza localStorage e UI
+      // 2) dispara todas as buscas em paralelo
+      const promises = pendentes.map(async (p) => {
+        const skuNorm = p.sku?.trim().toUpperCase();
+        if (!skuNorm) return;
+        const novoEndereco = await buscarEnderecosPorSku(skuNorm);
+        p.endereco = novoEndereco;
+        setEnderecoFinal(p.pedido, skuNorm, novoEndereco);
+      });
+
+      // 3) aguarda todas finalizarem
+      await Promise.all(promises);
+
+      // 4) salva no localStorage
       localStorage.setItem(`pendentes-${romaneio}`, JSON.stringify(pendentes));
-      renderPendentes();
-      alert("✅ Endereços atualizados via GAS!");
+
+      alert("✅ Endereços atualizados com sucesso!");
     } catch (err) {
       console.error("Erro ao atualizar endereços:", err);
       alert("❌ Erro ao atualizar endereços.");
@@ -4278,5 +4285,25 @@ async function buscarEnderecosPorSku(sku) {
   } catch (err) {
     console.error("❌ Erro no GAS:", err);
     return "SEM LOCAL";
+  }
+}
+
+function setLoaderOnEndereco(pedido, sku) {
+  const el = document.getElementById(
+    `addr-${pedido}-${sku.trim().toUpperCase()}`
+  );
+  if (el) {
+    el.innerHTML = `<div class="spinner-border spinner-border-sm text-secondary" role="status"></div>`;
+  }
+}
+
+function setEnderecoFinal(pedido, sku, endereco) {
+  const el = document.getElementById(
+    `addr-${pedido}-${sku.trim().toUpperCase()}`
+  );
+  if (el) {
+    el.textContent = endereco || "SEM LOCAL";
+    el.classList.remove("bg-secondary", "bg-warning", "bg-danger");
+    el.classList.add(endereco === "SEM LOCAL" ? "bg-danger" : "bg-success");
   }
 }
