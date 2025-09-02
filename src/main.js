@@ -3578,23 +3578,16 @@ document
     if (!confirmacao) return;
 
     try {
-      // Força atualização ignorando cache
-      localStorage.removeItem("enderecamentos-cache");
-      localStorage.removeItem("enderecamentos-cache-timestamp");
-
-      mapaEnderecos = await carregarEnderecosComCache();
-
-      // Atualiza objetos em `pendentes`
-      pendentes.forEach((p) => {
-        const key = p.sku?.trim().toUpperCase();
-        const lista = mapaEnderecos[key] || [];
-        p.endereco = lista.length ? lista.join(" • ") : "SEM LOCAL";
-      });
+      for (let p of pendentes) {
+        const skuNorm = p.sku?.trim().toUpperCase();
+        if (!skuNorm) continue;
+        p.endereco = await buscarEnderecosPorSku(skuNorm);
+      }
 
       // Atualiza localStorage e UI
       localStorage.setItem(`pendentes-${romaneio}`, JSON.stringify(pendentes));
       renderPendentes();
-      alert("✅ Endereços atualizados com sucesso!");
+      alert("✅ Endereços atualizados via GAS!");
     } catch (err) {
       console.error("Erro ao atualizar endereços:", err);
       alert("❌ Erro ao atualizar endereços.");
@@ -4273,3 +4266,17 @@ document.getElementById("painelToggle").addEventListener("click", () => {
     btn.classList.add("bg-danger");
   }
 });
+
+async function buscarEnderecosPorSku(sku) {
+  const url = `https://script.google.com/macros/s/AKfycbzEYYSWfRKYGxAkNFBBV9C6qlMDXlDkEQIBNwKOtcvGEdbl4nfaHD5usa89ZoV2gMcEgA/exec?sku=${encodeURIComponent(
+    sku
+  )}`;
+  try {
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error(`Erro HTTP ${resp.status}`);
+    return await resp.text(); // exemplo: "A1-01 • A1-02"
+  } catch (err) {
+    console.error("❌ Erro no GAS:", err);
+    return "SEM LOCAL";
+  }
+}
