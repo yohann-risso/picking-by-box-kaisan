@@ -1,0 +1,257 @@
+/* ===== patch.css — overrides para cores, grid e acessibilidade ===== */
+
+/* Warning tokens que faltavam */
+:root{
+  --color-warning: #ffc107;
+  --color-warning-dark: #d39e00;
+  --color-warning-contrast: #212529; /* texto sobre warning */
+}
+[data-theme="dark"]{
+  /* mantém a mesma matiz (boa) com leve escurecida opcional */
+  --color-warning: #e0a800;
+  --color-warning-dark: #b98c00;
+  --color-warning-contrast: #1a1d20;
+}
+
+/* Placeholders legíveis em ambos temas */
+:root {
+    --placeholder: #6b7280;
+}
+
+[data-theme="dark"] {
+    --placeholder: #9aa4b2;
+}
+
+input::placeholder,
+textarea::placeholder {
+    color: var(--placeholder) !important;
+    opacity: 1 !important;
+}
+
+/* #boxContainer: garantir GRID (havia flex em style.css) */
+#boxContainer {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)) !important;
+    gap: var(--space-sm) !important;
+    padding: var(--space-sm) !important;
+}
+
+/* Transições consolidadas + suporte a prefers-reduced-motion */
+:root {
+    --interactive-scale: 1.02;
+    --interactive-press: .98;
+}
+
+.btn,
+input,
+select,
+textarea,
+.card-produto,
+.badge-endereco,
+.badge-box,
+.card-info {
+    transition:
+        background-color var(--transition-base),
+        color var(--transition-base),
+        border-color var(--transition-base),
+        box-shadow var(--transition-base),
+        transform var(--transition-base);
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+    .btn,
+    input,
+    select,
+    textarea,
+    .card-produto,
+    .badge-endereco,
+    .badge-box,
+    .card-info {
+        transition: none !important;
+    }
+
+    .btn:hover,
+    .btn:focus,
+    .card-produto:hover,
+    .card-produto:focus-within,
+    .badge-endereco:hover,
+    .badge-box:hover {
+        transform: none !important;
+        box-shadow: none !important;
+    }
+}
+
+/* Hovers/active centralizados (evita blocos repetidos) */
+.btn:hover,
+.btn:focus,
+.card-produto:hover,
+.card-produto:focus-within,
+.badge-endereco:hover,
+.badge-box:hover {
+    transform: scale(var(--interactive-scale));
+    box-shadow: var(--shadow-md);
+}
+
+.btn:active,
+.card-produto:active {
+    transform: scale(var(--interactive-press));
+    box-shadow: var(--shadow-sm);
+}
+
+/* Inputs: focus/hover consistentes */
+input:hover,
+select:hover,
+textarea:hover {
+    border-color: var(--color-primary) !important;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+    outline: 2px solid var(--color-primary) !important;
+    border-color: var(--color-primary) !important;
+    box-shadow: 0 0 0 3px rgb(28 63 96 / 20%) !important;
+}
+
+input:active,
+select:active,
+textarea:active {
+    background-color: var(--color-primary-light);
+}
+
+/* Card-number: suavizar sombras escuras */
+.card-produto .card-number {
+    background-color: var(--color-primary-dark);
+    color: var(--color-white);
+    box-shadow: 0 0 8px rgb(0 0 0 / 60%);
+    text-shadow: 0 0 4px rgb(0 0 0 / 60%);
+}
+
+/* Painéis/Cartões no dark: fundo claro + borda sutil */
+[data-theme="dark"] .box-wrapper,
+[data-theme="dark"] #resumoCard,
+[data-theme="dark"] #resumoRomaneio,
+[data-theme="dark"] .modal-content {
+    background-color: var(--color-white);
+    color: var(--color-text);
+    border: 1px solid var(--color-info-border);
+    box-shadow: 0 0 10px rgb(255 255 255 / 5%);
+}
+
+/* Badges ancoradas em tokens */
+.badge-endereco-localizado {
+    background-color: var(--color-primary) !important;
+    color: var(--color-white) !important;
+}
+
+[data-theme="dark"] .badge-endereco-localizado {
+    background-color: var(--color-primary-dark) !important;
+}
+
+.badge-endereco-sem-local {
+    background-color: var(--color-danger) !important;
+    color: var(--color-white) !important;
+}
+
+[data-theme="dark"] .badge-endereco-sem-local {
+    background-color: var(--color-danger-dark) !important;
+}
+
+.badge-box {
+    background-color: var(--color-primary) !important;
+    color: var(--color-white) !important;
+}
+
+[data-theme="dark"] .badge-box {
+    background-color: var(--color-primary-dark) !important;
+}
+
+/* Tabela de resumo — manter consistência */
+.destacar-remessa {
+    background-color: var(--color-black) !important;
+    color: var(--color-white) !important;
+}
+
+.destacar-nl {
+    background-color: #801414 !important;
+    color: var(--color-white) !important;
+}
+
+.destacar-pesado {
+    background-color: #5a9927 !important;
+    color: var(--color-white) !important;
+}
+
+/* Barra de progresso + badge única (removendo duplicidades) */
+#progressoConferencia {
+    border-radius: 1rem;
+    background-color: var(--color-success) !important;
+}
+
+.progress-container {
+    background: rgb(255 255 255 / 70%);
+    border: 1px solid var(--color-info-border);
+    position: relative;
+}
+
+.progress-badge {
+    position: absolute;
+    top: -18px;
+    left: 10px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: .8rem;
+    line-height: 1.2;
+    color: var(--color-white);
+    background-color: var(--color-success);
+    box-shadow: 0 2px 6px rgb(0 0 0 / 20%);
+    text-align: center;
+    min-width: 64px;
+    z-index: 2;
+    transition: background-color .3s ease;
+}
+
+/* Cronômetro no dark: borda sutil */
+[data-theme="dark"] #cronometroModal {
+    background: rgb(30 30 30 / 55%);
+    border: 1px solid var(--color-info-border);
+}
+
+/* Tooltips ricas: remover limite e manter contraste */
+.tooltip-inner {
+    max-width: none !important;
+    color: var(--color-text);
+    background: var(--color-white) !important;
+    border: 1px solid var(--color-info-border) !important;
+}
+
+/* === Ajustes de coerência com tokens (append) === */
+
+/* Footer no tema escuro (garante paleta) */
+[data-theme="dark"] footer{
+  background-color: var(--color-bg) !important;
+  color: var(--color-text) !important;
+}
+[data-theme="dark"] footer hr{
+  border-color: var(--color-info-border) !important;
+}
+
+/* Opcional: harmonizar superfícies claras Bootstrap no dark (descomente se quiser tudo escuro) */
+/*
+[data-theme="dark"] .bg-white,
+[data-theme="dark"] .bg-light,
+[data-theme="dark"] .table-light{
+  background-color: #1c1f24 !important;
+  color: var(--color-text) !important;
+  border-color: var(--color-info-border) !important;
+}
+*/
+
+/* Badge de progresso (já padronizada), só garantindo contraste se mudar cor por classe */
+.progress-badge{ color: var(--color-white) }
+
+/* Barra de progresso: classes semânticas que seu JS pode alternar */
+.progress-bar.is-danger  { background-color: var(--color-danger)  !important; }
+.progress-bar.is-warning { background-color: var(--color-warning)!important; color: var(--color-warning-contrast) }
+.progress-bar.is-success { background-color: var(--color-success)!important; }

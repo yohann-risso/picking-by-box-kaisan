@@ -1082,10 +1082,9 @@ function renderPendentes() {
       const tooltipHtml = `
       <div style='display:flex; gap:8px; align-items:flex-start;'>
         <img src='${
-          imagensRef[skuNorm] ||
-          "https://via.placeholder.com/154x231?text=Sem+Imagem"
+          imagensRef[skuNorm] || "https://via.placeholder.com/154x231?text=Sem+Imagem"
         }'
-          style='width:154px;height:231px;object-fit:cover;border:1px solid #ccc;border-radius:4px;background:#fff;' />
+          style='width:154px;height:231px;object-fit:cover;border:1px solid var(--color-info-border);border-radius:4px;background:var(--color-white);' />
         <div style='max-width:240px;'>
           <div style='font-weight:bold;'>${sku}</div>
           <div>${descricao || "Sem descrição"}</div>
@@ -3334,33 +3333,23 @@ document
   });
 
 function atualizarProgresso(pecasBipadas, totalPecas) {
-  const percentual =
-    totalPecas > 0 ? Math.round((pecasBipadas / totalPecas) * 100) : 0;
   const barra = document.getElementById("progressoConferencia");
   const label = document.getElementById("labelProgresso");
-  const bolha = document.getElementById("bolhaProgresso");
+  if (!barra || !label) return;
 
-  // Atualiza a largura da barra
+  const percentual =
+    totalPecas > 0 ? Math.round((pecasBipadas / totalPecas) * 100) : 0;
+
+  // largura + label
   barra.style.width = `${percentual}%`;
   barra.setAttribute("aria-valuenow", percentual);
-
-  // Atualiza o texto no centro da barra
   label.textContent = `${pecasBipadas} de ${totalPecas} peças (${percentual}%)`;
 
-  // Atualiza a bolha lateral
-  bolha.innerHTML = `<span><strong>${percentual}%</strong><br><small>(${pecasBipadas}/${totalPecas})</small></span>`;
-
-  // Cores semânticas
-  if (percentual < 40) {
-    barra.style.backgroundColor = "#dc3545"; // vermelho
-    bolha.style.backgroundColor = "#dc3545";
-  } else if (percentual < 80) {
-    barra.style.backgroundColor = "#ffc107"; // amarelo
-    bolha.style.backgroundColor = "#ffc107";
-  } else {
-    barra.style.backgroundColor = "#198754"; // verde
-    bolha.style.backgroundColor = "#198754";
-  }
+  // remove classes antigas e aplica a certa
+  barra.classList.remove("is-danger", "is-warning", "is-success");
+  if (percentual < 40) barra.classList.add("is-danger");
+  else if (percentual < 80) barra.classList.add("is-warning");
+  else barra.classList.add("is-success");
 }
 
 function calcularPecasTotaisEBipadas() {
@@ -3370,21 +3359,20 @@ function calcularPecasTotaisEBipadas() {
 }
 
 function atualizarProgressoPro(bipado, total, inicioTimestamp = null) {
-  const perc = total > 0 ? Math.round((bipado / total) * 100) : 0;
   const barra = document.getElementById("progressoConferencia");
   const label = document.getElementById("labelProgresso");
-  const bolha = document.getElementById("bolhaProgresso");
-  const tempoRestante = document.getElementById("tempoRestante");
-  const eficienciaEl = document.getElementById("eficienciaProgresso");
+  if (!barra || !label) return;
+
+  const perc = total > 0 ? Math.round((bipado / total) * 100) : 0;
 
   barra.style.width = `${perc}%`;
   barra.setAttribute("aria-valuenow", perc);
   label.textContent = `${bipado} de ${total} peças (${perc}%)`;
-  // Cores por progresso
-  let cor = "#198754"; // verde
-  if (perc < 40) cor = "#dc3545";
-  else if (perc < 80) cor = "#ffc107";
-  barra.style.backgroundColor = cor;
+
+  barra.classList.remove("is-danger", "is-warning", "is-success");
+  if (perc < 40) barra.classList.add("is-danger");
+  else if (perc < 80) barra.classList.add("is-warning");
+  else barra.classList.add("is-success");
 }
 
 async function obterCodRastreio(pedidos) {
@@ -3456,13 +3444,13 @@ function mostrarModalDeTextoCopiavel(texto, metodo) {
   modal.style.top = "10%";
   modal.style.left = "50%";
   modal.style.transform = "translateX(-50%)";
-  modal.style.background = "#fff";
-  modal.style.border = "1px solid #ccc";
+  modal.style.background = "var(--color-white)";
+  modal.style.border = "1px solid var(--color-info-border)";
   modal.style.padding = "20px";
   modal.style.zIndex = "9999";
   modal.style.width = "90%";
   modal.style.maxWidth = "600px";
-  modal.style.boxShadow = "0 0 10px rgba(0,0,0,0.3)";
+  modal.style.boxShadow = "0 0 10px rgb(0 0 0 / 30%)";
   modal.style.borderRadius = "8px";
 
   modal.innerHTML = `
