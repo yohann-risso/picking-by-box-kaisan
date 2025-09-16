@@ -911,7 +911,6 @@ function atualizarBoxIndividual(boxNum) {
   const boxContainer = document.getElementById("boxContainer");
   if (!boxContainer) return;
 
-  // Remove o card existente
   const cards = boxContainer.querySelectorAll(".card-produto");
   const totalPedidosNaBox = Object.values(caixas).filter(
     (info) => String(info.box) === String(boxNum)
@@ -926,16 +925,14 @@ function atualizarBoxIndividual(boxNum) {
     });
   }
 
-  // Reinsere apenas o card atualizado
   const entradas = Object.entries(caixas).filter(
     ([_, info]) => String(info.box) === String(boxNum)
   );
-
   if (!entradas.length) return;
 
-  // Simula chamada para criar um novo card (usando parte do renderBoxCards)
+  const pedidosNaBox = entradas.map(([pedido]) => pedido); // ✅ define aqui
+
   for (const [pedido, info] of entradas) {
-    const pedidos = [pedido];
     const codNfe = codNfeMap[pedido] || "";
     const isPesado = pedidosNaBox.every((p) => caixas[p]?.pesado);
     const isIncompleto = info.bipado < info.total;
@@ -954,6 +951,14 @@ function atualizarBoxIndividual(boxNum) {
       light = "bg-danger-subtle text-dark";
       solid = "bg-danger text-white";
     }
+
+    const shadowColor = solid.includes("primary")
+      ? "rgba(13,110,253,.3)"
+      : solid.includes("success")
+      ? "rgba(25,135,84,.3)"
+      : solid.includes("warning")
+      ? "rgba(255,193,7,.3)"
+      : "rgba(220,53,69,.3)";
 
     let botaoHtml = "";
     if (isPesado) {
@@ -1082,7 +1087,8 @@ function renderPendentes() {
       const tooltipHtml = `
       <div style='display:flex; gap:8px; align-items:flex-start;'>
         <img src='${
-          imagensRef[skuNorm] || "https://via.placeholder.com/154x231?text=Sem+Imagem"
+          imagensRef[skuNorm] ||
+          "https://via.placeholder.com/154x231?text=Sem+Imagem"
         }'
           style='width:154px;height:231px;object-fit:cover;border:1px solid var(--color-info-border);border-radius:4px;background:var(--color-white);' />
         <div style='max-width:240px;'>
@@ -1988,7 +1994,7 @@ document.getElementById("btnIniciar").addEventListener("click", async () => {
   romaneio = input.value.trim();
   if (!romaneio) return alert("Digite o romaneio");
 
-  // 🔒 Verifica se o romaneio existe no banco de dados
+  // 🔒 Verifica se o romaneio existe
   const { data: romaneioValido, error: erroRom } = await supabase
     .from("romaneios")
     .select("romaneio")
@@ -2003,19 +2009,17 @@ document.getElementById("btnIniciar").addEventListener("click", async () => {
   window.romaneio = romaneio;
   atualizarCamposDoCronometroModal();
 
-  // Se operador1 não existir, não adianta nem tentar
   if (!operador1) {
     return alert("Você precisa fazer login antes de iniciar um romaneio.");
   }
 
-  // Checa se já há alguém usando:
   const status = await verificarRomaneioEmUso(romaneio);
   if (status.emUso) {
     alert(`Este romaneio está em uso por: ${status.por}`);
     return;
   }
 
-  // 1) buscar todos os produtos desse romaneio
+  // Carregar dados
   const { data: pedidos } = await supabase
     .from("pedidos")
     .select("id")
@@ -2030,19 +2034,15 @@ document.getElementById("btnIniciar").addEventListener("click", async () => {
     .select("sku")
     .in("pedido_id", pedidoIds);
 
-  // 2) extrair lista única de SKUs
   const skus = Array.from(
     new Set(produtos.map((p) => p.sku?.trim().toUpperCase()).filter(Boolean))
   );
 
-  // 3) carregar só as refs desses SKUs
   await carregarRefs(skus);
 
-  // limpa o cartão antes de liberar o bipar
   currentProduto = null;
   document.getElementById("cardAtual").innerHTML = "";
 
-  // depois segue com o unlock dos campos, focus etc.
   await carregarBipagemAnterior(romaneio);
 
   document.getElementById("skuInput").parentElement.classList.remove("d-none");
@@ -2063,14 +2063,16 @@ document.getElementById("btnIniciar").addEventListener("click", async () => {
   await carregarBipagemAnterior(romaneio);
   await gerarResumoVisualRomaneio();
 
-  if (typeof atualizarInfosCronometro === "function") {
+  if (typeof atualizarInfosCronometro === "function")
     atualizarInfosCronometro();
-  }
-  if (typeof buscarEPopularTempoIdeal === "function") {
+  if (typeof buscarEPopularTempoIdeal === "function")
     buscarEPopularTempoIdeal(romaneio);
-  }
 
   await carregarCronometroNoModal();
+
+  // ✅ Registrar início da sessão no Supabase
+  if (operador1) await iniciarSessaoRomaneio(romaneio, operador1);
+  if (operador2) await iniciarSessaoRomaneio(romaneio, operador2);
 });
 
 function atualizarCamposDoCronometroModal() {
@@ -2167,7 +2169,6 @@ document.getElementById("btnFinalizar").addEventListener("click", async () => {
   const confirmacao = confirm("Finalizar e atualizar o banco de dados?");
   if (!confirmacao) return;
 
-  // Atualiza o status e boxes no Supabase
   for (const pedido in caixas) {
     const { box, pesado } = caixas[pedido];
 
@@ -2184,13 +2185,17 @@ document.getElementById("btnFinalizar").addEventListener("click", async () => {
     }
   }
 
-  // 🧾 Gera o PDF de resumo
+  // 🧾 PDF resumo
   await gerarPdfResumo();
 
-  // 🔓 Libera o romaneio
+  // ✅ Finalizar sessões no Supabase
+  if (operador1) await finalizarSessaoRomaneio(romaneio, operador1);
+  if (operador2) await finalizarSessaoRomaneio(romaneio, operador2);
+
+  // 🔓 Libera romaneio em uso
   await supabase.from("romaneios_em_uso").delete().eq("romaneio", romaneio);
 
-  // 🧹 Limpa estado local
+  // 🧹 Limpa estado
   localStorage.removeItem(`historico-${romaneio}`);
   localStorage.removeItem(`caixas-${romaneio}`);
   localStorage.removeItem(`pendentes-${romaneio}`);
@@ -2200,7 +2205,6 @@ document.getElementById("btnFinalizar").addEventListener("click", async () => {
   pendentes = [];
   romaneio = "";
 
-  // 🧼 Reset UI
   document.getElementById("romaneioInput").value = "";
   document.getElementById("romaneioInput").disabled = false;
   document.getElementById("btnIniciar").disabled = false;
@@ -2971,9 +2975,15 @@ function configurarListenersCronometro() {
   });
 
   // Botão "Finalizar Romaneio"
-  btnFinalizarRomaneio?.addEventListener("click", () => {
-    registrarProdutividadeOperadores();
-    finalizarEtapas(); // ou outro comportamento
+  // Botão "Finalizar Romaneio" no cronômetro
+  btnFinalizarRomaneio?.addEventListener("click", async () => {
+    await registrarProdutividadeOperadores();
+    await finalizarEtapas();
+
+    // ✅ Finalizar sessões no Supabase
+    if (operador1) await finalizarSessaoRomaneio(romaneio, operador1);
+    if (operador2) await finalizarSessaoRomaneio(romaneio, operador2);
+
     localStorage.removeItem(`etiquetasNL-${romaneio}`);
   });
 
@@ -3979,87 +3989,62 @@ async function carregarProdutividadeDoOperador() {
   const hoje = new Date().toISOString().slice(0, 10);
   const op = operador1;
 
-  // 1. Busca produtividade (romaneios finalizados)
-  const { data: prodData, error: errProd } = await supabase
-    .from("produtividade_operadores")
-    .select("*")
-    .eq("data", hoje)
-    .eq("operador", op);
+  // ---- Romaneios finalizados hoje ----
+  const { data: sessoesHoje } = await supabase
+    .from("romaneios_sessoes")
+    .select("id, duration_sec")
+    .eq("operador", op)
+    .gte("ended_at", `${hoje}T00:00:00-03:00`)
+    .lte("ended_at", `${hoje}T23:59:59-03:00`);
 
-  if (errProd || !prodData) {
-    console.warn("Erro ao buscar produtividade:", errProd);
-    return;
-  }
-
-  const totalRomaneios = prodData.length;
-  const totalPecas = prodData.reduce((acc, r) => acc + (r.pecas || 0), 0);
-  const tempoTotalSegundos = prodData.reduce(
-    (acc, r) => acc + (r.tempo_total || 0),
-    0
-  );
-  const mediaTempoSeg = totalRomaneios
-    ? Math.round(tempoTotalSegundos / totalRomaneios)
+  const totalRomaneios = Array.isArray(sessoesHoje) ? sessoesHoje.length : 0;
+  const somaDuracao = Array.isArray(sessoesHoje)
+    ? sessoesHoje.reduce((acc, r) => acc + (r.duration_sec || 0), 0)
     : 0;
-  const mediaTempo = converterSegundosParaString(mediaTempoSeg);
+  const mediaSegundos = totalRomaneios
+    ? Math.round(somaDuracao / totalRomaneios)
+    : 0;
+  const mediaTempo = converterSegundosParaString(mediaSegundos);
 
-  // 2. Busca todos os pedidos pesados hoje pelo operador
-  const { data: pesagensOp, error: errPes } = await supabase
+  // ---- Pesagens do dia ----
+  const { data: pesagensOp } = await supabase
     .from("pesagens")
     .select("pedido, qtde_pecas")
     .eq("operador", op)
     .gte("data", `${hoje}T00:00:00`)
     .lte("data", `${hoje}T23:59:59`);
 
-  if (errPes || !pesagensOp) {
-    console.warn("Erro ao buscar pesagens:", errPes);
-    return;
-  }
-
-  const pedidosPesadosUnicos = await contarPedidosPesadosPorOperador(op);
-  const pecasPesadas = pesagensOp.reduce(
+  const pedidosPesadosUnicos = new Set((pesagensOp || []).map((r) => r.pedido))
+    .size;
+  const pecasPesadas = (pesagensOp || []).reduce(
     (acc, r) => acc + (r.qtde_pecas || 0),
     0
   );
 
-  // 3. Busca todos os pedidos pesados hoje por todos
-  const { data: pesagensDia, error: errTodos } = await supabase
-    .from("pesagens")
-    .select("pedido")
-    .gte("data", `${hoje}T00:00:00`)
-    .lte("data", `${hoje}T23:59:59`);
-
-  const totalPedidosPesadosHoje = await contarPedidosPesadosHoje();
-
-  // 4. Busca total de pedidos do dia (meta global)
-  const { data: totalPedidosNaoPesados, error: errPedidos } =
-    await supabase.rpc("contar_pedidos_nao_pesados");
-
-  const metaDoDia = totalPedidosNaoPesados || 0;
-  const metaIndividual = Math.ceil(metaDoDia / 4);
-  const percIndividual = metaIndividual
-    ? Math.round((pedidosPesadosUnicos / metaIndividual) * 100)
-    : 0;
-  const percEquipe = metaDoDia
-    ? Math.round((totalPedidosPesadosHoje / metaDoDia) * 100)
-    : 0;
-
-  // 5. Atualiza DOM
+  // ---- Preenche UI ----
   document.getElementById("metaRomaneios").textContent = totalRomaneios;
   document.getElementById("metaPedidos").textContent = pedidosPesadosUnicos;
   document.getElementById("metaPecas").textContent = pecasPesadas;
   document.getElementById("metaTempo").textContent = mediaTempo;
 
+  // Mantém cálculo de metas individuais/equipe
+  const totalPedidosDoDia = await carregarTotalPedidosDoDia();
+  const metaIndividual = Math.ceil(totalPedidosDoDia / 4);
+  const percIndividual = metaIndividual
+    ? Math.round((pedidosPesadosUnicos / metaIndividual) * 100)
+    : 0;
+  const percEquipe = totalPedidosDoDia
+    ? Math.round(((await contarPedidosPesadosHoje()) / totalPedidosDoDia) * 100)
+    : 0;
+
   const elResumo = document.getElementById("metaResumoGeral");
-  elResumo.textContent = `Pedidos hoje: ${metaDoDia} (meta ${Math.ceil(
-    metaDoDia * 0.8
-  )}) — Você: ${pedidosPesadosUnicos}/${metaIndividual} (${percIndividual}%) — Equipe: ${totalPedidosPesadosHoje}/${metaDoDia} (${percEquipe}%)`;
+  elResumo.textContent = `Pedidos hoje: ${totalPedidosDoDia} — Você: ${pedidosPesadosUnicos}/${metaIndividual} (${percIndividual}%) — Equipe: ${percEquipe}%`;
 
   elResumo.classList.remove("text-success", "text-warning", "text-danger");
   if (percIndividual >= 100) elResumo.classList.add("text-success");
   else if (percIndividual >= 70) elResumo.classList.add("text-warning");
   else elResumo.classList.add("text-danger");
 
-  // 6. Atualiza barras visuais
   await atualizarMetaIndividual();
 }
 
@@ -4118,25 +4103,38 @@ async function renderizarEAtualizarFoco() {
 }
 
 async function registrarPesagem(pedidoId, quantidade, romaneioAtual, operador) {
-  const { error } = await supabase.from("pesagens").insert([
-    {
-      pedido: pedidoId,
-      qtde_pecas: quantidade,
-      romaneio: romaneioAtual,
-      operador: operador,
-    },
-  ]);
+  const { error } = await supabase
+    .from("pesagens")
+    .insert([
+      {
+        pedido: pedidoId,
+        qtde_pecas: quantidade,
+        romaneio: romaneioAtual,
+        operador: operador,
+        data: new Date().toISOString(),
+      },
+    ])
+    .select();
 
   if (error) {
-    console.error("❌ Erro ao registrar pesagem:", error);
+    // se for violação de unique por pedido, apenas loga e segue
+    if (
+      String(error.message || "")
+        .toLowerCase()
+        .includes("duplicate") ||
+      String(error.code || "") === "23505"
+    ) {
+      console.log(`ℹ️ Pesagem ignorada (duplicada) para pedido ${pedidoId}`);
+    } else {
+      console.error("❌ Erro ao registrar pesagem:", error);
+    }
   } else {
-    console.log(
-      `✅ Pesagem registrada: Pedido ${pedidoId}, ${quantidade} peça(s), operador ${operador}`
-    );
-    await obterTotalPedidosPesadosHoje();
-    await carregarProdutividadeDoOperador();
-    await atualizarMetaIndividual();
+    console.log(`✅ Pesagem registrada: Pedido ${pedidoId} (${quantidade})`);
   }
+
+  await obterTotalPedidosPesadosHoje();
+  await carregarProdutividadeDoOperador();
+  await atualizarMetaIndividual();
 }
 
 async function obterTotalPedidosPesadosHoje() {
@@ -4295,3 +4293,145 @@ function setEnderecoFinal(pedido, sku, endereco) {
     el.classList.add(endereco === "SEM LOCAL" ? "bg-danger" : "bg-success");
   }
 }
+
+async function iniciarSessaoRomaneio(rom, op) {
+  // tenta criar sessão aberta; se já existir aberta para (romaneio, operador), ignora
+  const payload = {
+    romaneio: rom,
+    operador: op,
+    started_at: new Date().toISOString(),
+  };
+
+  // como o unique é parcial (WHERE ended_at IS NULL), não dá pra usar onConflict direto.
+  // então primeiro checamos sessão aberta:
+  const { data: aberta } = await supabase
+    .from("romaneios_sessoes")
+    .select("id")
+    .eq("romaneio", rom)
+    .eq("operador", op)
+    .is("ended_at", null)
+    .maybeSingle();
+
+  if (aberta?.id) return aberta.id;
+
+  const { data, error } = await supabase
+    .from("romaneios_sessoes")
+    .insert([payload])
+    .select("id")
+    .single();
+
+  if (error) {
+    console.error("Erro ao iniciar sessão:", error);
+    mostrarToast("❌ Não foi possível iniciar a sessão do romaneio.", "error");
+    return null;
+  }
+  return data.id;
+}
+
+async function finalizarSessaoRomaneio(rom, op) {
+  // finaliza a sessão ABERTA (se houver); se já houver uma finalizada para (rom, op),
+  // o índice parcial impede duplicata
+  const { data: aberta } = await supabase
+    .from("romaneios_sessoes")
+    .select("id, started_at")
+    .eq("romaneio", rom)
+    .eq("operador", op)
+    .is("ended_at", null)
+    .order("started_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!aberta?.id) {
+    // já finalizada anteriormente, apenas sai em silêncio
+    return true;
+  }
+
+  const { error } = await supabase
+    .from("romaneios_sessoes")
+    .update({ ended_at: new Date().toISOString() })
+    .eq("id", aberta.id);
+
+  if (error) {
+    console.error("Erro ao finalizar sessão:", error);
+    mostrarToast("❌ Não foi possível finalizar a sessão.", "error");
+    return false;
+  }
+  return true;
+}
+
+async function fetchLeaderboardDia() {
+  const { data: lb, error } = await supabase
+    .from("view_leaderboard_dia") // ✅ VIEW criada no Supabase
+    .select("*")
+    .order("pedidos", { ascending: false });
+
+  if (error) {
+    console.error("Erro leaderboard dia:", error);
+    mostrarToast("❌ Erro ao carregar leaderboard do dia.", "error");
+    return [];
+  }
+  return lb || [];
+}
+
+function renderLeaderboard(rows) {
+  const box = document.getElementById("leaderboardContainer");
+  const tbody = document.getElementById("leaderboardBody");
+  if (!box || !tbody) return;
+
+  tbody.innerHTML = (rows || [])
+    .map((r) => {
+      const tempo = converterSegundosParaString(r.media_seg || 0);
+      return `
+      <tr>
+        <td>${r.operador}</td>
+        <td class="text-center">${r.pedidos}</td>
+        <td class="text-center">${r.pecas}</td>
+        <td class="text-center">${r.romaneios}</td>
+        <td class="text-center">${tempo}</td>
+      </tr>
+    `;
+    })
+    .join("");
+
+  box.style.display = "block";
+}
+
+// Se quiser também o do mês:
+async function fetchLeaderboardMes() {
+  const { data: lb, error } = await supabase
+    .from("view_leaderboard_mes")
+    .select("*")
+    .order("pedidos", { ascending: false });
+
+  if (error) {
+    console.error("Erro leaderboard mês:", error);
+    mostrarToast("❌ Erro ao carregar leaderboard do mês.", "error");
+    return [];
+  }
+  return lb || [];
+}
+
+// Listeners dos botões
+document
+  .getElementById("btnLeaderboardDia")
+  ?.addEventListener("click", async () => {
+    const rows = await fetchLeaderboardDia();
+    renderLeaderboard(rows);
+  });
+
+document
+  .getElementById("btnLeaderboardMes")
+  ?.addEventListener("click", async () => {
+    const rows = await fetchLeaderboardMes();
+    renderLeaderboard(rows);
+  });
+
+// Opcional: ao expandir PRODUTIVIDADE já carrega do dia
+document.getElementById("painelToggle")?.addEventListener("click", async () => {
+  const wrapper = document.getElementById("produtividadeWrapper");
+  const vaiExpandir = !wrapper.classList.contains("expandido");
+  if (vaiExpandir) {
+    const rows = await fetchLeaderboardDia();
+    renderLeaderboard(rows);
+  }
+});

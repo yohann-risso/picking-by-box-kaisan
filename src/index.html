@@ -160,6 +160,39 @@
                 </div>
               </div>
             </div>
+            <hr class="my-3" />
+            <div class="d-flex gap-2">
+              <button
+                id="btnLeaderboardDia"
+                class="btn btn-sm btn-outline-dark"
+              >
+                Leaderboard (Dia)
+              </button>
+              <button
+                id="btnLeaderboardMes"
+                class="btn btn-sm btn-outline-secondary"
+              >
+                Leaderboard (Mês)
+              </button>
+            </div>
+            <div
+              id="leaderboardContainer"
+              class="table-responsive mt-2"
+              style="display: none"
+            >
+              <table class="table table-sm table-striped align-middle">
+                <thead>
+                  <tr>
+                    <th>Operador</th>
+                    <th>Pedidos</th>
+                    <th>Peças</th>
+                    <th>Romaneios</th>
+                    <th>Tempo médio</th>
+                  </tr>
+                </thead>
+                <tbody id="leaderboardBody"></tbody>
+              </table>
+            </div>
           </div>
         </div>
 
