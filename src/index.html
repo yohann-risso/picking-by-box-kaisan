@@ -175,13 +175,11 @@
                 Leaderboard (Mês)
               </button>
             </div>
-            <div
-              id="leaderboardContainer"
-              class="table-responsive mt-2"
-              style="display: none"
-            >
-              <table class="table table-sm table-striped align-middle">
-                <thead>
+            <div id="leaderboardContainer" style="display: none">
+              <table
+                class="table table-sm table-striped table-bordered align-middle"
+              >
+                <thead class="table-dark text-center">
                   <tr>
                     <th>Operador</th>
                     <th>Pedidos</th>
@@ -189,9 +187,9 @@
                     <th>Romaneios</th>
                     <th>Tempo Médio</th>
                     <th>Média Pedidos/Hora</th>
-                    <!-- só no dia -->
+                    <!-- usado no dia -->
                     <th>Média Pedidos/Dia</th>
-                    <!-- só no mês -->
+                    <!-- usado no mês -->
                     <th>Média Peças/Pedido</th>
                   </tr>
                 </thead>

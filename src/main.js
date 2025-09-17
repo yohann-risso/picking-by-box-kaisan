@@ -4403,16 +4403,17 @@ function renderLeaderboard(rows) {
   tbody.innerHTML = (rows || [])
     .map((r) => {
       const tempo = converterSegundosParaString(r.media_seg || 0);
+      const isTotal = r.operador === "TOTAL";
+
       return `
-        <tr>
+        <tr class="${isTotal ? "fw-bold table-secondary" : ""}">
           <td>${r.operador}</td>
           <td class="text-center">${r.pedidos}</td>
           <td class="text-center">${r.pecas}</td>
           <td class="text-center">${r.romaneios}</td>
           <td class="text-center">${tempo}</td>
-          <td class="text-center">${
-            r.media_pedidos_hora ?? r.media_pedidos_dia ?? "-"
-          }</td>
+          <td class="text-center">${r.media_pedidos_hora ?? "-"}</td>
+          <td class="text-center">${r.media_pedidos_dia ?? "-"}</td>
           <td class="text-center">${r.media_pecas_pedido ?? "-"}</td>
         </tr>
       `;
