@@ -4434,3 +4434,17 @@ document.getElementById("painelToggle")?.addEventListener("click", async () => {
     renderLeaderboard(rows);
   }
 });
+
+
+function hojeISO_SP() {
+  const fmt = new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Sao_Paulo', year:'numeric', month:'2-digit', day:'2-digit' });
+  const [{value:y},,{value:m},,{value:d}] = fmt.formatToParts(new Date());
+  return `${y}-${m}-${d}`;
+}
+function rangeHojeSP() {
+  const d = hojeISO_SP();
+  return {
+    ini: `${d}T00:00:00-03:00`,
+    fim: `${d}T23:59:59-03:00`,
+  };
+}
