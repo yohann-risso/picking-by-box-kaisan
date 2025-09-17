@@ -4404,14 +4404,18 @@ function renderLeaderboard(rows) {
     .map((r) => {
       const tempo = converterSegundosParaString(r.media_seg || 0);
       return `
-      <tr>
-        <td>${r.operador}</td>
-        <td class="text-center">${r.pedidos}</td>
-        <td class="text-center">${r.pecas}</td>
-        <td class="text-center">${r.romaneios}</td>
-        <td class="text-center">${tempo}</td>
-      </tr>
-    `;
+        <tr>
+          <td>${r.operador}</td>
+          <td class="text-center">${r.pedidos}</td>
+          <td class="text-center">${r.pecas}</td>
+          <td class="text-center">${r.romaneios}</td>
+          <td class="text-center">${tempo}</td>
+          <td class="text-center">${
+            r.media_pedidos_hora ?? r.media_pedidos_dia ?? "-"
+          }</td>
+          <td class="text-center">${r.media_pecas_pedido ?? "-"}</td>
+        </tr>
+      `;
     })
     .join("");
 
