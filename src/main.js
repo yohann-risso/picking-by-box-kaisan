@@ -2188,22 +2188,12 @@ document.getElementById("btnFinalizar").addEventListener("click", async () => {
   // 🧾 PDF resumo
   await gerarPdfResumo();
 
-  // ✅ Finalizar sessões no Supabase (garante que será chamado e loga erro se falhar)
-  if (operador1) {
-    const ok = await finalizarSessaoRomaneio(romaneio, operador1);
-    if (!ok) console.warn(`⚠️ Sessão não finalizada para ${operador1}`);
-  }
-  if (operador2) {
-    const ok = await finalizarSessaoRomaneio(romaneio, operador2);
-    if (!ok) console.warn(`⚠️ Sessão não finalizada para ${operador2}`);
-  }
+  // ✅ fecha as sessões antes de limpar
+  if (operador1) await finalizarSessaoRomaneio(romaneio, operador1);
+  if (operador2) await finalizarSessaoRomaneio(romaneio, operador2);
 
-  // 🔓 Libera romaneio em uso (só depois de fechar sessões)
-  const { error: delErr } = await supabase
-    .from("romaneios_em_uso")
-    .delete()
-    .eq("romaneio", romaneio);
-  if (delErr) console.error("❌ Erro ao liberar romaneio:", delErr);
+  // 🔓 só depois libera o romaneio_em_uso
+  await supabase.from("romaneios_em_uso").delete().eq("romaneio", romaneio);
 
   // 🧹 Limpa estado
   localStorage.removeItem(`historico-${romaneio}`);
@@ -4359,25 +4349,22 @@ async function iniciarSessaoRomaneio(rom, op) {
 }
 
 async function finalizarSessaoRomaneio(rom, op) {
-  // pega a sessão aberta (sem ended_at)
+  // pega a sessão em aberto
   const { data: aberta, error: errSel } = await supabase
     .from("romaneios_sessoes")
     .select("id")
     .eq("romaneio", rom)
     .eq("operador", op)
     .is("ended_at", null)
-    .order("started_at", { ascending: false })
-    .limit(1)
     .maybeSingle();
 
   if (errSel) {
     console.error("❌ Erro ao buscar sessão aberta:", errSel);
     return false;
   }
-
   if (!aberta?.id) {
-    console.log(`ℹ️ Nenhuma sessão aberta encontrada para ${op} em ${rom}`);
-    return true; // nada para fechar
+    console.log(`ℹ️ Nenhuma sessão em aberto para ${op} em ${rom}`);
+    return true;
   }
 
   const { error: errUpd } = await supabase
