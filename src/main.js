@@ -4043,17 +4043,18 @@ async function carregarProdutividadeDoOperador() {
   const totalPedidosDoDia = await carregarTotalPedidosDoDia();
 
   const hojeDate = new Date();
-  const diaSemana = hojeDate.getDay(); // 0 = Domingo, 5 = Sexta
+  const diaSemana = hojeDate.getDay(); // 0=Dom, 1=Seg, ..., 5=Sex, 6=Sáb
 
-  let metaIndividual;
-  if (diaSemana === 5) {
-    // Sexta-feira
-    const divisao = Math.ceil(totalPedidosDoDia / 4);
-    metaIndividual = divisao >= 400 ? 400 : divisao;
-  } else {
-    // Outros dias da semana
-    metaIndividual = 450;
+  let metaIndividual = 0; // padrão sem meta
+
+  if (diaSemana >= 1 && diaSemana <= 4) {
+    // Segunda a quinta
+    metaIndividual = Math.min(Math.ceil(totalPedidosDoDia / 4), 450);
+  } else if (diaSemana === 5) {
+    // Sexta
+    metaIndividual = Math.min(Math.ceil(totalPedidosDoDia / 4), 400);
   }
+  // Sábado (6) e domingo (0) mantêm meta = 0
 
   const percIndividual = metaIndividual
     ? Math.round((pedidosPesadosUnicos / metaIndividual) * 100)
@@ -4064,7 +4065,9 @@ async function carregarProdutividadeDoOperador() {
     : 0;
 
   const elResumo = document.getElementById("metaResumoGeral");
-  elResumo.textContent = `Pedidos hoje: ${totalPedidosDoDia} — Você: ${pedidosPesadosUnicos}/${metaIndividual} (${percIndividual}%) — Equipe: ${percEquipe}%`;
+  elResumo.textContent = `Pedidos hoje: ${totalPedidosDoDia} — Você: ${pedidosPesadosUnicos}/${
+    metaIndividual || "-"
+  } (${percIndividual}%) — Equipe: ${percEquipe}%`;
 
   elResumo.classList.remove("text-success", "text-warning", "text-danger");
   if (percIndividual >= 100) elResumo.classList.add("text-success");
