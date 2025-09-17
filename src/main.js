@@ -4111,7 +4111,6 @@ async function registrarPesagem(pedidoId, quantidade, romaneioAtual, operador) {
         qtde_pecas: quantidade,
         romaneio: romaneioAtual,
         operador: operador,
-        data: new Date().toISOString(),
       },
     ])
     .select();
