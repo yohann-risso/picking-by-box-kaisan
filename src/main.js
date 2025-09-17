@@ -2188,12 +2188,22 @@ document.getElementById("btnFinalizar").addEventListener("click", async () => {
   // 🧾 PDF resumo
   await gerarPdfResumo();
 
-  // ✅ Finalizar sessões no Supabase
-  if (operador1) await finalizarSessaoRomaneio(romaneio, operador1);
-  if (operador2) await finalizarSessaoRomaneio(romaneio, operador2);
+  // ✅ Finalizar sessões no Supabase (garante que será chamado e loga erro se falhar)
+  if (operador1) {
+    const ok = await finalizarSessaoRomaneio(romaneio, operador1);
+    if (!ok) console.warn(`⚠️ Sessão não finalizada para ${operador1}`);
+  }
+  if (operador2) {
+    const ok = await finalizarSessaoRomaneio(romaneio, operador2);
+    if (!ok) console.warn(`⚠️ Sessão não finalizada para ${operador2}`);
+  }
 
-  // 🔓 Libera romaneio em uso
-  await supabase.from("romaneios_em_uso").delete().eq("romaneio", romaneio);
+  // 🔓 Libera romaneio em uso (só depois de fechar sessões)
+  const { error: delErr } = await supabase
+    .from("romaneios_em_uso")
+    .delete()
+    .eq("romaneio", romaneio);
+  if (delErr) console.error("❌ Erro ao liberar romaneio:", delErr);
 
   // 🧹 Limpa estado
   localStorage.removeItem(`historico-${romaneio}`);
@@ -4332,11 +4342,10 @@ async function iniciarSessaoRomaneio(rom, op) {
 }
 
 async function finalizarSessaoRomaneio(rom, op) {
-  // finaliza a sessão ABERTA (se houver); se já houver uma finalizada para (rom, op),
-  // o índice parcial impede duplicata
-  const { data: aberta } = await supabase
+  // pega a sessão aberta (sem ended_at)
+  const { data: aberta, error: errSel } = await supabase
     .from("romaneios_sessoes")
-    .select("id, started_at")
+    .select("id")
     .eq("romaneio", rom)
     .eq("operador", op)
     .is("ended_at", null)
@@ -4344,21 +4353,27 @@ async function finalizarSessaoRomaneio(rom, op) {
     .limit(1)
     .maybeSingle();
 
-  if (!aberta?.id) {
-    // já finalizada anteriormente, apenas sai em silêncio
-    return true;
+  if (errSel) {
+    console.error("❌ Erro ao buscar sessão aberta:", errSel);
+    return false;
   }
 
-  const { error } = await supabase
+  if (!aberta?.id) {
+    console.log(`ℹ️ Nenhuma sessão aberta encontrada para ${op} em ${rom}`);
+    return true; // nada para fechar
+  }
+
+  const { error: errUpd } = await supabase
     .from("romaneios_sessoes")
     .update({ ended_at: new Date().toISOString() })
     .eq("id", aberta.id);
 
-  if (error) {
-    console.error("Erro ao finalizar sessão:", error);
-    mostrarToast("❌ Não foi possível finalizar a sessão.", "error");
+  if (errUpd) {
+    console.error("❌ Erro ao finalizar sessão:", errUpd);
     return false;
   }
+
+  console.log(`✅ Sessão finalizada para ${op} em ${rom}`);
   return true;
 }
 
@@ -4439,10 +4454,16 @@ document.getElementById("painelToggle")?.addEventListener("click", async () => {
   }
 });
 
-
 function hojeISO_SP() {
-  const fmt = new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Sao_Paulo', year:'numeric', month:'2-digit', day:'2-digit' });
-  const [{value:y},,{value:m},,{value:d}] = fmt.formatToParts(new Date());
+  const fmt = new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  const [{ value: y }, , { value: m }, , { value: d }] = fmt.formatToParts(
+    new Date()
+  );
   return `${y}-${m}-${d}`;
 }
 function rangeHojeSP() {
