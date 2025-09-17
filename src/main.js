@@ -4041,10 +4041,24 @@ async function carregarProdutividadeDoOperador() {
 
   // Mantém cálculo de metas individuais/equipe
   const totalPedidosDoDia = await carregarTotalPedidosDoDia();
-  const metaIndividual = Math.ceil(totalPedidosDoDia / 4);
+
+  const hojeDate = new Date();
+  const diaSemana = hojeDate.getDay(); // 0 = Domingo, 5 = Sexta
+
+  let metaIndividual;
+  if (diaSemana === 5) {
+    // Sexta-feira
+    const divisao = Math.ceil(totalPedidosDoDia / 4);
+    metaIndividual = divisao >= 400 ? 400 : divisao;
+  } else {
+    // Outros dias da semana
+    metaIndividual = 450;
+  }
+
   const percIndividual = metaIndividual
     ? Math.round((pedidosPesadosUnicos / metaIndividual) * 100)
     : 0;
+
   const percEquipe = totalPedidosDoDia
     ? Math.round(((await contarPedidosPesadosHoje()) / totalPedidosDoDia) * 100)
     : 0;
