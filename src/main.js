@@ -4349,22 +4349,21 @@ async function iniciarSessaoRomaneio(rom, op) {
 }
 
 async function finalizarSessaoRomaneio(rom, op) {
-  // pega a sessão em aberto
   const { data: aberta, error: errSel } = await supabase
     .from("romaneios_sessoes")
-    .select("id")
+    .select("id, romaneio, operador, started_at, ended_at")
     .eq("romaneio", rom)
     .eq("operador", op)
     .is("ended_at", null)
+    .order("started_at", { ascending: false })
+    .limit(1)
     .maybeSingle();
 
-  if (errSel) {
-    console.error("❌ Erro ao buscar sessão aberta:", errSel);
-    return false;
-  }
+  console.log("🔍 Sessão encontrada para finalizar:", aberta);
+
   if (!aberta?.id) {
-    console.log(`ℹ️ Nenhuma sessão em aberto para ${op} em ${rom}`);
-    return true;
+    console.warn(`⚠️ Nenhuma sessão aberta para ${op} no romaneio ${rom}`);
+    return false;
   }
 
   const { error: errUpd } = await supabase
