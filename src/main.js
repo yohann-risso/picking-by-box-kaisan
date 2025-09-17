@@ -4006,13 +4006,15 @@ async function carregarProdutividadeDoOperador() {
     : 0;
   const mediaTempo = converterSegundosParaString(mediaSegundos);
 
+  const { ini, fim } = rangeHojeSP();
+
   // ---- Pesagens do dia ----
   const { data: pesagensOp } = await supabase
     .from("pesagens")
     .select("pedido, qtde_pecas")
     .eq("operador", op)
-    .gte("data", `${hoje}T00:00:00`)
-    .lte("data", `${hoje}T23:59:59`);
+    .gte("data", ini)
+    .lte("data", fim);
 
   const pedidosPesadosUnicos = new Set((pesagensOp || []).map((r) => r.pedido))
     .size;
@@ -4177,11 +4179,12 @@ async function carregarTotalPedidosDoDia() {
 
 async function contarPedidosPesadosHoje() {
   const hoje = new Date().toISOString().slice(0, 10);
+  const { ini, fim } = rangeHojeSP();
   const { count, error } = await supabase
     .from("pesagens")
     .select("pedido", { count: "exact", head: true })
-    .gte("data", `${hoje}T00:00:00`)
-    .lte("data", `${hoje}T23:59:59`);
+    .gte("data", ini)
+    .lte("data", fim);
 
   if (error) {
     console.error("Erro ao contar pedidos pesados hoje:", error);
@@ -4193,12 +4196,13 @@ async function contarPedidosPesadosHoje() {
 
 async function contarPedidosPesadosPorOperador(operador) {
   const hoje = new Date().toISOString().slice(0, 10);
+  const { ini, fim } = rangeHojeSP();
   const { count, error } = await supabase
     .from("pesagens")
     .select("pedido", { count: "exact", head: true })
     .eq("operador", operador)
-    .gte("data", `${hoje}T00:00:00`)
-    .lte("data", `${hoje}T23:59:59`);
+    .gte("data", ini)
+    .lte("data", fim);
 
   if (error) {
     console.error("Erro ao contar pedidos do operador:", error);
