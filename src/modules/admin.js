@@ -35,12 +35,12 @@ function carregarDashboard() {
     <div class="container-fluid py-4">
       <h2 class="mb-4">📊 Dashboard Administrativo</h2>
 
-      <!-- Métricas principais -->
-      <div class="row g-3 mb-4">
+      <!-- Cards -->
+      <div class="row g-3 mb-4" id="metricCards">
         <div class="col-md-2"><div class="card text-bg-primary shadow-sm h-100"><div class="card-body"><h6>Usuários Ativos</h6><h2 id="usuariosAtivosCount">0</h2></div></div></div>
         <div class="col-md-2"><div class="card text-bg-success shadow-sm h-100"><div class="card-body"><h6>Pedidos Hoje</h6><h2 id="pedidosHojeCount">0</h2></div></div></div>
-        <div class="col-md-2"><div class="card text-bg-info shadow-sm h-100"><div class="card-body"><h6>Pedidos Pendentes</h6><h2 id="pedidosPendentesCount">0</h2></div></div></div>
-        <div class="col-md-2"><div class="card text-bg-secondary shadow-sm h-100"><div class="card-body"><h6>Pedidos Pesados</h6><h2 id="pedidosPesadosCount">0</h2></div></div></div>
+        <div class="col-md-2"><div class="card text-bg-info shadow-sm h-100"><div class="card-body"><h6>Pendentes</h6><h2 id="pedidosPendentesCount">0</h2></div></div></div>
+        <div class="col-md-2"><div class="card text-bg-secondary shadow-sm h-100"><div class="card-body"><h6>Pesados Hoje</h6><h2 id="pedidosPesadosCount">0</h2></div></div></div>
         <div class="col-md-2"><div class="card text-bg-warning shadow-sm h-100"><div class="card-body"><h6>Peças do Dia</h6><h2 id="pecasHojeCount">0</h2></div></div></div>
         <div class="col-md-2"><div class="card text-bg-danger shadow-sm h-100"><div class="card-body"><h6>Romaneios Abertos</h6><h2 id="romaneiosAbertosCount">0</h2></div></div></div>
       </div>
@@ -61,41 +61,32 @@ function carregarDashboard() {
         </div>
       </div>
 
-      <!-- Tabela usuários -->
+      <!-- Leaderboard -->
       <div class="card shadow-sm mb-4">
-        <div class="card-header">Usuários Ativos</div>
+        <div class="card-header">Resumo de Operadores (Hoje)</div>
         <div class="table-responsive">
           <table class="table table-sm table-striped align-middle mb-0">
             <thead class="table-light">
               <tr>
                 <th>Operador</th>
-                <th>Status</th>
-                <th>Pedidos Hoje</th>
+                <th>Pedidos</th>
                 <th>Peças</th>
-                <th>Duração Sessão</th>
-                <th>Última Atividade</th>
+                <th>Romaneios</th>
+                <th>Média (seg)</th>
               </tr>
             </thead>
-            <tbody id="usuariosAtivosTable"></tbody>
+            <tbody id="resumoOperadoresBody"></tbody>
           </table>
         </div>
       </div>
 
-      <!-- Leaderboard -->
+      <!-- Tabela de Pedidos por Hora -->
       <div class="card shadow-sm">
-        <div class="card-header">Leaderboard de Operadores (Hoje)</div>
+        <div class="card-header">Pedidos por Hora (Pivotado)</div>
         <div class="table-responsive">
           <table class="table table-sm table-striped mb-0">
-            <thead class="table-light">
-              <tr>
-                <th>Operador</th>
-                <th>Pedidos</th>
-                <th>Peças</th>
-                <th>Primeiro Peso</th>
-                <th>Último Peso</th>
-              </tr>
-            </thead>
-            <tbody id="leaderboardTableBody"></tbody>
+            <thead class="table-light" id="pivotHeader"></thead>
+            <tbody id="pivotBody"></tbody>
           </table>
         </div>
       </div>
@@ -103,17 +94,15 @@ function carregarDashboard() {
   `;
 
   carregarMetricas();
-  carregarUsuarios();
-  carregarGraficos();
-  carregarLeaderboard();
+  carregarResumoOperadores();
+  carregarPivotHoras();
 
   supabase
     .channel("dashboard_admin")
     .on("postgres_changes", { event: "*", schema: "public" }, () => {
       carregarMetricas();
-      carregarUsuarios();
-      carregarGraficos();
-      carregarLeaderboard();
+      carregarResumoOperadores();
+      carregarPivotHoras();
     })
     .subscribe();
 }
@@ -122,17 +111,20 @@ function carregarDashboard() {
 async function carregarMetricas() {
   const hoje = new Date().toISOString().slice(0, 10);
 
+  // Usuários ativos
   const { count: usuarios } = await supabase
     .from("usuarios_ativos")
     .select("*", { count: "exact", head: true });
   document.getElementById("usuariosAtivosCount").textContent = usuarios ?? 0;
 
+  // Pedidos hoje
   const { count: pedidos } = await supabase
     .from("pedidos")
     .select("id", { count: "exact", head: true })
     .gte("data", hoje);
   document.getElementById("pedidosHojeCount").textContent = pedidos ?? 0;
 
+  // Pendentes
   const { count: pendentes } = await supabase
     .from("pedidos")
     .select("id", { count: "exact", head: true })
@@ -140,6 +132,7 @@ async function carregarMetricas() {
     .gte("data", hoje);
   document.getElementById("pedidosPendentesCount").textContent = pendentes ?? 0;
 
+  // Pesados
   const { count: pesados } = await supabase
     .from("pedidos")
     .select("id", { count: "exact", head: true })
@@ -147,6 +140,7 @@ async function carregarMetricas() {
     .gte("data", hoje);
   document.getElementById("pedidosPesadosCount").textContent = pesados ?? 0;
 
+  // Peças do dia
   const { data: pecas } = await supabase
     .from("pesagens")
     .select("qtde_pecas")
@@ -154,122 +148,64 @@ async function carregarMetricas() {
   document.getElementById("pecasHojeCount").textContent =
     pecas?.reduce((acc, p) => acc + p.qtde_pecas, 0) ?? 0;
 
+  // Romaneios em uso
   const { count: romaneios } = await supabase
     .from("romaneios_em_uso")
     .select("*", { count: "exact", head: true });
   document.getElementById("romaneiosAbertosCount").textContent = romaneios ?? 0;
 }
 
-// ---- Usuários ativos ----
-async function carregarUsuarios() {
-  const { data } = await supabase
-    .from("usuarios_ativos")
-    .select("nome, status, pedidos, pecas, duration_sec, updated_at");
-
-  const tbody = document.getElementById("usuariosAtivosTable");
-  tbody.innerHTML = "";
-  data?.forEach((u) => {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${u.nome}</td>
-      <td><span class="badge ${
-        u.status === "online" ? "bg-success" : "bg-secondary"
-      }">${u.status}</span></td>
-      <td>${u.pedidos ?? 0}</td>
-      <td>${u.pecas ?? 0}</td>
-      <td>${formatarTempo(u.duration_sec ?? 0)}</td>
-      <td>${new Date(u.updated_at).toLocaleTimeString()}</td>
-    `;
-    tbody.appendChild(tr);
-  });
-}
-
-function formatarTempo(sec) {
-  const h = Math.floor(sec / 3600);
-  const m = Math.floor((sec % 3600) / 60);
-  const s = sec % 60;
-  return `${h}h ${m}m ${s}s`;
-}
-
-// ---- Gráficos ----
-async function carregarGraficos() {
-  const hoje = new Date().toISOString().slice(0, 10);
-
-  const { data: pedidos } = await supabase.rpc("pedidos_por_hora", {
-    data_ref: hoje,
-  });
-  const labels = pedidos?.map((p) => `${p.hora}h`) ?? [];
-  const valores = pedidos?.map((p) => p.total) ?? [];
-
-  if (pedidosPorHoraChart) pedidosPorHoraChart.destroy();
-  pedidosPorHoraChart = new Chart(
-    document.getElementById("pedidosPorHoraChart"),
-    {
-      type: "line",
-      data: {
-        labels,
-        datasets: [
-          {
-            label: "Pedidos",
-            data: valores,
-            borderWidth: 2,
-            borderColor: "#0d6efd",
-          },
-        ],
-      },
-    }
-  );
-
-  const { data: status } = await supabase.rpc("status_pedidos_hoje", {
-    data_ref: hoje,
-  });
-  const statusLabels = status?.map((s) => s.status) ?? [];
-  const statusValores = status?.map((s) => s.total) ?? [];
-
-  if (statusPedidosChart) statusPedidosChart.destroy();
-  statusPedidosChart = new Chart(
-    document.getElementById("statusPedidosChart"),
-    {
-      type: "pie",
-      data: {
-        labels: statusLabels,
-        datasets: [
-          {
-            data: statusValores,
-            backgroundColor: ["#0d6efd", "#198754", "#ffc107", "#dc3545"],
-          },
-        ],
-      },
-    }
-  );
-}
-
-// ---- Leaderboard ----
-async function carregarLeaderboard() {
+// ---- Resumo Operadores ----
+async function carregarResumoOperadores() {
   const { data, error } = await supabase
-    .from("view_leaderboard_dia")
+    .from("view_resumo_operadores_dia")
     .select("*");
-
   if (error) {
-    console.error("Erro leaderboard:", error);
+    console.error("Erro view_resumo_operadores_dia:", error);
     return;
   }
 
-  const tbody = document.getElementById("leaderboardTableBody");
+  const tbody = document.getElementById("resumoOperadoresBody");
   tbody.innerHTML = "";
 
   data.forEach((row) => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${row.operador}</td>
-      <td>${row.pedidos}</td>
-      <td>${row.pecas}</td>
-      <td>${
-        row.primeiro ? new Date(row.primeiro).toLocaleTimeString() : "-"
-      }</td>
-      <td>${row.ultimo ? new Date(row.ultimo).toLocaleTimeString() : "-"}</td>
+      <td>${row.pedidos_dia}</td>
+      <td>${row.pecas_dia}</td>
+      <td>${row.romaneios_dia}</td>
+      <td>${row.media_seg_dia}</td>
     `;
     tbody.appendChild(tr);
+  });
+}
+
+// ---- Pivot de pedidos por hora ----
+async function carregarPivotHoras() {
+  const { data, error } = await supabase
+    .from("view_pedidos_por_hora")
+    .select("*");
+  if (error) {
+    console.error("Erro view_pedidos_por_hora:", error);
+    return;
+  }
+
+  const header = document.getElementById("pivotHeader");
+  const body = document.getElementById("pivotBody");
+
+  if (!data || data.length === 0) return;
+
+  // monta header dinamicamente
+  const cols = Object.keys(data[0]);
+  header.innerHTML =
+    "<tr>" + cols.map((c) => `<th>${c.toUpperCase()}</th>`).join("") + "</tr>";
+
+  body.innerHTML = "";
+  data.forEach((row) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = cols.map((c) => `<td>${row[c] ?? 0}</td>`).join("");
+    body.appendChild(tr);
   });
 }
 
