@@ -1,10 +1,19 @@
 import { supabase } from "../services/supabase.js";
 
-async function initAdmin() {
-  // pega login do operador salvo no localStorage
+function initAdmin() {
   const operador = localStorage.getItem("operador1");
 
-  if (!operador || operador.toLowerCase() !== "yohann") {
+  if (!operador) {
+    document.body.innerHTML = `
+      <div class="d-flex vh-100 justify-content-center align-items-center">
+        <div class="alert alert-warning text-center">
+          ⚠️ Você precisa logar pelo sistema principal antes de acessar o admin.
+        </div>
+      </div>`;
+    return;
+  }
+
+  if (operador.toLowerCase() !== "yohann") {
     document.body.innerHTML = `
       <div class="d-flex vh-100 justify-content-center align-items-center">
         <div class="alert alert-danger text-center">
@@ -14,7 +23,6 @@ async function initAdmin() {
     return;
   }
 
-  // se for Yohann → carrega dashboard
   carregarDashboard();
 }
 
