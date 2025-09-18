@@ -387,7 +387,7 @@ async function carregarRomaneios() {
 function formatarHoraSP(timestamp) {
   const date = new Date(timestamp);
   // Corrige adicionando -3h (UTC-3 = São Paulo)
-  date.setHours(date.getHours() - 3);
+  date.setHours(date.getHours() + 3);
   return date.toLocaleTimeString("pt-BR", {
     hour: "2-digit",
     minute: "2-digit",
