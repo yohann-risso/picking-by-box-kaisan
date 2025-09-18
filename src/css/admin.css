@@ -1,9 +1,115 @@
-#admin-dashboard h2 {
-  font-family: var(--font-default);
-  font-weight: 600;
+/* ====== Fonte e base ====== */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap");
+
+body {
+  font-family: "Inter", sans-serif;
+  background-color: #f4f6f9;
+  color: #212529;
+  line-height: 1.5;
 }
 
-.card h2 {
-  font-size: 2rem;
-  font-weight: bold;
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-weight: 700;
+}
+
+/* ====== Cards ====== */
+.card {
+  border: none;
+  border-radius: 0.75rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 0.75rem 1.25rem rgba(0, 0, 0, 0.08);
+}
+
+.card .card-header {
+  font-weight: 600;
+  font-size: 0.95rem;
+  background: #fff;
+  border-bottom: 1px solid #e9ecef;
+}
+
+/* ====== Cores customizadas ====== */
+.bg-primary {
+  background: linear-gradient(135deg, #007bff, #0056d2) !important;
+}
+
+.bg-success {
+  background: linear-gradient(135deg, #28a745, #1d7c32) !important;
+}
+
+.bg-info {
+  background: linear-gradient(135deg, #17a2b8, #11707f) !important;
+}
+
+.bg-warning {
+  background: linear-gradient(135deg, #ffc107, #cc9a06) !important;
+}
+
+.bg-danger {
+  background: linear-gradient(135deg, #dc3545, #a71d2a) !important;
+}
+
+.bg-dark {
+  background: linear-gradient(135deg, #343a40, #1d2124) !important;
+}
+
+/* ====== Tabelas ====== */
+.table {
+  font-size: 0.9rem;
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.table thead th {
+  background-color: #f8f9fa;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.8rem;
+}
+
+.table-hover tbody tr:hover {
+  background-color: #f1f3f5;
+}
+
+/* ====== Loader ====== */
+.spinner-border {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+/* ====== Progress Bar ====== */
+.progress {
+  height: 0.8rem;
+  background-color: #e9ecef;
+  border-radius: 0.5rem;
+}
+
+.progress-bar {
+  font-size: 0.7rem;
+  font-weight: 600;
+  transition: width 0.6s ease;
+}
+
+/* ====== Responsividade ====== */
+@media (max-width: 768px) {
+  h2 {
+    font-size: 1.25rem;
+  }
+
+  .card .card-body h2,
+  .card .card-body h4 {
+    font-size: 1.2rem;
+  }
+
+  .table {
+    font-size: 0.8rem;
+  }
 }
