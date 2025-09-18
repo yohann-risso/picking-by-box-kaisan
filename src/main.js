@@ -2188,6 +2188,12 @@ document.getElementById("btnFinalizar").addEventListener("click", async () => {
   // 🧾 PDF resumo
   await gerarPdfResumo();
 
+  // ⏱️ Atualiza hora de finalização do romaneio
+  await supabase
+    .from("romaneios")
+    .update({ ended_at: new Date().toISOString() })
+    .eq("romaneio", romaneio);
+
   // ✅ fecha as sessões antes de limpar
   if (operador1) await finalizarSessaoRomaneio(romaneio, operador1);
   if (operador2) await finalizarSessaoRomaneio(romaneio, operador2);
