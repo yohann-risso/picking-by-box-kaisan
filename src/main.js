@@ -248,6 +248,21 @@ document.getElementById("btnLogout").addEventListener("click", () => {
   loginInput.focus();
 });
 
+async function checkAdminAccess() {
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (user === "yohann") {
+    // carrega admin.js dinamicamente
+    import("./modules/admin.js").then((module) => {
+      console.log("Módulo admin carregado.");
+    });
+  } else {
+    console.log("Usuário comum, módulo admin bloqueado.");
+  }
+}
+
+checkAdminAccess();
+
 async function verificarRomaneioEmUso(romaneio) {
   // 1) tenta ler um registro que já exista para este romaneio
   const { data, error } = await supabase
@@ -4487,3 +4502,4 @@ function rangeHojeSP() {
     fim: `${d}T23:59:59-03:00`,
   };
 }
+

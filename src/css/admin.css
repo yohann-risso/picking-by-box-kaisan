@@ -1,0 +1,9 @@
+#admin-dashboard h2 {
+  font-family: var(--font-default);
+  font-weight: 600;
+}
+
+.card h2 {
+  font-size: 2rem;
+  font-weight: bold;
+}
