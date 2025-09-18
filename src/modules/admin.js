@@ -228,7 +228,10 @@ async function carregarMetricaExpedicao() {
       const { data: pecasPendentes } = await supabase
         .from("produtos_pedido")
         .select("qtd")
-        .in("pedido_id", pedidosPend.map((p) => p.id));
+        .in(
+          "pedido_id",
+          pedidosPend.map((p) => p.id)
+        );
 
       totalPecasPendentes =
         pecasPendentes?.reduce((a, p) => a + (p.qtd || 0), 0) ?? 0;
@@ -255,19 +258,21 @@ async function carregarMetricaExpedicao() {
   const meta80 = Math.round((metaGeral ?? 0) * 0.8);
 
   // 5. % Meta Batida
-  const percMeta = meta80
-    ? Math.round((totalPesadosHoje / meta80) * 100)
-    : 0;
+  const percMeta = meta80 ? Math.round((totalPesadosHoje / meta80) * 100) : 0;
 
   // Atualiza cards
-  document.getElementById("totalPendentes").textContent =
-    `${totalPendentes ?? 0} pedidos`;
-  document.getElementById("totalPendentesPecas").textContent =
-    `${totalPecasPendentes} peças`;
-  document.getElementById("totalPesadosHoje").textContent =
-    `${totalPesadosHoje} pedidos`;
-  document.getElementById("totalPesadosHojePecas").textContent =
-    `${totalPecasPesadasHoje} peças`;
+  document.getElementById("totalPendentes").textContent = `${
+    totalPendentes ?? 0
+  } pedidos`;
+  document.getElementById(
+    "totalPendentesPecas"
+  ).textContent = `${totalPecasPendentes} peças`;
+  document.getElementById(
+    "totalPesadosHoje"
+  ).textContent = `${totalPesadosHoje} pedidos`;
+  document.getElementById(
+    "totalPesadosHojePecas"
+  ).textContent = `${totalPecasPesadasHoje} peças`;
   document.getElementById("metaGeral").textContent = metaGeral ?? 0;
   document.getElementById("meta80").textContent = meta80;
   document.getElementById("percMeta").textContent = `${percMeta}%`;
@@ -298,11 +303,10 @@ async function carregarResumoOperadores() {
 
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${row.operador}</td>
-      <td>${row.pedidos_dia}</td>
-      <td>${row.pecas_dia}</td>
-      <td>${row.romaneios_dia}</td>
-      <td>${formatarSegundos(row.media_seg_dia)}</td>
+      <td>${r.romaneio}</td>
+      <td>${r.operador1}</td>
+      <td>${r.operador2 ?? "-"}</td>
+      <td>${formatarHoraSP(r.iniciado_em)}</td>
     `;
     tbody.appendChild(tr);
   });
@@ -384,6 +388,15 @@ async function carregarRomaneios() {
       <td>${new Date(r.iniciado_em).toLocaleTimeString()}</td>
     `;
     tbody.appendChild(tr);
+  });
+}
+
+function formatarHoraSP(timestamp) {
+  return new Date(timestamp).toLocaleTimeString("pt-BR", {
+    timeZone: "America/Sao_Paulo",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
   });
 }
 
