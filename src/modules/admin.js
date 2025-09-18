@@ -48,7 +48,6 @@ function carregarDashboard() {
         <div class="col-md-2"><div class="card text-bg-primary shadow-sm"><div class="card-body"><h6>Usuários Ativos</h6><h2 id="usuariosAtivosCount">-</h2></div></div></div>
         <div class="col-md-2"><div class="card text-bg-success shadow-sm"><div class="card-body"><h6>Pedidos Hoje</h6><h2 id="pedidosHojeCount">-</h2></div></div></div>
         <div class="col-md-2"><div class="card text-bg-info shadow-sm"><div class="card-body"><h6>Pendentes</h6><h2 id="pedidosPendentesCount">-</h2></div></div></div>
-        <div class="col-md-2"><div class="card text-bg-secondary shadow-sm"><div class="card-body"><h6>Pesados Hoje</h6><h2 id="pedidosPesadosCount">-</h2></div></div></div>
         <div class="col-md-2"><div class="card text-bg-warning shadow-sm"><div class="card-body"><h6>Peças do Dia</h6><h2 id="pecasHojeCount">-</h2></div></div></div>
         <div class="col-md-2"><div class="card text-bg-danger shadow-sm"><div class="card-body"><h6>Romaneios Abertos</h6><h2 id="romaneiosAbertosCount">-</h2></div></div></div>
       </div>
