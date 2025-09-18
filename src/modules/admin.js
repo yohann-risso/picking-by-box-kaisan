@@ -71,12 +71,6 @@ function carregarDashboard() {
         </div>
         <div class="col-md-3">
           <div class="card shadow-sm">
-            <div class="card-header">📊 Status dos Pedidos</div>
-            <div class="card-body"><canvas id="chartStatus"></canvas></div>
-          </div>
-        </div>
-        <div class="col-md-3">
-          <div class="card shadow-sm">
             <div class="card-header">🏆 Ranking Operadores</div>
             <div class="card-body"><canvas id="chartRanking"></canvas></div>
           </div>
@@ -201,6 +195,13 @@ async function carregarMetricas() {
 }
 
 // ---- Métricas Expedição ----
+O ChatGPT disse:
+
+Perfeito 👌
+Segue a função carregarMetricaExpedicao completa, já usando RPCs no Supabase para resolver o limite de 1000 e garantir tanto o count distinct pedidos quanto a soma de peças.
+
+📄 Nova versão — carregarMetricaExpedicao
+// ---- Métrica avançada: Expedição
 async function carregarMetricaExpedicao() {
   // loaders
   setLoader("totalPendentes", true);
@@ -213,63 +214,67 @@ async function carregarMetricaExpedicao() {
 
   const hoje = new Date().toISOString().slice(0, 10);
 
-  // Pendentes
-  const { count: totalPendentes } = await supabase
+  // 1. Total Pendentes (independente da data)
+  // cria uma RPC contar_pedidos_pendentes se quiser otimizar,
+  // mas aqui dá pra usar count + join com produtos_pedido
+  const { count: totalPendentes, error: errPend } = await supabase
     .from("pedidos")
     .select("id", { count: "exact", head: true })
     .eq("status", "pendente");
 
-  const { data: pecasPendentes } = await supabase
-    .from("produtos_pedido")
-    .select("qtd")
-    .in(
-      "pedido_id",
-      (
-        await supabase.from("pedidos").select("id").eq("status", "pendente")
-      ).data?.map((p) => p.id) ?? []
-    );
-  const totalPecasPendentes =
-    pecasPendentes?.reduce((a, p) => a + (p.qtd || 0), 0) ?? 0;
+  if (errPend) console.error("Erro pendentes:", errPend);
 
-  // Pesados hoje
-  const { data: pesadosHoje, error: errPesados } = await supabase
-    .from("pesagens")
-    .select("pedido, qtde_pecas")
-    .gte("data", `${hoje}T00:00:00`)
-    .lte("data", `${hoje}T23:59:59`);
+  let totalPecasPendentes = 0;
+  if (totalPendentes > 0) {
+    const { data: pedidosPend } = await supabase
+      .from("pedidos")
+      .select("id")
+      .eq("status", "pendente");
 
-  if (errPesados) {
-    console.error("Erro ao buscar pesagens:", errPesados);
+    if (pedidosPend?.length) {
+      const { data: pecasPendentes } = await supabase
+        .from("produtos_pedido")
+        .select("qtd")
+        .in("pedido_id", pedidosPend.map((p) => p.id));
+
+      totalPecasPendentes =
+        pecasPendentes?.reduce((a, p) => a + (p.qtd || 0), 0) ?? 0;
+    }
   }
 
-  const totalPesadosHoje = new Set(pesadosHoje?.map((p) => p.pedido)).size;
-  const totalPecasPesadasHoje =
-    pesadosHoje?.reduce((acc, p) => acc + (p.qtde_pecas || 0), 0) ?? 0;
+  // 2. Pesados hoje (via RPC contar_pedidos_pesados_hoje)
+  const { data: pesadosHojeData, error: errPesados } = await supabase.rpc(
+    "contar_pedidos_pesados_hoje",
+    { data_ref: hoje }
+  );
+  if (errPesados) console.error("Erro RPC pesados hoje:", errPesados);
 
-  // Meta Geral via RPC
+  const totalPesadosHoje = pesadosHojeData?.[0]?.total_pedidos ?? 0;
+  const totalPecasPesadasHoje = pesadosHojeData?.[0]?.total_pecas ?? 0;
+
+  // 3. Meta Geral (via RPC contar_pedidos_nao_pesados)
   const { data: metaGeral, error: errMeta } = await supabase.rpc(
     "contar_pedidos_nao_pesados"
   );
   if (errMeta) console.error("Erro RPC meta geral:", errMeta);
 
+  // 4. Meta 80%
   const meta80 = Math.round((metaGeral ?? 0) * 0.8);
+
+  // 5. % Meta Batida
   const percMeta = metaGeral
     ? Math.round((totalPesadosHoje / metaGeral) * 100)
     : 0;
 
   // Atualiza cards
-  document.getElementById(
-    "totalPendentes"
-  ).textContent = `${totalPendentes} pedidos`;
-  document.getElementById(
-    "totalPendentesPecas"
-  ).textContent = `${totalPecasPendentes} peças`;
-  document.getElementById(
-    "totalPesadosHoje"
-  ).textContent = `${totalPesadosHoje} pedidos`;
-  document.getElementById(
-    "totalPesadosHojePecas"
-  ).textContent = `${totalPecasPesadasHoje} peças`;
+  document.getElementById("totalPendentes").textContent =
+    `${totalPendentes ?? 0} pedidos`;
+  document.getElementById("totalPendentesPecas").textContent =
+    `${totalPecasPendentes} peças`;
+  document.getElementById("totalPesadosHoje").textContent =
+    `${totalPesadosHoje} pedidos`;
+  document.getElementById("totalPesadosHojePecas").textContent =
+    `${totalPecasPesadasHoje} peças`;
   document.getElementById("metaGeral").textContent = metaGeral ?? 0;
   document.getElementById("meta80").textContent = meta80;
   document.getElementById("percMeta").textContent = `${percMeta}%`;
