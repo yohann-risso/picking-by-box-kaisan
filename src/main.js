@@ -252,7 +252,7 @@ function checkAdminAccess() {
   // Pega o login do operador logado
   const operadorLogado = localStorage.getItem("operador1");
 
-  if (operadorLogado && operadorLogado.toLowerCase() === "yohann") {
+  if (operadorLogado && operadorLogado.toLowerCase() === "yohann risso") {
     import("./modules/admin.js").then(() => {
       console.log("📊 Módulo administrativo carregado para Yohann.");
     });
