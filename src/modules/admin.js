@@ -255,8 +255,8 @@ async function carregarMetricaExpedicao() {
   const meta80 = Math.round((metaGeral ?? 0) * 0.8);
 
   // 5. % Meta Batida
-  const percMeta = metaGeral
-    ? Math.round((totalPesadosHoje / metaGeral) * 100)
+  const percMeta = meta80
+    ? Math.round((totalPesadosHoje / meta80) * 100)
     : 0;
 
   // Atualiza cards
