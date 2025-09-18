@@ -233,15 +233,19 @@ async function carregarMetricaExpedicao() {
     pecasPendentes?.reduce((a, p) => a + (p.qtd || 0), 0) ?? 0;
 
   // Pesados hoje
-  const { data: pesadosHoje } = await supabase
+  const { data: pesadosHoje, error: errPesados } = await supabase
     .from("pesagens")
     .select("pedido, qtde_pecas")
     .gte("data", `${hoje}T00:00:00`)
     .lte("data", `${hoje}T23:59:59`);
 
+  if (errPesados) {
+    console.error("Erro ao buscar pesagens:", errPesados);
+  }
+
   const totalPesadosHoje = new Set(pesadosHoje?.map((p) => p.pedido)).size;
   const totalPecasPesadasHoje =
-    pesadosHoje?.reduce((a, p) => a + (p.qtde_pecas || 0), 0) ?? 0;
+    pesadosHoje?.reduce((acc, p) => acc + (p.qtde_pecas || 0), 0) ?? 0;
 
   // Meta Geral via RPC
   const { data: metaGeral, error: errMeta } = await supabase.rpc(
