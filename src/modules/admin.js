@@ -101,17 +101,20 @@ function carregarDashboard() {
 async function carregarMetricas() {
   const hoje = new Date().toISOString().slice(0, 10);
 
+  // Usuários ativos
   const { count: usuarios } = await supabase
     .from("usuarios_ativos")
     .select("*", { count: "exact", head: true });
   document.getElementById("usuariosAtivosCount").textContent = usuarios ?? 0;
 
+  // Pedidos do dia → usa coluna data
   const { count: pedidos } = await supabase
     .from("pedidos")
     .select("id", { count: "exact", head: true })
-    .gte("data", `${hoje}T00:00:00`);
+    .gte("data", hoje);
   document.getElementById("pedidosHojeCount").textContent = pedidos ?? 0;
 
+  // Peças do dia → usa coluna data
   const { data: pecas } = await supabase
     .from("pesagens")
     .select("qtde_pecas")
@@ -119,6 +122,7 @@ async function carregarMetricas() {
   document.getElementById("pecasHojeCount").textContent =
     pecas?.reduce((acc, p) => acc + p.qtde_pecas, 0) ?? 0;
 
+  // Romaneios abertos
   const { count: romaneios } = await supabase
     .from("romaneios")
     .select("*", { count: "exact", head: true })
