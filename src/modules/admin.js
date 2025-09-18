@@ -151,7 +151,6 @@ async function carregarMetricas() {
   setLoader("usuariosAtivosCount");
   setLoader("pedidosHojeCount");
   setLoader("pedidosPendentesCount");
-  setLoader("pedidosPesadosCount");
   setLoader("pecasHojeCount");
   setLoader("romaneiosAbertosCount");
 
@@ -173,13 +172,6 @@ async function carregarMetricas() {
     .select("id", { count: "exact", head: true })
     .eq("status", "pendente");
   document.getElementById("pedidosPendentesCount").textContent = pendentes ?? 0;
-
-  const { count: pesados } = await supabase
-    .from("pedidos")
-    .select("id", { count: "exact", head: true })
-    .eq("status", "PESADO")
-    .gte("data", hoje);
-  document.getElementById("pedidosPesadosCount").textContent = pesados ?? 0;
 
   const { data: pecas } = await supabase
     .from("pesagens")
@@ -386,7 +378,7 @@ async function carregarRomaneios() {
       <td>${r.romaneio}</td>
       <td>${r.operador1}</td>
       <td>${r.operador2 ?? "-"}</td>
-      <td>${new Date(r.iniciado_em).toLocaleTimeString()}</td>
+      <td>${formatarHoraSP(r.iniciado_em)}</td>
     `;
     tbody.appendChild(tr);
   });
