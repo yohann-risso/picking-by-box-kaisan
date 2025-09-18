@@ -202,33 +202,13 @@ async function carregarMetricaExpedicao() {
   // 1. Total Pendentes (independente da data)
   // cria uma RPC contar_pedidos_pendentes se quiser otimizar,
   // mas aqui dá pra usar count + join com produtos_pedido
-  const { count: totalPendentes, error: errPend } = await supabase
-    .from("pedidos")
-    .select("id", { count: "exact", head: true })
-    .eq("status", "pendente");
+  const { data: pendentesData, error: errPend } = await supabase.rpc(
+    "contar_pecas_pendentes"
+  );
+  if (errPend) console.error("Erro RPC pendentes:", errPend);
 
-  if (errPend) console.error("Erro pendentes:", errPend);
-
-  let totalPecasPendentes = 0;
-  if (totalPendentes > 0) {
-    const { data: pedidosPend } = await supabase
-      .from("pedidos")
-      .select("id")
-      .eq("status", "pendente");
-
-    if (pedidosPend?.length) {
-      const { data: pecasPendentes } = await supabase
-        .from("produtos_pedido")
-        .select("qtd")
-        .in(
-          "pedido_id",
-          pedidosPend.map((p) => p.id)
-        );
-
-      totalPecasPendentes =
-        pecasPendentes?.reduce((a, p) => a + (p.qtd || 0), 0) ?? 0;
-    }
-  }
+  const totalPendentes = pendentesData?.[0]?.total_pedidos ?? 0;
+  const totalPecasPendentes = pendentesData?.[0]?.total_pecas ?? 0;
 
   // 2. Pesados hoje (via RPC contar_pedidos_pesados_hoje)
   const { data: pesadosHojeData, error: errPesados } = await supabase.rpc(
