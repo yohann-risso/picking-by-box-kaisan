@@ -113,7 +113,7 @@ async function carregarMetricas() {
   document.getElementById("pedidosHojeCount").textContent = pedidos ?? 0;
 
   const { data: pecas } = await supabase
-    .from("pesagem")
+    .from("pesagens")
     .select("qtde_pecas")
     .gte("data", `${hoje}T00:00:00`);
   document.getElementById("pecasHojeCount").textContent =
