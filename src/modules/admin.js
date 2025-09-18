@@ -19,6 +19,17 @@ function initAdmin() {
   carregarDashboard();
 }
 
+async function carregarTotalPedidosDoDia() {
+  const { data, error } = await supabase.rpc("contar_pedidos_nao_pesados");
+
+  if (error) {
+    console.error("Erro ao carregar pedidos do dia via função RPC:", error);
+    return 0;
+  }
+
+  return data;
+}
+
 function carregarDashboard() {
   const root = document.getElementById("root");
   root.innerHTML = `
@@ -184,45 +195,53 @@ async function carregarMetricas() {
 }
 
 // ---- Métrica avançada: Expedição
+// ---- Métrica avançada: Expedição
 async function carregarMetricaExpedicao() {
   const hoje = new Date().toISOString().slice(0, 10);
 
-  // Pendentes
-  const { data: pendentes } = await supabase
+  // 1. Pendentes (todos os dias)
+  const { count: totalPendentes, error } = await supabase
     .from("pedidos")
-    .select("id")
+    .select("id", { count: "exact", head: true })
     .eq("status", "pendente");
-  const totalPendentes = pendentes?.length ?? 0;
+
+  if (error) console.error("Erro pendentes:", error);
 
   const { data: pecasPendentes } = await supabase
     .from("produtos_pedido")
     .select("qtd")
-    .in("pedido_id", pendentes?.map((p) => p.id) ?? []);
+    .in(
+      "pedido_id",
+      (
+        await supabase.from("pedidos").select("id").eq("status", "pendente")
+      ).data?.map((p) => p.id) ?? []
+    );
   const totalPecasPendentes =
     pecasPendentes?.reduce((a, p) => a + (p.qtd || 0), 0) ?? 0;
 
-  // Pesados hoje
+  // 2. Pesados hoje (usando PESAGENS, mais confiável que pedidos)
   const { data: pesadosHoje } = await supabase
-    .from("pedidos")
-    .select("id")
-    .eq("status", "PESADO")
-    .eq("data", hoje);
-  const totalPesadosHoje = pesadosHoje?.length ?? 0;
+    .from("pesagens")
+    .select("pedido, qtde_pecas")
+    .gte("data", `${hoje}T00:00:00`)
+    .lte("data", `${hoje}T23:59:59`);
 
-  const { data: pecasPesadasHoje } = await supabase
-    .from("produtos_pedido")
-    .select("qtd")
-    .in("pedido_id", pesadosHoje?.map((p) => p.id) ?? []);
+  const totalPesadosHoje = new Set(pesadosHoje?.map((p) => p.pedido)).size;
   const totalPecasPesadasHoje =
-    pecasPesadasHoje?.reduce((a, p) => a + (p.qtd || 0), 0) ?? 0;
+    pesadosHoje?.reduce((a, p) => a + (p.qtde_pecas || 0), 0) ?? 0;
 
-  // Meta geral (pedidos do dia)
-  const { count: metaGeral } = await supabase
-    .from("pedidos")
-    .select("id", { count: "exact", head: true })
-    .eq("data", hoje);
+  // 3. Meta Geral (via função RPC do Supabase)
+  const { data: metaGeral, error } = await supabase.rpc(
+    "contar_pedidos_nao_pesados"
+  );
+  if (error) {
+    console.error("Erro RPC meta geral:", error);
+  }
 
+  // 4. Meta 80%
   const meta80 = Math.round((metaGeral ?? 0) * 0.8);
+
+  // 5. % Meta Batida
   const percMeta = metaGeral
     ? Math.round((totalPesadosHoje / metaGeral) * 100)
     : 0;
