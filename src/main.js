@@ -263,21 +263,6 @@ function checkAdminAccess() {
 
 checkAdminAccess();
 
-function mostrarBotaoAdmin() {
-  const operador = localStorage.getItem("operador1");
-
-  if (operador && operador.toLowerCase() === "yohann") {
-    document.getElementById("btnAdmin").classList.remove("d-none");
-  }
-}
-
-document.getElementById("btnAdmin").addEventListener("click", () => {
-  window.location.href = "admin.html"; // redireciona
-});
-
-// chama quando finalizar login
-mostrarBotaoAdmin();
-
 async function verificarRomaneioEmUso(romaneio) {
   // 1) tenta ler um registro que já exista para este romaneio
   const { data, error } = await supabase

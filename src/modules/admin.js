@@ -247,29 +247,47 @@ async function carregarMetricaExpedicao() {
 // ===== Resumo Operadores =====
 async function carregarResumoOperadores() {
   const tbody = document.getElementById("resumoOperadoresBody");
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("view_resumo_operadores_dia")
     .select("*");
-  tbody.innerHTML = "";
 
+  if (error) {
+    console.error("Erro resumo:", error);
+    return;
+  }
+
+  tbody.innerHTML = "";
   const labels = [],
     pedidos = [],
     pecas = [];
+
   data.forEach((row) => {
     labels.push(row.operador);
     pedidos.push(row.pedidos_dia);
     pecas.push(row.pecas_dia);
+
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${row.operador}</td>
-      <td>${row.pedidos_dia}</td>
-      <td>${row.pecas_dia}</td>
-      <td>${row.romaneios_dia}</td>
-      <td>${formatarSegundos(row.media_seg_dia)}</td>
+      <td><strong>${row.operador}</strong></td>
+      <td class="text-end">${row.pedidos_dia}</td>
+      <td class="text-end">${row.pecas_dia}</td>
+      <td class="text-end">${row.romaneios_dia}</td>
+      <td>
+        <span class="badge-status ${
+          row.media_seg_dia <= 300
+            ? "success"
+            : row.media_seg_dia <= 600
+            ? "warning"
+            : "danger"
+        }">
+          ${formatarSegundos(row.media_seg_dia)}
+        </span>
+      </td>
     `;
     tbody.appendChild(tr);
   });
 
+  // Gráfico Ranking
   if (chartRanking) chartRanking.destroy();
   chartRanking = new Chart(document.getElementById("chartRanking"), {
     type: "bar",
@@ -320,18 +338,30 @@ async function carregarPivotHoras() {
 // ===== Romaneios =====
 async function carregarRomaneios() {
   const tbody = document.getElementById("romaneiosEmUsoBody");
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("romaneios_em_uso")
     .select("romaneio, operador1, operador2, iniciado_em");
+
+  if (error) {
+    console.error("Erro romaneios:", error);
+    return;
+  }
+
   tbody.innerHTML = "";
   data?.forEach((r) => {
     const tr = document.createElement("tr");
+
     tr.innerHTML = `
-      <td>${r.romaneio}</td>
+      <td><strong>${r.romaneio}</strong></td>
       <td>${r.operador1}</td>
       <td>${r.operador2 ?? "-"}</td>
-      <td>${formatarHoraSP(r.iniciado_em)}</td>
+      <td>
+        <span class="badge-status info">
+          ${formatarHoraSP(r.iniciado_em)}
+        </span>
+      </td>
     `;
+
     tbody.appendChild(tr);
   });
 }
