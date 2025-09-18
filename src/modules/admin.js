@@ -13,7 +13,7 @@ function initAdmin() {
     return;
   }
 
-  if (operador.toLowerCase() !== "yohann") {
+  if (operador.toLowerCase() !== "yohann risso") {
     document.body.innerHTML = `
       <div class="d-flex vh-100 justify-content-center align-items-center">
         <div class="alert alert-danger text-center">
