@@ -1,5 +1,5 @@
 import { supabase } from "../services/supabase.js";
-import "../styles/admin.css";
+import "../css/admin.css";
 
 let pedidosPorHoraChart, statusPedidosChart;
 
