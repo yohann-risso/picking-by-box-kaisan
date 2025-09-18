@@ -195,13 +195,6 @@ async function carregarMetricas() {
 }
 
 // ---- Métricas Expedição ----
-O ChatGPT disse:
-
-Perfeito 👌
-Segue a função carregarMetricaExpedicao completa, já usando RPCs no Supabase para resolver o limite de 1000 e garantir tanto o count distinct pedidos quanto a soma de peças.
-
-📄 Nova versão — carregarMetricaExpedicao
-// ---- Métrica avançada: Expedição
 async function carregarMetricaExpedicao() {
   // loaders
   setLoader("totalPendentes", true);
