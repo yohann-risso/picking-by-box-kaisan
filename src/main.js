@@ -248,13 +248,13 @@ document.getElementById("btnLogout").addEventListener("click", () => {
   loginInput.focus();
 });
 
-async function checkAdminAccess() {
-  const { data: { user } } = await supabase.auth.getUser();
+function checkAdminAccess() {
+  // Pega o login do operador logado
+  const operadorLogado = localStorage.getItem("operador1");
 
-  if (user === "yohann") {
-    // carrega admin.js dinamicamente
-    import("./modules/admin.js").then((module) => {
-      console.log("Módulo admin carregado.");
+  if (operadorLogado && operadorLogado.toLowerCase() === "yohann") {
+    import("./modules/admin.js").then(() => {
+      console.log("📊 Módulo administrativo carregado para Yohann.");
     });
   } else {
     console.log("Usuário comum, módulo admin bloqueado.");
@@ -4502,4 +4502,3 @@ function rangeHojeSP() {
     fim: `${d}T23:59:59-03:00`,
   };
 }
-
