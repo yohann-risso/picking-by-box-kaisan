@@ -19,17 +19,24 @@ function initAdmin() {
   carregarDashboard();
 }
 
-async function carregarTotalPedidosDoDia() {
-  const { data, error } = await supabase.rpc("contar_pedidos_nao_pesados");
-
-  if (error) {
-    console.error("Erro ao carregar pedidos do dia via função RPC:", error);
-    return 0;
-  }
-
-  return data;
+// ---- Helper de Loader ----
+function setLoader(id, small = false) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.innerHTML = small
+    ? `<div class="spinner-border spinner-border-sm text-light" role="status"></div>`
+    : `<div class="spinner-border text-light" role="status"></div>`;
 }
 
+// ---- Helper Tempo ----
+function formatarSegundos(segundos) {
+  const h = String(Math.floor(segundos / 3600)).padStart(2, "0");
+  const m = String(Math.floor((segundos % 3600) / 60)).padStart(2, "0");
+  const s = String(segundos % 60).padStart(2, "0");
+  return `${h}:${m}:${s}`;
+}
+
+// ---- Dashboard ----
 function carregarDashboard() {
   const root = document.getElementById("root");
   root.innerHTML = `
@@ -38,21 +45,21 @@ function carregarDashboard() {
 
       <!-- Cards principais -->
       <div class="row g-3 mb-4" id="metricCards">
-        <div class="col-md-2"><div class="card text-bg-primary shadow-sm"><div class="card-body"><h6>Usuários Ativos</h6><h2 id="usuariosAtivosCount">0</h2></div></div></div>
-        <div class="col-md-2"><div class="card text-bg-success shadow-sm"><div class="card-body"><h6>Pedidos Hoje</h6><h2 id="pedidosHojeCount">0</h2></div></div></div>
-        <div class="col-md-2"><div class="card text-bg-info shadow-sm"><div class="card-body"><h6>Pendentes</h6><h2 id="pedidosPendentesCount">0</h2></div></div></div>
-        <div class="col-md-2"><div class="card text-bg-secondary shadow-sm"><div class="card-body"><h6>Pesados Hoje</h6><h2 id="pedidosPesadosCount">0</h2></div></div></div>
-        <div class="col-md-2"><div class="card text-bg-warning shadow-sm"><div class="card-body"><h6>Peças do Dia</h6><h2 id="pecasHojeCount">0</h2></div></div></div>
-        <div class="col-md-2"><div class="card text-bg-danger shadow-sm"><div class="card-body"><h6>Romaneios Abertos</h6><h2 id="romaneiosAbertosCount">0</h2></div></div></div>
+        <div class="col-md-2"><div class="card text-bg-primary shadow-sm"><div class="card-body"><h6>Usuários Ativos</h6><h2 id="usuariosAtivosCount">-</h2></div></div></div>
+        <div class="col-md-2"><div class="card text-bg-success shadow-sm"><div class="card-body"><h6>Pedidos Hoje</h6><h2 id="pedidosHojeCount">-</h2></div></div></div>
+        <div class="col-md-2"><div class="card text-bg-info shadow-sm"><div class="card-body"><h6>Pendentes</h6><h2 id="pedidosPendentesCount">-</h2></div></div></div>
+        <div class="col-md-2"><div class="card text-bg-secondary shadow-sm"><div class="card-body"><h6>Pesados Hoje</h6><h2 id="pedidosPesadosCount">-</h2></div></div></div>
+        <div class="col-md-2"><div class="card text-bg-warning shadow-sm"><div class="card-body"><h6>Peças do Dia</h6><h2 id="pecasHojeCount">-</h2></div></div></div>
+        <div class="col-md-2"><div class="card text-bg-danger shadow-sm"><div class="card-body"><h6>Romaneios Abertos</h6><h2 id="romaneiosAbertosCount">-</h2></div></div></div>
       </div>
 
-      <!-- Cards de expedição avançados -->
+      <!-- Cards avançados -->
       <div class="row g-3 mb-4">
-        <div class="col-md-3"><div class="card text-bg-dark shadow-sm"><div class="card-body"><h6>Total Pendentes</h6><h4 id="totalPendentes">0 pedidos</h4><small id="totalPendentesPecas">0 peças</small></div></div></div>
-        <div class="col-md-3"><div class="card text-bg-success shadow-sm"><div class="card-body"><h6>Pesados Hoje</h6><h4 id="totalPesadosHoje">0 pedidos</h4><small id="totalPesadosHojePecas">0 peças</small></div></div></div>
-        <div class="col-md-2"><div class="card text-bg-primary shadow-sm"><div class="card-body"><h6>Meta Geral</h6><h4 id="metaGeral">0</h4></div></div></div>
-        <div class="col-md-2"><div class="card text-bg-info shadow-sm"><div class="card-body"><h6>Meta 80%</h6><h4 id="meta80">0</h4></div></div></div>
-        <div class="col-md-2"><div class="card text-bg-warning shadow-sm"><div class="card-body"><h6>% Meta Batida</h6><h4 id="percMeta">0%</h4></div></div></div>
+        <div class="col-md-3"><div class="card text-bg-dark shadow-sm"><div class="card-body"><h6>Total Pendentes</h6><h4 id="totalPendentes">-</h4><small id="totalPendentesPecas">-</small></div></div></div>
+        <div class="col-md-3"><div class="card text-bg-success shadow-sm"><div class="card-body"><h6>Pesados Hoje</h6><h4 id="totalPesadosHoje">-</h4><small id="totalPesadosHojePecas">-</small></div></div></div>
+        <div class="col-md-2"><div class="card text-bg-primary shadow-sm"><div class="card-body"><h6>Meta Geral</h6><h4 id="metaGeral">-</h4></div></div></div>
+        <div class="col-md-2"><div class="card text-bg-info shadow-sm"><div class="card-body"><h6>Meta 80%</h6><h4 id="meta80">-</h4></div></div></div>
+        <div class="col-md-2"><div class="card text-bg-warning shadow-sm"><div class="card-body"><h6>% Meta Batida</h6><h4 id="percMeta">-</h4></div></div></div>
       </div>
 
       <!-- Gráficos -->
@@ -96,7 +103,7 @@ function carregarDashboard() {
         </div>
       </div>
 
-      <!-- Pedidos por Hora pivotado -->
+      <!-- Pivot -->
       <div class="card shadow-sm mb-4">
         <div class="card-header">Pedidos por Hora (Pivotado)</div>
         <div class="table-responsive">
@@ -107,7 +114,7 @@ function carregarDashboard() {
         </div>
       </div>
 
-      <!-- Romaneios em uso -->
+      <!-- Romaneios -->
       <div class="card shadow-sm">
         <div class="card-header">Romaneios em Uso</div>
         <div class="table-responsive">
@@ -145,16 +152,16 @@ function carregarDashboard() {
     .subscribe();
 }
 
-// ---- Helpers ----
-function formatarSegundos(segundos) {
-  const h = String(Math.floor(segundos / 3600)).padStart(2, "0");
-  const m = String(Math.floor((segundos % 3600) / 60)).padStart(2, "0");
-  const s = String(segundos % 60).padStart(2, "0");
-  return `${h}:${m}:${s}`;
-}
-
-// ---- Métricas principais
+// ---- Métricas principais ----
 async function carregarMetricas() {
+  // loaders
+  setLoader("usuariosAtivosCount");
+  setLoader("pedidosHojeCount");
+  setLoader("pedidosPendentesCount");
+  setLoader("pedidosPesadosCount");
+  setLoader("pecasHojeCount");
+  setLoader("romaneiosAbertosCount");
+
   const hoje = new Date().toISOString().slice(0, 10);
 
   const { count: usuarios } = await supabase
@@ -194,18 +201,24 @@ async function carregarMetricas() {
   document.getElementById("romaneiosAbertosCount").textContent = romaneios ?? 0;
 }
 
-// ---- Métrica avançada: Expedição
-// ---- Métrica avançada: Expedição
+// ---- Métricas Expedição ----
 async function carregarMetricaExpedicao() {
+  // loaders
+  setLoader("totalPendentes", true);
+  setLoader("totalPendentesPecas", true);
+  setLoader("totalPesadosHoje", true);
+  setLoader("totalPesadosHojePecas", true);
+  setLoader("metaGeral", true);
+  setLoader("meta80", true);
+  setLoader("percMeta", true);
+
   const hoje = new Date().toISOString().slice(0, 10);
 
-  // 1. Pendentes (todos os dias)
-  const { count: totalPendentes, error } = await supabase
+  // Pendentes
+  const { count: totalPendentes } = await supabase
     .from("pedidos")
     .select("id", { count: "exact", head: true })
     .eq("status", "pendente");
-
-  if (error) console.error("Erro pendentes:", error);
 
   const { data: pecasPendentes } = await supabase
     .from("produtos_pedido")
@@ -219,7 +232,7 @@ async function carregarMetricaExpedicao() {
   const totalPecasPendentes =
     pecasPendentes?.reduce((a, p) => a + (p.qtd || 0), 0) ?? 0;
 
-  // 2. Pesados hoje (usando PESAGENS, mais confiável que pedidos)
+  // Pesados hoje
   const { data: pesadosHoje } = await supabase
     .from("pesagens")
     .select("pedido, qtde_pecas")
@@ -230,18 +243,13 @@ async function carregarMetricaExpedicao() {
   const totalPecasPesadasHoje =
     pesadosHoje?.reduce((a, p) => a + (p.qtde_pecas || 0), 0) ?? 0;
 
-  // 3. Meta Geral (via função RPC do Supabase)
+  // Meta Geral via RPC
   const { data: metaGeral, error: errMeta } = await supabase.rpc(
     "contar_pedidos_nao_pesados"
   );
-  if (errMeta) {
-    console.error("Erro RPC meta geral:", errMeta);
-  }
+  if (errMeta) console.error("Erro RPC meta geral:", errMeta);
 
-  // 4. Meta 80%
   const meta80 = Math.round((metaGeral ?? 0) * 0.8);
-
-  // 5. % Meta Batida
   const percMeta = metaGeral
     ? Math.round((totalPesadosHoje / metaGeral) * 100)
     : 0;
@@ -264,16 +272,20 @@ async function carregarMetricaExpedicao() {
   document.getElementById("percMeta").textContent = `${percMeta}%`;
 }
 
-// ---- Resumo Operadores
+// ---- Resumo Operadores ----
 async function carregarResumoOperadores() {
+  // loader
+  const tbody = document.getElementById("resumoOperadoresBody");
+  tbody.innerHTML = `<tr><td colspan="5" class="text-center">
+    <div class="spinner-border text-primary" role="status"></div>
+  </td></tr>`;
+
   const { data, error } = await supabase
     .from("view_resumo_operadores_dia")
     .select("*");
   if (error) return console.error("Erro resumo:", error);
 
-  const tbody = document.getElementById("resumoOperadoresBody");
   tbody.innerHTML = "";
-
   const labels = [],
     pedidos = [],
     pecas = [];
@@ -294,7 +306,6 @@ async function carregarResumoOperadores() {
     tbody.appendChild(tr);
   });
 
-  // Ranking operadores
   if (chartRanking) chartRanking.destroy();
   chartRanking = new Chart(document.getElementById("chartRanking"), {
     type: "bar",
@@ -309,8 +320,13 @@ async function carregarResumoOperadores() {
   });
 }
 
-// ---- Pivot pedidos por hora
+// ---- Pivot ----
 async function carregarPivotHoras() {
+  const body = document.getElementById("pivotBody");
+  body.innerHTML = `<tr><td colspan="99" class="text-center">
+    <div class="spinner-border text-primary" role="status"></div>
+  </td></tr>`;
+
   const { data, error } = await supabase
     .from("view_pedidos_por_hora")
     .select("*");
@@ -318,18 +334,17 @@ async function carregarPivotHoras() {
   if (!data || !data.length) return;
 
   const header = document.getElementById("pivotHeader");
-  const body = document.getElementById("pivotBody");
   const cols = Object.keys(data[0]);
   header.innerHTML =
     "<tr>" + cols.map((c) => `<th>${c.toUpperCase()}</th>`).join("") + "</tr>";
   body.innerHTML = "";
+
   data.forEach((row) => {
     const tr = document.createElement("tr");
     tr.innerHTML = cols.map((c) => `<td>${row[c] ?? 0}</td>`).join("");
     body.appendChild(tr);
   });
 
-  // gráfico linha com total geral
   const totalGeral = data.find((r) => r.operador === "TOTAL GERAL");
   if (totalGeral) {
     const horas = cols.filter((c) => c.includes("H"));
@@ -346,16 +361,19 @@ async function carregarPivotHoras() {
   }
 }
 
-// ---- Romaneios em uso
+// ---- Romaneios ----
 async function carregarRomaneios() {
+  const tbody = document.getElementById("romaneiosEmUsoBody");
+  tbody.innerHTML = `<tr><td colspan="4" class="text-center">
+    <div class="spinner-border text-primary" role="status"></div>
+  </td></tr>`;
+
   const { data, error } = await supabase
     .from("romaneios_em_uso")
     .select("romaneio, operador1, operador2, iniciado_em");
   if (error) return console.error("Erro romaneios:", error);
 
-  const tbody = document.getElementById("romaneiosEmUsoBody");
   tbody.innerHTML = "";
-
   data?.forEach((r) => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
