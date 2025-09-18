@@ -303,11 +303,12 @@ async function carregarResumoOperadores() {
 
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${r.romaneio}</td>
-      <td>${r.operador1}</td>
-      <td>${r.operador2 ?? "-"}</td>
-      <td>${formatarHoraSP(r.iniciado_em)}</td>
-    `;
+    <td>${row.operador}</td>
+    <td>${row.pedidos_dia}</td>
+    <td>${row.pecas_dia}</td>
+    <td>${row.romaneios_dia}</td>
+    <td>${formatarSegundos(row.media_seg_dia)}</td>
+  `;
     tbody.appendChild(tr);
   });
 
