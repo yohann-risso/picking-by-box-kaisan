@@ -1,5 +1,5 @@
 import { supabase } from "../services/supabase.js";
-import "../css/admin.css";
+import "../styles/admin.css";
 
 let chartPedidosHora, chartStatus, chartRanking;
 
@@ -23,9 +23,9 @@ function carregarDashboard() {
   const root = document.getElementById("root");
   root.innerHTML = `
     <div class="container-fluid py-4">
-      <h2 class="mb-4">🚛 Painel Administrativo de Expedição</h2>
+      <h2 class="mb-4">🚛 Dashboard de Expedição</h2>
 
-      <!-- Cards -->
+      <!-- Cards principais -->
       <div class="row g-3 mb-4" id="metricCards">
         <div class="col-md-2"><div class="card text-bg-primary shadow-sm"><div class="card-body"><h6>Usuários Ativos</h6><h2 id="usuariosAtivosCount">0</h2></div></div></div>
         <div class="col-md-2"><div class="card text-bg-success shadow-sm"><div class="card-body"><h6>Pedidos Hoje</h6><h2 id="pedidosHojeCount">0</h2></div></div></div>
@@ -33,6 +33,15 @@ function carregarDashboard() {
         <div class="col-md-2"><div class="card text-bg-secondary shadow-sm"><div class="card-body"><h6>Pesados Hoje</h6><h2 id="pedidosPesadosCount">0</h2></div></div></div>
         <div class="col-md-2"><div class="card text-bg-warning shadow-sm"><div class="card-body"><h6>Peças do Dia</h6><h2 id="pecasHojeCount">0</h2></div></div></div>
         <div class="col-md-2"><div class="card text-bg-danger shadow-sm"><div class="card-body"><h6>Romaneios Abertos</h6><h2 id="romaneiosAbertosCount">0</h2></div></div></div>
+      </div>
+
+      <!-- Cards de expedição avançados -->
+      <div class="row g-3 mb-4">
+        <div class="col-md-3"><div class="card text-bg-dark shadow-sm"><div class="card-body"><h6>Total Pendentes</h6><h4 id="totalPendentes">0 pedidos</h4><small id="totalPendentesPecas">0 peças</small></div></div></div>
+        <div class="col-md-3"><div class="card text-bg-success shadow-sm"><div class="card-body"><h6>Pesados Hoje</h6><h4 id="totalPesadosHoje">0 pedidos</h4><small id="totalPesadosHojePecas">0 peças</small></div></div></div>
+        <div class="col-md-2"><div class="card text-bg-primary shadow-sm"><div class="card-body"><h6>Meta Geral</h6><h4 id="metaGeral">0</h4></div></div></div>
+        <div class="col-md-2"><div class="card text-bg-info shadow-sm"><div class="card-body"><h6>Meta 80%</h6><h4 id="meta80">0</h4></div></div></div>
+        <div class="col-md-2"><div class="card text-bg-warning shadow-sm"><div class="card-body"><h6>% Meta Batida</h6><h4 id="percMeta">0%</h4></div></div></div>
       </div>
 
       <!-- Gráficos -->
@@ -68,7 +77,7 @@ function carregarDashboard() {
                 <th>Pedidos</th>
                 <th>Peças</th>
                 <th>Romaneios</th>
-                <th>Tempo Médio</th>
+                <th>Média</th>
               </tr>
             </thead>
             <tbody id="resumoOperadoresBody"></tbody>
@@ -111,6 +120,7 @@ function carregarDashboard() {
   carregarResumoOperadores();
   carregarPivotHoras();
   carregarRomaneios();
+  carregarMetricaExpedicao();
 
   supabase
     .channel("dashboard_admin")
@@ -119,8 +129,17 @@ function carregarDashboard() {
       carregarResumoOperadores();
       carregarPivotHoras();
       carregarRomaneios();
+      carregarMetricaExpedicao();
     })
     .subscribe();
+}
+
+// ---- Helpers ----
+function formatarSegundos(segundos) {
+  const h = String(Math.floor(segundos / 3600)).padStart(2, "0");
+  const m = String(Math.floor((segundos % 3600) / 60)).padStart(2, "0");
+  const s = String(segundos % 60).padStart(2, "0");
+  return `${h}:${m}:${s}`;
 }
 
 // ---- Métricas principais
@@ -141,8 +160,7 @@ async function carregarMetricas() {
   const { count: pendentes } = await supabase
     .from("pedidos")
     .select("id", { count: "exact", head: true })
-    .eq("status", "pendente")
-    .gte("data", hoje);
+    .eq("status", "pendente");
   document.getElementById("pedidosPendentesCount").textContent = pendentes ?? 0;
 
   const { count: pesados } = await supabase
@@ -163,6 +181,68 @@ async function carregarMetricas() {
     .from("romaneios_em_uso")
     .select("*", { count: "exact", head: true });
   document.getElementById("romaneiosAbertosCount").textContent = romaneios ?? 0;
+}
+
+// ---- Métrica avançada: Expedição
+async function carregarMetricaExpedicao() {
+  const hoje = new Date().toISOString().slice(0, 10);
+
+  // Pendentes
+  const { data: pendentes } = await supabase
+    .from("pedidos")
+    .select("id")
+    .eq("status", "pendente");
+  const totalPendentes = pendentes?.length ?? 0;
+
+  const { data: pecasPendentes } = await supabase
+    .from("produtos_pedido")
+    .select("qtd")
+    .in("pedido_id", pendentes?.map((p) => p.id) ?? []);
+  const totalPecasPendentes =
+    pecasPendentes?.reduce((a, p) => a + (p.qtd || 0), 0) ?? 0;
+
+  // Pesados hoje
+  const { data: pesadosHoje } = await supabase
+    .from("pedidos")
+    .select("id")
+    .eq("status", "PESADO")
+    .eq("data", hoje);
+  const totalPesadosHoje = pesadosHoje?.length ?? 0;
+
+  const { data: pecasPesadasHoje } = await supabase
+    .from("produtos_pedido")
+    .select("qtd")
+    .in("pedido_id", pesadosHoje?.map((p) => p.id) ?? []);
+  const totalPecasPesadasHoje =
+    pecasPesadasHoje?.reduce((a, p) => a + (p.qtd || 0), 0) ?? 0;
+
+  // Meta geral (pedidos do dia)
+  const { count: metaGeral } = await supabase
+    .from("pedidos")
+    .select("id", { count: "exact", head: true })
+    .eq("data", hoje);
+
+  const meta80 = Math.round((metaGeral ?? 0) * 0.8);
+  const percMeta = metaGeral
+    ? Math.round((totalPesadosHoje / metaGeral) * 100)
+    : 0;
+
+  // Atualiza cards
+  document.getElementById(
+    "totalPendentes"
+  ).textContent = `${totalPendentes} pedidos`;
+  document.getElementById(
+    "totalPendentesPecas"
+  ).textContent = `${totalPecasPendentes} peças`;
+  document.getElementById(
+    "totalPesadosHoje"
+  ).textContent = `${totalPesadosHoje} pedidos`;
+  document.getElementById(
+    "totalPesadosHojePecas"
+  ).textContent = `${totalPecasPesadasHoje} peças`;
+  document.getElementById("metaGeral").textContent = metaGeral ?? 0;
+  document.getElementById("meta80").textContent = meta80;
+  document.getElementById("percMeta").textContent = `${percMeta}%`;
 }
 
 // ---- Resumo Operadores
@@ -191,12 +271,11 @@ async function carregarResumoOperadores() {
       <td>${row.pecas_dia}</td>
       <td>${row.romaneios_dia}</td>
       <td>${formatarSegundos(row.media_seg_dia)}</td>
-
     `;
     tbody.appendChild(tr);
   });
 
-  // Ranking operadores (bar chart)
+  // Ranking operadores
   if (chartRanking) chartRanking.destroy();
   chartRanking = new Chart(document.getElementById("chartRanking"), {
     type: "bar",
@@ -219,7 +298,6 @@ async function carregarPivotHoras() {
   if (error) return console.error("Erro pivot:", error);
   if (!data || !data.length) return;
 
-  // Atualiza tabela
   const header = document.getElementById("pivotHeader");
   const body = document.getElementById("pivotBody");
   const cols = Object.keys(data[0]);
@@ -232,7 +310,7 @@ async function carregarPivotHoras() {
     body.appendChild(tr);
   });
 
-  // Gráfico pedidos por hora (linha)
+  // gráfico linha com total geral
   const totalGeral = data.find((r) => r.operador === "TOTAL GERAL");
   if (totalGeral) {
     const horas = cols.filter((c) => c.includes("H"));
@@ -271,45 +349,4 @@ async function carregarRomaneios() {
   });
 }
 
-// ---- Status pedidos (pizza)
-async function carregarStatus() {
-  const hoje = new Date().toISOString().slice(0, 10);
-  const { data, error } = await supabase
-    .from("pedidos")
-    .select("status")
-    .gte("data", hoje);
-  if (error) return console.error("Erro status:", error);
-
-  const contagem = {};
-  data.forEach((p) => {
-    contagem[p.status] = (contagem[p.status] || 0) + 1;
-  });
-
-  const labels = Object.keys(contagem);
-  const valores = Object.values(contagem);
-
-  if (chartStatus) chartStatus.destroy();
-  chartStatus = new Chart(document.getElementById("chartStatus"), {
-    type: "pie",
-    data: {
-      labels,
-      datasets: [
-        {
-          data: valores,
-          backgroundColor: ["#0d6efd", "#198754", "#ffc107", "#dc3545"],
-        },
-      ],
-    },
-  });
-}
-
-function formatarSegundos(segundos) {
-  const h = String(Math.floor(segundos / 3600)).padStart(2, "0");
-  const m = String(Math.floor((segundos % 3600) / 60)).padStart(2, "0");
-  const s = String(segundos % 60).padStart(2, "0");
-  return `${h}:${m}:${s}`;
-}
-
-
 initAdmin();
-setInterval(carregarStatus, 60000); // atualiza status a cada minuto
