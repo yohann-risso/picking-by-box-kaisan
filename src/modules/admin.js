@@ -68,7 +68,7 @@ function carregarDashboard() {
                 <th>Pedidos</th>
                 <th>Peças</th>
                 <th>Romaneios</th>
-                <th>Média (seg)</th>
+                <th>Tempo Médio</th>
               </tr>
             </thead>
             <tbody id="resumoOperadoresBody"></tbody>
@@ -190,7 +190,8 @@ async function carregarResumoOperadores() {
       <td>${row.pedidos_dia}</td>
       <td>${row.pecas_dia}</td>
       <td>${row.romaneios_dia}</td>
-      <td>${row.media_seg_dia}</td>
+      <td>${formatarSegundos(row.media_seg_dia)}</td>
+
     `;
     tbody.appendChild(tr);
   });
@@ -301,6 +302,14 @@ async function carregarStatus() {
     },
   });
 }
+
+function formatarSegundos(segundos) {
+  const h = String(Math.floor(segundos / 3600)).padStart(2, "0");
+  const m = String(Math.floor((segundos % 3600) / 60)).padStart(2, "0");
+  const s = String(segundos % 60).padStart(2, "0");
+  return `${h}:${m}:${s}`;
+}
+
 
 initAdmin();
 setInterval(carregarStatus, 60000); // atualiza status a cada minuto
