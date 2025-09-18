@@ -231,11 +231,11 @@ async function carregarMetricaExpedicao() {
     pesadosHoje?.reduce((a, p) => a + (p.qtde_pecas || 0), 0) ?? 0;
 
   // 3. Meta Geral (via função RPC do Supabase)
-  const { data: metaGeral, error } = await supabase.rpc(
+  const { data: metaGeral, error: errMeta } = await supabase.rpc(
     "contar_pedidos_nao_pesados"
   );
-  if (error) {
-    console.error("Erro RPC meta geral:", error);
+  if (errMeta) {
+    console.error("Erro RPC meta geral:", errMeta);
   }
 
   // 4. Meta 80%
