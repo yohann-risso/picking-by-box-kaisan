@@ -21,7 +21,8 @@ function formatarSegundos(segundos) {
 }
 
 function formatarHoraSP(timestamp) {
-  return new Date(timestamp).toLocaleString("pt-BR", {
+  if (!timestamp) return "-";
+  return new Date(timestamp).toLocaleTimeString("pt-BR", {
     timeZone: "America/Sao_Paulo",
     hour: "2-digit",
     minute: "2-digit",
