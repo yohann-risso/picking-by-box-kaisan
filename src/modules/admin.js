@@ -75,6 +75,7 @@ function carregarDashboard() {
     <div class="container-fluid py-4">
       <h2 class="mb-4 fw-bold"><i class="bi bi-truck"></i> Dashboard de Expedição</h2>
 
+      <!-- Botão Reportar Erro -->
       <div class="mb-4 text-end">
         <button class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#erroModal">
           <i class="bi bi-bug"></i> Reportar Erro de Expedição
@@ -134,20 +135,105 @@ function carregarDashboard() {
 
       <!-- Cards principais -->
       <div class="row g-3 mb-4 text-center">
-        <div class="col-md-2"><div class="card bg-primary text-white shadow h-100"><div class="card-body"><h6>Usuários Ativos</h6><h2 id="usuariosAtivosCount">-</h2></div></div></div>
-        <div class="col-md-2"><div class="card bg-success text-white shadow h-100"><div class="card-body"><h6>Pedidos Hoje</h6><h2 id="pedidosHojeCount">-</h2></div></div></div>
-        <div class="col-md-2"><div class="card bg-info text-white shadow h-100"><div class="card-body"><h6>Pendentes</h6><h2 id="pedidosPendentesCount">-</h2></div></div></div>
-        <div class="col-md-2"><div class="card bg-warning text-dark shadow h-100"><div class="card-body"><h6>Peças do Dia</h6><h2 id="pecasHojeCount">-</h2></div></div></div>
-        <div class="col-md-2"><div class="card bg-danger text-white shadow h-100"><div class="card-body"><h6>Romaneios Abertos</h6><h2 id="romaneiosAbertosCount">-</h2></div></div></div>
+        <div class="col-md-2">
+          <div class="card bg-primary text-white shadow h-100">
+            <div class="card-body"><h6>Usuários Ativos</h6><h2 id="usuariosAtivosCount">-</h2></div>
+          </div>
+        </div>
+        <div class="col-md-2">
+          <div class="card bg-success text-white shadow h-100">
+            <div class="card-body"><h6>Pedidos Hoje</h6><h2 id="pedidosHojeCount">-</h2></div>
+          </div>
+        </div>
+        <div class="col-md-2">
+          <div class="card bg-info text-white shadow h-100">
+            <div class="card-body"><h6>Pendentes</h6><h2 id="pedidosPendentesCount">-</h2></div>
+          </div>
+        </div>
+        <div class="col-md-2">
+          <div class="card bg-warning text-dark shadow h-100">
+            <div class="card-body"><h6>Peças do Dia</h6><h2 id="pecasHojeCount">-</h2></div>
+          </div>
+        </div>
+        <div class="col-md-2">
+          <div class="card bg-danger text-white shadow h-100">
+            <div class="card-body"><h6>Romaneios Abertos</h6><h2 id="romaneiosAbertosCount">-</h2></div>
+          </div>
+        </div>
       </div>
 
       <!-- Cards avançados -->
       <div class="row g-3 mb-4 text-center">
-        <div class="col-md-3"><div class="card bg-dark text-white shadow h-100"><div class="card-body"><h6>Total Pendentes</h6><h4 id="totalPendentes">-</h4><small id="totalPendentesPecas">-</small></div></div></div>
-        <div class="col-md-3"><div class="card bg-success text-white shadow h-100"><div class="card-body"><h6>Pesados Hoje</h6><h4 id="totalPesadosHoje">-</h4><small id="totalPesadosHojePecas">-</small></div></div></div>
-        <div class="col-md-2"><div class="card bg-primary text-white shadow h-100"><div class="card-body"><h6>Meta Geral</h6><h4 id="metaGeral">-</h4></div></div></div>
-        <div class="col-md-2"><div class="card bg-info text-white shadow h-100"><div class="card-body"><h6>Meta 80%</h6><h4 id="meta80">-</h4></div></div></div>
-        <div class="col-md-2"><div class="card bg-warning text-dark shadow h-100"><div class="card-body"><h6>% Meta Batida</h6><div class="progress"><div id="percMetaBar" class="progress-bar bg-success" role="progressbar" style="width:0%"></div></div><h5 id="percMeta">-</h5></div></div></div>
+        <div class="col-md-3">
+          <div class="card bg-dark text-white shadow h-100">
+            <div class="card-body"><h6>Total Pendentes</h6><h4 id="totalPendentes">-</h4><small id="totalPendentesPecas">-</small></div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card bg-success text-white shadow h-100">
+            <div class="card-body"><h6>Pesados Hoje</h6><h4 id="totalPesadosHoje">-</h4><small id="totalPesadosHojePecas">-</small></div>
+          </div>
+        </div>
+        <div class="col-md-2">
+          <div class="card bg-primary text-white shadow h-100">
+            <div class="card-body"><h6>Meta Geral</h6><h4 id="metaGeral">-</h4></div>
+          </div>
+        </div>
+        <div class="col-md-2">
+          <div class="card bg-info text-white shadow h-100">
+            <div class="card-body"><h6>Meta 80%</h6><h4 id="meta80">-</h4></div>
+          </div>
+        </div>
+        <div class="col-md-2">
+          <div class="card bg-warning text-dark shadow h-100">
+            <div class="card-body">
+              <h6>% Meta Batida</h6>
+              <div class="progress">
+                <div id="percMetaBar" class="progress-bar bg-success" role="progressbar" style="width:0%"></div>
+              </div>
+              <h5 id="percMeta">-</h5>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Erros de Expedição -->
+      <div class="row g-3 mb-4">
+        <!-- Card total erros -->
+        <div class="col-md-3">
+          <div class="card bg-danger text-white shadow h-100">
+            <div class="card-body text-center">
+              <h6>Erros no Mês</h6>
+              <h2 id="totalErrosMes">-</h2>
+            </div>
+          </div>
+        </div>
+        <!-- Leaderboard -->
+        <div class="col-md-5">
+          <div class="card shadow h-100">
+            <div class="card-header">📊 Erros por Operador (Mensal)</div>
+            <div class="table-responsive">
+              <table class="table table-sm table-striped mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th>Operador</th>
+                    <th>Qtd Erros</th>
+                  </tr>
+                </thead>
+                <tbody id="errosLeaderboardBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <!-- Pizza motivos -->
+        <div class="col-md-4">
+          <div class="card shadow h-100">
+            <div class="card-header">📊 Motivos dos Erros</div>
+            <div class="card-body">
+              <canvas id="chartMotivosErro"></canvas>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Gráficos -->
@@ -158,20 +244,6 @@ function carregarDashboard() {
             <div class="card-body"><canvas id="chartPedidosHora"></canvas></div>
           </div>
         </div>
-        <div class="card shadow mb-4">
-          <div class="card-header">📊 Relatório de Erros de Expedição (Mensal)</div>
-          <div class="table-responsive">
-            <table class="table table-sm table-striped mb-0">
-              <thead class="table-light">
-                <tr>
-                  <th>Operador</th>
-                  <th>Qtd Erros</th>
-                </tr>
-              </thead>
-              <tbody id="errosLeaderboardBody"></tbody>
-            </table>
-          </div>
-        </div>
         <div class="col-md-5">
           <div class="card shadow">
             <div class="card-header">🏆 Ranking Operadores</div>
@@ -180,7 +252,7 @@ function carregarDashboard() {
         </div>
       </div>
 
-      <!-- Leaderboard -->
+      <!-- Leaderboard de Operadores -->
       <div class="card shadow mb-4">
         <div class="card-header">Resumo de Operadores (Hoje)</div>
         <div class="table-responsive">
@@ -235,6 +307,7 @@ function carregarDashboard() {
   carregarPivotHoras();
   carregarRomaneios();
   carregarMetricaExpedicao();
+  carregarRelatorioErros();
 }
 
 // ===== Métricas principais =====
@@ -460,5 +533,85 @@ document.addEventListener("click", async (e) => {
     }
   }
 });
+
+// ===== Relatório de Erros =====
+async function carregarRelatorioErros() {
+  const hoje = new Date();
+  const mes = hoje.getMonth() + 1;
+  const ano = hoje.getFullYear();
+
+  const inicio = `${ano}-${String(mes).padStart(2, "0")}-01`;
+  const fim = `${ano}-${String(mes).padStart(2, "0")}-31`;
+
+  const { data, error } = await supabase
+    .from("expedicao_erros")
+    .select("operador, motivo, data")
+    .gte("data", inicio)
+    .lte("data", fim);
+
+  if (error) {
+    console.error("Erro ao carregar relatório de erros:", error);
+    return;
+  }
+
+  // ===== Total de erros =====
+  document.getElementById("totalErrosMes").textContent = data.length ?? 0;
+
+  // ===== Leaderboard por operador =====
+  const porOperador = {};
+  data.forEach((e) => {
+    porOperador[e.operador] = (porOperador[e.operador] || 0) + 1;
+  });
+
+  const tbody = document.getElementById("errosLeaderboardBody");
+  tbody.innerHTML = "";
+
+  Object.entries(porOperador)
+    .sort((a, b) => b[1] - a[1])
+    .forEach(([operador, qtd]) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td><strong>${operador}</strong></td>
+        <td class="text-end"><span class="badge-status danger">${qtd}</span></td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+  // ===== Gráfico pizza por motivo =====
+  const motivos = {};
+  data.forEach((e) => {
+    motivos[e.motivo] = (motivos[e.motivo] || 0) + 1;
+  });
+
+  const labels = Object.keys(motivos);
+  const valores = Object.values(motivos);
+
+  if (chartMotivosErro) chartMotivosErro.destroy();
+  chartMotivosErro = new Chart(document.getElementById("chartMotivosErro"), {
+    type: "pie",
+    data: {
+      labels,
+      datasets: [
+        {
+          data: valores,
+          backgroundColor: [
+            "#dc3545",
+            "#ffc107",
+            "#0d6efd",
+            "#20c997",
+            "#6c757d",
+          ],
+        },
+      ],
+    },
+    options: {
+      plugins: {
+        legend: { position: "bottom" },
+      },
+    },
+  });
+}
+
+carregarRelatorioErros();
 
 initAdmin();
