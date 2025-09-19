@@ -357,7 +357,7 @@ async function carregarRomaneios() {
       <td>${r.operador2 ?? "-"}</td>
       <td>
         <span class="badge-status info">
-          ${formatarHoraSP(r.iniciado_em)}
+          ${r.iniciado_em ? formatarHoraSP(r.iniciado_em) : "-"}
         </span>
       </td>
     `;
