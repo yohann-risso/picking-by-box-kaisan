@@ -534,14 +534,21 @@ document.addEventListener("click", async (e) => {
   }
 });
 
+function ultimoDiaMes(ano, mes) {
+  return new Date(ano, mes, 0).getDate();
+  // passa "mes" como o próximo, e 0 pega o último dia do mês anterior
+}
+
 // ===== Relatório de Erros =====
 async function carregarRelatorioErros() {
   const hoje = new Date();
   const mes = hoje.getMonth() + 1;
   const ano = hoje.getFullYear();
 
+  const ultimoDia = new Date(ano, mes, 0).getDate(); // ✅ último dia real do mês
+
   const inicio = `${ano}-${String(mes).padStart(2, "0")}-01`;
-  const fim = `${ano}-${String(mes).padStart(2, "0")}-31`;
+  const fim = `${ano}-${String(mes).padStart(2, "0")}-${ultimoDia}`;
 
   const { data, error } = await supabase
     .from("expedicao_erros")
