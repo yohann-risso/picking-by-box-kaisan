@@ -12,6 +12,12 @@ function formatarSegundos(segundos) {
   return `${h}:${m}:${s}`;
 }
 
+function formatarParaBR(isoDate) {
+  if (!isoDate) return null;
+  const [ano, mes, dia] = isoDate.split("-");
+  return `${dia}/${mes}/${ano}`; // dd/mm/yyyy
+}
+
 function formatarHoraSP(timestamp) {
   if (!timestamp) return "-";
   return new Date(timestamp).toLocaleTimeString("pt-BR", {
@@ -91,7 +97,7 @@ async function carregarMetricaExpedicao() {
 
   const { data: pesadosHojeData } = await supabase.rpc(
     "contar_pedidos_pesados_hoje",
-    { data_ref: hoje }
+    { data: hoje }
   );
   const totalPesadosHoje = pesadosHojeData?.[0]?.total_pedidos ?? 0;
   const totalPecasPesadasHoje = pesadosHojeData?.[0]?.total_pecas ?? 0;
@@ -182,9 +188,8 @@ async function carregarPivotHoras(dataFiltro = null) {
   let query = supabase.from("view_pedidos_por_hora").select("*");
 
   if (dataFiltro) {
-    query = query.eq("data_ref", dataFiltro);
+    query = query.eq("data", formatarParaBR(dataFiltro));
   }
-
   const { data, error } = await query;
   if (error) {
     console.error("Erro ao carregar pivot:", error);
