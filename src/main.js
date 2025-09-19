@@ -323,12 +323,10 @@ async function verificarRomaneioEmUso(romaneio) {
 }
 
 function nowInBrazilISO() {
-  const date = new Date();
-  const offset = -3 * 60; // em minutos
-  const localDate = new Date(
-    date.getTime() - (date.getTimezoneOffset() - offset) * 60000
+  return (
+    new Date().toLocaleString("sv-SE", { timeZone: "America/Sao_Paulo" }) +
+    "-03:00"
   );
-  return localDate.toISOString();
 }
 
 async function gerarPdfResumo() {
