@@ -594,7 +594,9 @@ async function carregarRelatorioErros() {
   const labels = Object.keys(motivos);
   const valores = Object.values(motivos);
 
-  if (chartMotivosErro) chartMotivosErro.destroy();
+  if (chartMotivosErro instanceof Chart) {
+    chartMotivosErro.destroy();
+  }
   chartMotivosErro = new Chart(document.getElementById("chartMotivosErro"), {
     type: "pie",
     data: {
