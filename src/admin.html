@@ -34,7 +34,7 @@
           data-bs-toggle="modal"
           data-bs-target="#erroModal"
         >
-          <i class="bi bi-bug"></i> Reportar Erro
+          <i class="bi bi-bug"></i> Registrar Erro de Expedição
         </button>
       </div>
     </header>
@@ -379,8 +379,65 @@
           </div>
           <div class="modal-body">
             <form id="formErroExpedicao" class="row g-3">
-              <!-- ... mantém os inputs do formulário ... -->
+              <div class="col-md-4">
+                <label class="form-label">Data</label>
+                <input
+                  type="date"
+                  class="form-control"
+                  id="erroData"
+                  required
+                />
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Nº Pedido</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="erroPedido"
+                  required
+                />
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Romaneio</label>
+                <input type="text" class="form-control" id="erroRomaneio" />
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Operador</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="erroOperador"
+                  required
+                />
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Motivo</label>
+                <select class="form-select" id="erroMotivo" required>
+                  <option value="">Selecione...</option>
+                  <option value="Pedido incompleto">Pedido incompleto</option>
+                  <option value="Peça trocada">Peça trocada</option>
+                  <option value="Endereço incorreto">Endereço incorreto</option>
+                  <option value="Etiqueta errada">Etiqueta errada</option>
+                  <option value="Outro">Outro</option>
+                </select>
+              </div>
+              <div class="col-12">
+                <label class="form-label">Observações</label>
+                <textarea class="form-control" id="erroObs" rows="3"></textarea>
+              </div>
             </form>
+            <div class="modal-footer">
+              <button
+                type="button"
+                class="btn btn-secondary"
+                data-bs-dismiss="modal"
+              >
+                Cancelar
+              </button>
+              <button type="button" class="btn btn-danger" id="btnSalvarErro">
+                Salvar Erro
+              </button>
+            </div>
           </div>
         </div>
       </div>
