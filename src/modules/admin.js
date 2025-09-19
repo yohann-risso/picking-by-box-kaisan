@@ -3,6 +3,8 @@ import "../css/admin.css";
 
 let chartPedidosHora, chartRanking;
 let autoRefresh;
+let chartMotivosErro;
+
 
 // ===== Helpers =====
 function setLoader(id, small = false) {
@@ -621,7 +623,5 @@ async function carregarRelatorioErros() {
     },
   });
 }
-
-carregarRelatorioErros();
 
 initAdmin();
