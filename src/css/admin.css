@@ -227,3 +227,21 @@ h6 {
     font-size: 0.9rem;
   }
 }
+
+/* ===== Centralizar dados nas tabelas ===== */
+.table thead th {
+  text-align: center;
+  vertical-align: middle;
+}
+
+.table tbody td {
+  text-align: center;
+  vertical-align: middle;
+}
+
+/* Se quiser exceções para colunas numéricas, 
+   use a classe .text-end no HTML */
+.table td.text-end,
+.table th.text-end {
+  text-align: right !important;
+}
