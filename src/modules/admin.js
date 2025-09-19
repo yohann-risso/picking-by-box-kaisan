@@ -182,7 +182,7 @@ async function carregarPivotHoras(dataFiltro = null) {
   let query = supabase.from("view_pedidos_por_hora").select("*");
 
   if (dataFiltro) {
-    query = query.eq("data_ref", dataFiltro); // 👈 usa a coluna data_ref da view
+    query = query.eq("data_ref", dataFiltro);
   }
 
   const { data, error } = await query;
@@ -434,18 +434,27 @@ function initAdmin() {
 
   carregarMetricas();
   carregarResumoOperadores();
-  carregarPivotHoras();
   carregarRomaneios();
   carregarMetricaExpedicao();
   carregarRelatorioErros();
 
+  // 👉 setar data de hoje (fuso SP) no input e carregar pivot só uma vez
+  const hojeSP = new Date().toLocaleDateString("sv-SE", {
+    timeZone: "America/Sao_Paulo",
+  });
+  const pivotInput = document.getElementById("pivotData");
+  if (pivotInput) {
+    pivotInput.value = hojeSP; // formato YYYY-MM-DD
+    carregarPivotHoras(hojeSP);
+  }
+
   autoRefresh = setInterval(() => {
     carregarMetricas();
     carregarResumoOperadores();
-    carregarPivotHoras();
     carregarRomaneios();
     carregarMetricaExpedicao();
     carregarRelatorioErros();
+    // 👇 não recarrega o pivot automaticamente
   }, 30000);
 }
 
