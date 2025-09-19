@@ -1,4 +1,4 @@
-/* ====== Fonte e base ====== */
+/* ===== Fonte e base ===== */
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap");
 
 body {
@@ -8,6 +8,7 @@ body {
   line-height: 1.5;
 }
 
+/* ===== Títulos ===== */
 h1,
 h2,
 h3,
@@ -15,17 +16,19 @@ h4,
 h5,
 h6 {
   font-weight: 700;
+  margin-bottom: 0.5rem;
 }
 
-/* ====== Cards ====== */
+/* ===== Cards ===== */
 .card {
   border: none;
   border-radius: 0.75rem;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
+  background-color: #fff;
 }
 
 .card:hover {
-  transform: translateY(-3px);
+  transform: translateY(-2px);
   box-shadow: 0 0.75rem 1.25rem rgba(0, 0, 0, 0.08);
 }
 
@@ -34,9 +37,30 @@ h6 {
   font-size: 0.95rem;
   background: #fff;
   border-bottom: 1px solid #e9ecef;
+  border-radius: 0.75rem 0.75rem 0 0;
 }
 
-/* ====== Cores customizadas ====== */
+/* ===== Cards de métricas ===== */
+.card-body h6 {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #e9ecef;
+  margin-bottom: 0.25rem;
+}
+
+.card-body h2,
+.card-body h3,
+.card-body h4 {
+  margin: 0;
+  font-weight: 700;
+}
+
+.card-body i {
+  opacity: 0.9;
+}
+
+/* ===== Gradientes customizados ===== */
 .bg-primary {
   background: linear-gradient(135deg, #007bff, #0056d2) !important;
 }
@@ -61,64 +85,36 @@ h6 {
   background: linear-gradient(135deg, #343a40, #1d2124) !important;
 }
 
-/* ====== Tabelas ====== */
-.table {
-  font-size: 0.9rem;
+/* ===== Accordion ===== */
+.accordion-button {
+  font-weight: 600;
+  font-size: 1rem;
   border-radius: 0.5rem;
+}
+
+.accordion-button:not(.collapsed) {
+  background-color: #0d6efd;
+  color: #fff;
+  box-shadow: none;
+}
+
+.accordion-item {
+  border: none;
+  margin-bottom: 0.75rem;
+  border-radius: 0.75rem;
   overflow: hidden;
 }
 
-.table thead th {
-  background-color: #f8f9fa;
-  font-weight: 600;
-  text-transform: uppercase;
-  font-size: 0.8rem;
+.accordion-body {
+  background: #fff;
+  border-radius: 0 0 0.75rem 0.75rem;
+  padding: 1.25rem;
 }
 
-.table-hover tbody tr:hover {
-  background-color: #f1f3f5;
-}
-
-/* ====== Loader ====== */
-.spinner-border {
-  width: 1.5rem;
-  height: 1.5rem;
-}
-
-/* ====== Progress Bar ====== */
-.progress {
-  height: 0.8rem;
-  background-color: #e9ecef;
-  border-radius: 0.5rem;
-}
-
-.progress-bar {
-  font-size: 0.7rem;
-  font-weight: 600;
-  transition: width 0.6s ease;
-}
-
-/* ====== Responsividade ====== */
-@media (max-width: 768px) {
-  h2 {
-    font-size: 1.25rem;
-  }
-
-  .card .card-body h2,
-  .card .card-body h4 {
-    font-size: 1.2rem;
-  }
-
-  .table {
-    font-size: 0.8rem;
-  }
-}
-
-/* ====== Tabelas ====== */
+/* ===== Tabelas ===== */
 .table {
   font-size: 0.9rem;
   border-radius: 0.75rem;
-  overflow: hidden;
   background-color: #fff;
   margin-bottom: 0;
 }
@@ -148,55 +144,86 @@ h6 {
   background-color: #fcfcfc;
 }
 
-.table-sm td, .table-sm th {
+.table-sm td,
+.table-sm th {
   padding: 0.5rem;
 }
 
-/* ====== Tabelas interativas ====== */
+/* ===== Tabelas interativas ===== */
 .table tbody tr {
   transition: transform 0.15s ease;
 }
+
 .table tbody tr:hover {
   transform: scale(1.01);
   box-shadow: 0 0.4rem 0.8rem rgba(0, 0, 0, 0.05);
   cursor: pointer;
 }
 
-/* ====== Badges dentro da tabela ====== */
+/* ===== Badges ===== */
 .badge-status {
   font-size: 0.75rem;
   padding: 0.4em 0.6em;
   border-radius: 0.5rem;
   font-weight: 500;
 }
+
 .badge-status.success {
   background-color: #d4edda;
   color: #155724;
 }
+
 .badge-status.warning {
   background-color: #fff3cd;
   color: #856404;
 }
+
 .badge-status.danger {
   background-color: #f8d7da;
   color: #721c24;
 }
+
 .badge-status.info {
   background-color: #d1ecf1;
   color: #0c5460;
 }
 
-/* ====== Alinhamento para números ====== */
-.table td.text-end {
-  text-align: right;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
+/* ===== Progress bar ===== */
+.progress {
+  height: 0.8rem;
+  background-color: #e9ecef;
+  border-radius: 0.5rem;
 }
 
-/* ====== Responsividade ====== */
-.table-responsive {
-  border-radius: 0.75rem;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  box-shadow: inset 0 0 0 1px #e9ecef;
+.progress-bar {
+  font-size: 0.7rem;
+  font-weight: 600;
+  transition: width 0.6s ease;
+}
+
+/* ===== Loader ===== */
+.spinner-border {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+/* ===== Responsividade ===== */
+@media (max-width: 768px) {
+  h2 {
+    font-size: 1.25rem;
+  }
+
+  .card .card-body h2,
+  .card .card-body h3,
+  .card .card-body h4 {
+    font-size: 1.2rem;
+  }
+
+  .table {
+    font-size: 0.8rem;
+  }
+
+  .accordion-button {
+    font-size: 0.9rem;
+  }
 }
