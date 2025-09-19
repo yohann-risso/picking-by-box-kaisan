@@ -75,6 +75,63 @@ function carregarDashboard() {
     <div class="container-fluid py-4">
       <h2 class="mb-4 fw-bold"><i class="bi bi-truck"></i> Dashboard de Expedição</h2>
 
+      <div class="mb-4 text-end">
+        <button class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#erroModal">
+          <i class="bi bi-bug"></i> Reportar Erro de Expedição
+        </button>
+      </div>
+
+      <!-- Modal Erro -->
+      <div class="modal fade" id="erroModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+          <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+              <h5 class="modal-title"><i class="bi bi-bug"></i> Reportar Erro de Expedição</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+              <form id="formErroExpedicao" class="row g-3">
+                <div class="col-md-4">
+                  <label class="form-label">Data</label>
+                  <input type="date" class="form-control" id="erroData" required>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label">Nº Pedido</label>
+                  <input type="text" class="form-control" id="erroPedido" required>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label">Romaneio</label>
+                  <input type="text" class="form-control" id="erroRomaneio">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Operador</label>
+                  <input type="text" class="form-control" id="erroOperador" required>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Motivo</label>
+                  <select class="form-select" id="erroMotivo" required>
+                    <option value="">Selecione...</option>
+                    <option value="Pedido incompleto">Pedido incompleto</option>
+                    <option value="Peça trocada">Peça trocada</option>
+                    <option value="Endereço incorreto">Endereço incorreto</option>
+                    <option value="Etiqueta errada">Etiqueta errada</option>
+                    <option value="Outro">Outro</option>
+                  </select>
+                </div>
+                <div class="col-12">
+                  <label class="form-label">Observações</label>
+                  <textarea class="form-control" id="erroObs" rows="3"></textarea>
+                </div>
+              </form>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+              <button type="button" class="btn btn-danger" id="btnSalvarErro">Salvar Erro</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Cards principais -->
       <div class="row g-3 mb-4 text-center">
         <div class="col-md-2"><div class="card bg-primary text-white shadow h-100"><div class="card-body"><h6>Usuários Ativos</h6><h2 id="usuariosAtivosCount">-</h2></div></div></div>
@@ -99,6 +156,20 @@ function carregarDashboard() {
           <div class="card shadow">
             <div class="card-header">📈 Pedidos por Hora</div>
             <div class="card-body"><canvas id="chartPedidosHora"></canvas></div>
+          </div>
+        </div>
+        <div class="card shadow mb-4">
+          <div class="card-header">📊 Relatório de Erros de Expedição (Mensal)</div>
+          <div class="table-responsive">
+            <table class="table table-sm table-striped mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Operador</th>
+                  <th>Qtd Erros</th>
+                </tr>
+              </thead>
+              <tbody id="errosLeaderboardBody"></tbody>
+            </table>
           </div>
         </div>
         <div class="col-md-5">
@@ -365,5 +436,29 @@ async function carregarRomaneios() {
     tbody.appendChild(tr);
   });
 }
+
+// ---- Salvar erro ----
+document.addEventListener("click", async (e) => {
+  if (e.target && e.target.id === "btnSalvarErro") {
+    const payload = {
+      data: document.getElementById("erroData").value,
+      pedido: document.getElementById("erroPedido").value.trim(),
+      romaneio: document.getElementById("erroRomaneio").value.trim(),
+      operador: document.getElementById("erroOperador").value.trim(),
+      motivo: document.getElementById("erroMotivo").value,
+      observacoes: document.getElementById("erroObs").value.trim(),
+    };
+
+    const { error } = await supabase.from("expedicao_erros").insert([payload]);
+    if (error) {
+      alert("❌ Erro ao salvar: " + error.message);
+    } else {
+      alert("✅ Erro registrado com sucesso!");
+      document.getElementById("formErroExpedicao").reset();
+      bootstrap.Modal.getInstance(document.getElementById("erroModal")).hide();
+      carregarRelatorioErros(); // refresh no dashboard
+    }
+  }
+});
 
 initAdmin();
