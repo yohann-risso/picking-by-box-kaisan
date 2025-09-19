@@ -138,7 +138,7 @@
         </div>
       </div>
 
-      <!-- Accordion para relatórios -->
+      <!-- Accordion -->
       <div class="accordion mb-4" id="accordionAdmin">
         <!-- Erros de Expedição -->
         <div class="accordion-item">
@@ -171,7 +171,9 @@
                   <div class="card shadow h-100">
                     <div class="card-header">📊 Erros por Operador</div>
                     <div class="table-responsive">
-                      <table class="table table-sm table-striped mb-0">
+                      <table
+                        class="table table-sm table-striped mb-0 text-center"
+                      >
                         <thead class="table-light">
                           <tr>
                             <th>Operador</th>
@@ -258,14 +260,14 @@
                 <div class="card-header">Resumo (Hoje)</div>
                 <div class="table-responsive">
                   <table
-                    class="table table-hover table-striped align-middle mb-0"
+                    class="table table-hover table-striped align-middle mb-0 text-center"
                   >
                     <thead class="table-light">
                       <tr>
                         <th>Operador</th>
-                        <th>Pedidos</th>
-                        <th>Peças</th>
-                        <th>Romaneios</th>
+                        <th class="text-end">Pedidos</th>
+                        <th class="text-end">Peças</th>
+                        <th class="text-end">Romaneios</th>
                         <th>Média</th>
                       </tr>
                     </thead>
@@ -296,7 +298,7 @@
           >
             <div class="accordion-body">
               <div class="table-responsive">
-                <table class="table table-sm table-bordered mb-0">
+                <table class="table table-sm table-bordered mb-0 text-center">
                   <thead class="table-light" id="pivotHeader"></thead>
                   <tbody id="pivotBody"></tbody>
                 </table>
@@ -324,7 +326,7 @@
           >
             <div class="accordion-body">
               <div class="table-responsive">
-                <table class="table table-sm table-striped mb-0">
+                <table class="table table-sm table-striped mb-0 text-center">
                   <thead class="table-light">
                     <tr>
                       <th>Romaneio</th>
@@ -355,7 +357,9 @@
             ></button>
           </div>
           <div class="modal-body">
-            <form id="formErroExpedicao" class="row g-3">[...]</form>
+            <form id="formErroExpedicao" class="row g-3">
+              <!-- ... mantém os inputs do formulário ... -->
+            </form>
           </div>
         </div>
       </div>
