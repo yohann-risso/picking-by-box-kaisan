@@ -177,23 +177,42 @@ async function carregarResumoOperadores() {
 }
 
 // ===== Pivot =====
-async function carregarPivotHoras() {
-  const { data } = await supabase.from("view_pedidos_por_hora").select("*");
-  if (!data?.length) return;
+async function carregarPivotHoras(dataFiltro = null) {
+  let query = supabase.from("view_pedidos_por_hora").select("*");
+  if (dataFiltro) {
+    query = query.eq("data", dataFiltro);
+  }
+
+  const { data, error } = await query;
+  if (error) {
+    console.error("Erro ao carregar pivot:", error);
+    return;
+  }
+  if (!data?.length) {
+    document.getElementById("pivotHeader").innerHTML = "";
+    document.getElementById(
+      "pivotBody"
+    ).innerHTML = `<tr><td colspan="99">Nenhum dado encontrado</td></tr>`;
+    return;
+  }
 
   const header = document.getElementById("pivotHeader");
   const body = document.getElementById("pivotBody");
   const cols = Object.keys(data[0]);
+
+  // Monta cabeçalho
   header.innerHTML =
     "<tr>" + cols.map((c) => `<th>${c.toUpperCase()}</th>`).join("") + "</tr>";
-  body.innerHTML = "";
 
+  // Monta corpo
+  body.innerHTML = "";
   data.forEach((row) => {
     const tr = document.createElement("tr");
     tr.innerHTML = cols.map((c) => `<td>${row[c] ?? 0}</td>`).join("");
     body.appendChild(tr);
   });
 
+  // Gráfico (total geral)
   const totalGeral = data.find((r) => r.operador === "TOTAL GERAL");
   if (totalGeral) {
     const horas = cols.filter((c) => c.includes("H"));
@@ -208,6 +227,46 @@ async function carregarPivotHoras() {
     });
   }
 }
+
+document.getElementById("pivotData")?.addEventListener("change", (e) => {
+  const dataSelecionada = e.target.value; // AAAA-MM-DD
+  carregarPivotHoras(dataSelecionada);
+});
+
+document.getElementById("btnPrintPivot")?.addEventListener("click", () => {
+  const dataSelecionada = document.getElementById("pivotData").value || "";
+  const tabela = document.querySelector("#collapsePivot table");
+
+  if (!tabela) {
+    alert("Nenhum dado de pivot encontrado para imprimir.");
+    return;
+  }
+
+  const html = `
+    <html>
+      <head>
+        <title>Pivot - Pedidos por Hora</title>
+        <style>
+          body { font-family: sans-serif; padding: 20px; }
+          h2 { margin-bottom: 10px; }
+          table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+          th, td { border: 1px solid #ccc; padding: 6px; text-align: center; }
+          th { background-color: #f0f0f0; }
+        </style>
+      </head>
+      <body>
+        <h2>Pivot - Pedidos por Hora</h2>
+        <div><strong>Data:</strong> ${dataSelecionada || "Hoje"}</div>
+        ${tabela.outerHTML}
+        <script>window.onload = () => { window.print(); window.close(); }</script>
+      </body>
+    </html>
+  `;
+
+  const win = window.open("", "_blank");
+  win.document.write(html);
+  win.document.close();
+});
 
 // ===== Romaneios =====
 async function carregarRomaneios() {
