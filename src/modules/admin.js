@@ -178,9 +178,11 @@ async function carregarResumoOperadores() {
 
 // ===== Pivot =====
 async function carregarPivotHoras(dataFiltro = null) {
+  // Monta query
   let query = supabase.from("view_pedidos_por_hora").select("*");
+
   if (dataFiltro) {
-    query = query.eq("data", dataFiltro);
+    query = query.eq("data_ref", dataFiltro); // 👈 usa a coluna data_ref da view
   }
 
   const { data, error } = await query;
@@ -188,16 +190,17 @@ async function carregarPivotHoras(dataFiltro = null) {
     console.error("Erro ao carregar pivot:", error);
     return;
   }
-  if (!data?.length) {
-    document.getElementById("pivotHeader").innerHTML = "";
-    document.getElementById(
-      "pivotBody"
-    ).innerHTML = `<tr><td colspan="99">Nenhum dado encontrado</td></tr>`;
-    return;
-  }
 
   const header = document.getElementById("pivotHeader");
   const body = document.getElementById("pivotBody");
+
+  if (!data?.length) {
+    header.innerHTML = "";
+    body.innerHTML = `<tr><td colspan="99">Nenhum dado encontrado</td></tr>`;
+    return;
+  }
+
+  // Obtém colunas dinamicamente (mantém ordem)
   const cols = Object.keys(data[0]);
 
   // Monta cabeçalho
@@ -208,21 +211,44 @@ async function carregarPivotHoras(dataFiltro = null) {
   body.innerHTML = "";
   data.forEach((row) => {
     const tr = document.createElement("tr");
-    tr.innerHTML = cols.map((c) => `<td>${row[c] ?? 0}</td>`).join("");
+    tr.innerHTML = cols
+      .map((c) => {
+        const val = row[c];
+        return `<td class="${typeof val === "number" ? "text-end" : ""}">
+                  ${val ?? 0}
+                </td>`;
+      })
+      .join("");
     body.appendChild(tr);
   });
 
-  // Gráfico (total geral)
+  // Se houver TOTAL GERAL na view → gera gráfico de pedidos por hora
   const totalGeral = data.find((r) => r.operador === "TOTAL GERAL");
   if (totalGeral) {
     const horas = cols.filter((c) => c.includes("H"));
     const valores = horas.map((h) => totalGeral[h] ?? 0);
+
     if (chartPedidosHora) chartPedidosHora.destroy();
     chartPedidosHora = new Chart(document.getElementById("chartPedidosHora"), {
       type: "line",
       data: {
         labels: horas,
-        datasets: [{ label: "Pedidos", data: valores, borderColor: "#0d6efd" }],
+        datasets: [
+          {
+            label: "Pedidos",
+            data: valores,
+            borderColor: "#0d6efd",
+            backgroundColor: "rgba(13, 110, 253, 0.2)",
+            tension: 0.3,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { beginAtZero: true },
+        },
       },
     });
   }
