@@ -1274,6 +1274,15 @@ function abrirEtiquetaNL({
     .join("");
 
   const modal = document.getElementById("etiquetaModalNL");
+  modal.className = "modal-elevated";
+  modal.style.position = "fixed";
+  modal.style.top = "10%";
+  modal.style.left = "50%";
+  modal.style.transform = "translateX(-50%)";
+  modal.style.width = "90%";
+  modal.style.maxWidth = "600px";
+  modal.style.padding = "20px";
+  modal.style.zIndex = "9999";
   modal.innerHTML = `
     <div id="etiquetaContainerNL" class="etiqueta-nl-print">
       <style>
@@ -1441,8 +1450,8 @@ function abrirEtiquetaNL({
           }
         };
       </script>
-    </div>
-  `;
+  </div>
+`;
 
   modal.style.display = "block";
 }
@@ -3473,26 +3482,22 @@ function mostrarModalDeTextoCopiavel(texto, metodo) {
   modal.style.top = "10%";
   modal.style.left = "50%";
   modal.style.transform = "translateX(-50%)";
-  modal.style.background = "var(--color-white)";
-  modal.style.border = "1px solid var(--color-info-border)";
   modal.style.padding = "20px";
   modal.style.zIndex = "9999";
   modal.style.width = "90%";
   modal.style.maxWidth = "600px";
-  modal.style.boxShadow = "0 0 10px rgb(0 0 0 / 30%)";
-  modal.style.borderRadius = "8px";
-
   modal.innerHTML = `
-    <div style="margin-bottom:10px;font-weight:bold;">Lista de Códigos de Rastreio – ${metodo}</div>
-    <textarea id="textoRastreios" style="width:100%;height:300px;" readonly>${texto}</textarea>
-    <div style="margin-top:10px;text-align:right; gap: 0.5rem;">
-      <button id="btnCopiarTexto" class="btn btn-sm btn-primary">📋 Copiar</button>
-      ${
-        urlRemessa
-          ? `<a href="${urlRemessa}" target="_blank" class="btn btn-sm btn-outline-dark">🚚 Gerar Remessa</a>`
-          : ""
-      }
+     <div class="modal-heading">Lista de Códigos de Rastreio – ${metodo}</div>
+     <textarea id="textoRastreios" style="width:100%;height:300px;" readonly>${texto}</textarea>
+     <div style="margin-top:10px;text-align:right; gap: 0.5rem;">
+       <button id="btnCopiarTexto" class="btn btn-sm btn-primary">📋 Copiar</button>
+       ${
+         urlRemessa
+           ? `<a href="${urlRemessa}" target="_blank" class="btn btn-sm btn-outline-dark">🚚 Gerar Remessa</a>`
+           : ""
+       }
       <button id="btnFecharModal" class="btn btn-sm btn-outline-light">Fechar</button>
+      <button id="btnFecharModal" class="btn btn-sm btn-outline-secondary">Fechar</button>
     </div>
   `;
 

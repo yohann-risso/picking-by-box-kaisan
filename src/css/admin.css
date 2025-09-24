@@ -243,4 +243,4 @@ h6 {
 .table th.text-end {
   text-align: right !important;
 }
-.card .card-body h6{ color: inherit; opacity:.8; letter-spacing:.02em; }
+.card .card-body h6{  opacity:.8; letter-spacing:.02em; color: inherit; opacity:.8; letter-spacing:.02em; }
