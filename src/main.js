@@ -3456,15 +3456,23 @@ async function exibirRastreiosPorMetodo(metodo) {
   mostrarModalDeTextoCopiavel(textoFinal, metodo);
 }
 
-
-function mostrarModalDeTextoCopiavel(texto, metodo){
+function mostrarModalDeTextoCopiavel(texto, metodo) {
   const linksRemessa = {
-    SEDEX: "https://ge.kaisan.com.br/?page=nfe_arquivo_remessa/inicia_confere_remessa_transportadora&cod_bandeira=1&cod_loja=-1&cod_transportadora=2",
+    SEDEX:
+      "https://ge.kaisan.com.br/?page=nfe_arquivo_remessa/inicia_confere_remessa_transportadora&cod_bandeira=1&cod_loja=-1&cod_transportadora=2",
     PAC: "https://ge.kaisan.com.br/?page=nfe_arquivo_remessa/inicia_confere_remessa_transportadora&cod_bandeira=1&cod_loja=-1&cod_transportadora=1",
-    "RETIRADA LOCAL": "https://ge.kaisan.com.br/?page=nfe_arquivo_remessa/inicia_confere_remessa_transportadora&cod_bandeira=1&cod_loja=-1&cod_transportadora=4",
+    "RETIRADA LOCAL":
+      "https://ge.kaisan.com.br/?page=nfe_arquivo_remessa/inicia_confere_remessa_transportadora&cod_bandeira=1&cod_loja=-1&cod_transportadora=4",
   };
-  const metodoNormalizado = (metodo||'').toUpperCase();
+  const metodoNormalizado = (metodo || "").toUpperCase();
   const urlRemessa = linksRemessa[metodoNormalizado] || null;
+
+  // constrói o botão sem backticks aninhados
+  const remessaBtn = urlRemessa
+    ? '<a href="' +
+      urlRemessa +
+      '" target="_blank" class="btn btn-sm btn-outline-dark">🚚 Gerar Remessa</a>'
+    : "";
 
   // Backdrop
   const backdrop = document.createElement("div");
@@ -3473,9 +3481,9 @@ function mostrarModalDeTextoCopiavel(texto, metodo){
   // Modal
   const modal = document.createElement("div");
   modal.className = "modal-elevated";
-  modal.setAttribute("role","dialog");
-  modal.setAttribute("aria-modal","true");
-  modal.setAttribute("aria-labelledby","tituloModalRastreio");
+  modal.setAttribute("role", "dialog");
+  modal.setAttribute("aria-modal", "true");
+  modal.setAttribute("aria-labelledby", "tituloModalRastreio");
 
   modal.innerHTML = `
     <div class="modal-heading" id="tituloModalRastreio">Lista de Códigos de Rastreio – ${metodo}</div>
@@ -3484,54 +3492,40 @@ function mostrarModalDeTextoCopiavel(texto, metodo){
     </div>
     <div class="modal-actions">
       <button id="btnCopiarTexto" class="btn btn-sm btn-primary">📋 Copiar</button>
-      ${ urlRemessa ? `<a href="${urlRemessa}" target="_blank" class="btn btn-sm btn-outline-dark">🚚 Gerar Remessa</a>` : "" }
+      ${remessaBtn}
       <button id="btnFecharModal" class="btn btn-sm btn-outline-secondary">Fechar</button>
     </div>
   `;
 
-  function onKey(ev){ if (ev.key === "Escape") close(); }
-  function close(){
+  function onKey(ev) {
+    if (ev.key === "Escape") close();
+  }
+  function close() {
     document.removeEventListener("keydown", onKey);
-    try { modal.remove(); } catch(e){}
-    try { backdrop.remove(); } catch(e){}
+    try {
+      modal.remove();
+    } catch (e) {}
+    try {
+      backdrop.remove();
+    } catch (e) {}
     document.body.style.overflow = "";
   }
 
-  // expose for legacy calls
+  // aliases legados
   window.closeModal = close;
   window.closemodal = close;
 
-  document.body.appendChild(backdrop);
-  document.body.appendChild(modal);
+  document.body.append(backdrop, modal);
   document.body.style.overflow = "hidden";
 
-  // actions
   modal.querySelector("#btnCopiarTexto")?.addEventListener("click", () => {
-    const textarea = modal.querySelector("#textoRastreios");
-    textarea.select();
+    const ta = modal.querySelector("#textoRastreios");
+    ta.select();
     document.execCommand("copy");
   });
   modal.querySelector("#btnFecharModal")?.addEventListener("click", close);
   backdrop.addEventListener("click", close);
   document.addEventListener("keydown", onKey);
-}
-
-      <button id="btnFecharModal" class="btn btn-sm btn-outline-light">Fechar</button>
-    </div>
-  `;
-
-  document.body.appendChild(modal);
-
-  document.getElementById("btnCopiarTexto").addEventListener("click", () => {
-    const textarea = document.getElementById("textoRastreios");
-    textarea.select();
-    document.execCommand("copy");
-    alert("✅ Códigos copiados para a área de transferência!");
-  });
-
-  document.getElementById("btnFecharModal").addEventListener("click", () => {
-    modal.remove();
-  });
 }
 
 window.exibirRastreiosPorMetodo = exibirRastreiosPorMetodo;
