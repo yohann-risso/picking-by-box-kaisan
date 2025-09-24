@@ -4420,13 +4420,17 @@ function renderLeaderboard(rows, erros = []) {
 
   // cria map de erros por operador
   const errosMap = {};
-  erros.forEach((e) => (errosMap[e.operador] = e.erros));
+  let somaErros = 0;
+  erros.forEach((e) => {
+    errosMap[e.operador] = e.erros;
+    somaErros += e.erros;
+  });
 
   tbody.innerHTML = (rows || [])
     .map((r) => {
       const tempo = converterSegundosParaString(r.media_seg || 0);
       const isTotal = r.operador === "TOTAL";
-      const qtdErros = errosMap[r.operador] ?? 0;
+      const qtdErros = isTotal ? somaErros : errosMap[r.operador] ?? 0;
 
       return `
         <tr class="${isTotal ? "fw-bold table-secondary" : ""}">
@@ -4438,7 +4442,9 @@ function renderLeaderboard(rows, erros = []) {
           <td class="text-center">${r.media_pedidos_hora ?? "-"}</td>
           <td class="text-center">${r.media_pedidos_dia ?? "-"}</td>
           <td class="text-center">${r.media_pecas_pedido ?? "-"}</td>
-          <td class="text-center"><span class="badge bg-danger">${qtdErros}</span></td>
+          <td class="text-center">
+            <span class="badge bg-danger">${qtdErros}</span>
+          </td>
         </tr>
       `;
     })
