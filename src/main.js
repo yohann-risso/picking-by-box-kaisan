@@ -3464,21 +3464,23 @@ function mostrarModalDeTextoCopiavel(texto, metodo) {
     "RETIRADA LOCAL":
       "https://ge.kaisan.com.br/?page=nfe_arquivo_remessa/inicia_confere_remessa_transportadora&cod_bandeira=1&cod_loja=-1&cod_transportadora=4",
   };
-  const metodoNormalizado = (metodo || "").toUpperCase();
-  const urlRemessa = linksRemessa[metodoNormalizado] || null;
+  const metodoUpper = (metodo || "").toUpperCase();
+  const urlRemessa = linksRemessa[metodoUpper] || null;
 
-  // constrói o botão sem backticks aninhados
+  // conta linhas (códigos)
+  const totalCodigos = texto.trim() ? texto.trim().split(/\r?\n/).length : 0;
+
+  // botão remessa sem backticks aninhados
   const remessaBtn = urlRemessa
     ? '<a href="' +
       urlRemessa +
       '" target="_blank" class="btn btn-sm btn-outline-dark">🚚 Gerar Remessa</a>'
     : "";
 
-  // Backdrop
+  // Backdrop e Modal
   const backdrop = document.createElement("div");
   backdrop.className = "modal-backdrop-custom";
 
-  // Modal
   const modal = document.createElement("div");
   modal.className = "modal-elevated";
   modal.setAttribute("role", "dialog");
@@ -3486,10 +3488,20 @@ function mostrarModalDeTextoCopiavel(texto, metodo) {
   modal.setAttribute("aria-labelledby", "tituloModalRastreio");
 
   modal.innerHTML = `
-    <div class="modal-heading" id="tituloModalRastreio">Lista de Códigos de Rastreio – ${metodo}</div>
+    <div class="modal-header-lite">
+      <div>
+        <div class="modal-title" id="tituloModalRastreio">
+          Lista de Códigos de Rastreio – ${metodoUpper}
+        </div>
+        <div class="modal-subtle">${totalCodigos} código(s)</div>
+      </div>
+      <button type="button" class="btn btn-sm btn-outline-secondary modal-close" aria-label="Fechar">×</button>
+    </div>
+
     <div class="modal-body">
       <textarea id="textoRastreios" readonly>${texto}</textarea>
     </div>
+
     <div class="modal-actions">
       <button id="btnCopiarTexto" class="btn btn-sm btn-primary">📋 Copiar</button>
       ${remessaBtn}
@@ -3504,26 +3516,40 @@ function mostrarModalDeTextoCopiavel(texto, metodo) {
     document.removeEventListener("keydown", onKey);
     try {
       modal.remove();
-    } catch (e) {}
+    } catch {}
     try {
       backdrop.remove();
-    } catch (e) {}
+    } catch {}
     document.body.style.overflow = "";
   }
 
-  // aliases legados
+  // expõe só pra legados
   window.closeModal = close;
   window.closemodal = close;
 
   document.body.append(backdrop, modal);
   document.body.style.overflow = "hidden";
 
-  modal.querySelector("#btnCopiarTexto")?.addEventListener("click", () => {
-    const ta = modal.querySelector("#textoRastreios");
+  // foco/seleção imediata
+  const ta = modal.querySelector("#textoRastreios");
+  ta?.focus();
+  ta?.select();
+
+  // ações
+  const btnCopy = modal.querySelector("#btnCopiarTexto");
+  btnCopy?.addEventListener("click", () => {
     ta.select();
     document.execCommand("copy");
+    const old = btnCopy.innerHTML;
+    btnCopy.innerHTML = "✅ Copiado!";
+    btnCopy.disabled = true;
+    setTimeout(() => {
+      btnCopy.innerHTML = old;
+      btnCopy.disabled = false;
+    }, 1200);
   });
   modal.querySelector("#btnFecharModal")?.addEventListener("click", close);
+  modal.querySelector(".modal-close")?.addEventListener("click", close);
   backdrop.addEventListener("click", close);
   document.addEventListener("keydown", onKey);
 }
