@@ -367,9 +367,9 @@ async function carregarRelatorioErros() {
     : 0;
 
   // Atualiza card principal
-  document.getElementById(
-    "totalErrosMes"
-  ).textContent = `${totalErros} (${percErros}% dos pedidos)`;
+  document.getElementById("totalErrosMes").innerHTML = `
+    ${totalErros}<br><small class="text-light">${percErros}% dos pedidos</small>
+  `;
 
   // ===== Leaderboard por operador =====
   const porOperador = {};
