@@ -336,23 +336,44 @@ async function carregarRelatorioErros() {
   const inicio = `${ano}-${String(mes).padStart(2, "0")}-01`;
   const fim = `${ano}-${String(mes).padStart(2, "0")}-${ultimoDia}`;
 
-  const { data, error } = await supabase
+  // ====== Erros de expedição ======
+  const { data: erros, error: errErros } = await supabase
     .from("expedicao_erros")
     .select("operador, motivo, data")
     .gte("data", inicio)
     .lte("data", fim);
 
-  if (error) {
-    console.error("Erro ao carregar relatório de erros:", error);
+  if (errErros) {
+    console.error("Erro ao carregar erros:", errErros);
     return;
   }
 
-  // Total
-  document.getElementById("totalErrosMes").textContent = data.length ?? 0;
+  const totalErros = erros.length ?? 0;
 
-  // Leaderboard
+  // ====== Total de pedidos no mês (pedidos_por_romaneio) ======
+  const { count: totalPedidosMes, error: errPedidos } = await supabase
+    .from("pedidos_por_romaneio")
+    .select("id", { count: "exact", head: true })
+    .gte("data", inicio)
+    .lte("data", fim);
+
+  if (errPedidos) {
+    console.error("Erro ao carregar pedidos do mês:", errPedidos);
+  }
+
+  // ====== Calcula % ======
+  const percErros = totalPedidosMes
+    ? ((totalErros / totalPedidosMes) * 100).toFixed(2)
+    : 0;
+
+  // Atualiza card principal
+  document.getElementById(
+    "totalErrosMes"
+  ).textContent = `${totalErros} (${percErros}% dos pedidos)`;
+
+  // ===== Leaderboard por operador =====
   const porOperador = {};
-  data.forEach((e) => {
+  erros.forEach((e) => {
     porOperador[e.operador] = (porOperador[e.operador] || 0) + 1;
   });
 
@@ -369,9 +390,9 @@ async function carregarRelatorioErros() {
       tbody.appendChild(tr);
     });
 
-  // Motivos (pizza)
+  // ===== Gráfico pizza por motivo =====
   const motivos = {};
-  data.forEach((e) => {
+  erros.forEach((e) => {
     motivos[e.motivo] = (motivos[e.motivo] || 0) + 1;
   });
 
@@ -442,6 +463,7 @@ function initAdmin() {
   carregarRomaneios();
   carregarMetricaExpedicao();
   carregarRelatorioErros();
+  carregarOperadoresDropdown();
 
   // 👉 setar data de hoje (fuso SP) no input e carregar pivot só uma vez
   const hojeSP = new Date().toLocaleDateString("sv-SE", {
@@ -461,6 +483,28 @@ function initAdmin() {
     carregarRelatorioErros();
     // 👇 não recarrega o pivot automaticamente
   }, 30000);
+}
+
+async function carregarOperadoresDropdown() {
+  const { data, error } = await supabase
+    .from("usuarios_ativos")
+    .select("nome")
+    .order("nome", { ascending: true });
+
+  if (error) {
+    console.error("Erro ao carregar operadores:", error);
+    return;
+  }
+
+  const select = document.getElementById("erroOperador");
+  select.innerHTML = `<option value="">Selecione...</option>`;
+
+  data?.forEach((op) => {
+    const opt = document.createElement("option");
+    opt.value = op.nome;
+    opt.textContent = op.nome;
+    select.appendChild(opt);
+  });
 }
 
 initAdmin();

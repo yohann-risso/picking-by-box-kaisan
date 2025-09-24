@@ -4413,15 +4413,20 @@ async function fetchLeaderboardDia() {
   return lb || [];
 }
 
-function renderLeaderboard(rows) {
+function renderLeaderboard(rows, erros = []) {
   const box = document.getElementById("leaderboardContainer");
   const tbody = document.getElementById("leaderboardBody");
   if (!box || !tbody) return;
+
+  // cria map de erros por operador
+  const errosMap = {};
+  erros.forEach((e) => (errosMap[e.operador] = e.erros));
 
   tbody.innerHTML = (rows || [])
     .map((r) => {
       const tempo = converterSegundosParaString(r.media_seg || 0);
       const isTotal = r.operador === "TOTAL";
+      const qtdErros = errosMap[r.operador] ?? 0;
 
       return `
         <tr class="${isTotal ? "fw-bold table-secondary" : ""}">
@@ -4433,6 +4438,7 @@ function renderLeaderboard(rows) {
           <td class="text-center">${r.media_pedidos_hora ?? "-"}</td>
           <td class="text-center">${r.media_pedidos_dia ?? "-"}</td>
           <td class="text-center">${r.media_pecas_pedido ?? "-"}</td>
+          <td class="text-center"><span class="badge bg-danger">${qtdErros}</span></td>
         </tr>
       `;
     })
@@ -4461,14 +4467,16 @@ document
   .getElementById("btnLeaderboardDia")
   ?.addEventListener("click", async () => {
     const rows = await fetchLeaderboardDia();
-    renderLeaderboard(rows);
+    const erros = await fetchErrosDia();
+    renderLeaderboard(rows, erros);
   });
 
 document
   .getElementById("btnLeaderboardMes")
   ?.addEventListener("click", async () => {
     const rows = await fetchLeaderboardMes();
-    renderLeaderboard(rows);
+    const erros = await fetchErrosMes();
+    renderLeaderboard(rows, erros);
   });
 
 // Opcional: ao expandir PRODUTIVIDADE já carrega do dia
@@ -4499,4 +4507,26 @@ function rangeHojeSP() {
     ini: `${d}T00:00:00-03:00`,
     fim: `${d}T23:59:59-03:00`,
   };
+}
+
+async function fetchErrosDia() {
+  const { data, error } = await supabase
+    .from("view_erros_operadores_dia")
+    .select("*");
+  if (error) {
+    console.error("Erro ao carregar erros do dia:", error);
+    return [];
+  }
+  return data || [];
+}
+
+async function fetchErrosMes() {
+  const { data, error } = await supabase
+    .from("view_erros_operadores_mes")
+    .select("*");
+  if (error) {
+    console.error("Erro ao carregar erros do mês:", error);
+    return [];
+  }
+  return data || [];
 }
