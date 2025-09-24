@@ -1274,15 +1274,6 @@ function abrirEtiquetaNL({
     .join("");
 
   const modal = document.getElementById("etiquetaModalNL");
-  modal.className = "modal-elevated";
-  modal.style.position = "fixed";
-  modal.style.top = "10%";
-  modal.style.left = "50%";
-  modal.style.transform = "translateX(-50%)";
-  modal.style.width = "90%";
-  modal.style.maxWidth = "600px";
-  modal.style.padding = "20px";
-  modal.style.zIndex = "9999";
   modal.innerHTML = `
     <div id="etiquetaContainerNL" class="etiqueta-nl-print">
       <style>
@@ -1450,8 +1441,8 @@ function abrirEtiquetaNL({
           }
         };
       </script>
-  </div>
-`;
+    </div>
+  `;
 
   modal.style.display = "block";
 }
@@ -1728,7 +1719,7 @@ function renderCardProduto(result) {
         </div>
         <div class="image-container">
           <img
-            loading="eager" decoding="sync" class="product-image" draggable="false" src="${urlImg}"
+            src="${urlImg}"
             alt="Imagem do Produto"
             onerror="this.onerror=null;this.src='https://via.placeholder.com/80?text=Sem+Img';"
           />
@@ -2522,7 +2513,7 @@ function renderProductMap() {
     card.className = "card card-produto p-2";
     card.style.width = "120px";
     card.innerHTML = `
-      <img loading="lazy" decoding="async"
+      <img
         src="${urlImg}"
         alt="SKU ${sku}"
         class="img-produto mb-1"
@@ -3308,7 +3299,7 @@ async function gerarResumoVisualRomaneio() {
       ${remessa}
       <br />
       <button
-        class="btn btn-sm btn-outline-light mt-1"
+        class="btn btn-sm btn-outline-secondary mt-1"
         onclick="exibirRastreiosPorMetodo('${metodo}')"
         title="Ver códigos de rastreio para ${metodo}"
       >
@@ -3320,7 +3311,7 @@ async function gerarResumoVisualRomaneio() {
 
     const btnRemessa = document.createElement("button");
     btnRemessa.textContent = "📋 Ver Códigos";
-    btnRemessa.className = "btn btn-sm btn-outline-light";
+    btnRemessa.className = "btn btn-sm btn-outline-secondary";
     btnRemessa.addEventListener("click", () =>
       exibirRastreiosPorMetodo(metodo.toUpperCase())
     );
@@ -3482,21 +3473,25 @@ function mostrarModalDeTextoCopiavel(texto, metodo) {
   modal.style.top = "10%";
   modal.style.left = "50%";
   modal.style.transform = "translateX(-50%)";
+  modal.style.background = "var(--color-white)";
+  modal.style.border = "1px solid var(--color-info-border)";
   modal.style.padding = "20px";
   modal.style.zIndex = "9999";
   modal.style.width = "90%";
   modal.style.maxWidth = "600px";
+  modal.style.boxShadow = "0 0 10px rgb(0 0 0 / 30%)";
+  modal.style.borderRadius = "8px";
+
   modal.innerHTML = `
-     <div class="modal-heading">Lista de Códigos de Rastreio – ${metodo}</div>
-     <textarea id="textoRastreios" style="width:100%;height:300px;" readonly>${texto}</textarea>
-     <div style="margin-top:10px;text-align:right; gap: 0.5rem;">
-       <button id="btnCopiarTexto" class="btn btn-sm btn-primary">📋 Copiar</button>
-       ${
-         urlRemessa
-           ? `<a href="${urlRemessa}" target="_blank" class="btn btn-sm btn-outline-dark">🚚 Gerar Remessa</a>`
-           : ""
-       }
-      <button id="btnFecharModal" class="btn btn-sm btn-outline-light">Fechar</button>
+    <div style="margin-bottom:10px;font-weight:bold;">Lista de Códigos de Rastreio – ${metodo}</div>
+    <textarea id="textoRastreios" style="width:100%;height:300px;" readonly>${texto}</textarea>
+    <div style="margin-top:10px;text-align:right; gap: 0.5rem;">
+      <button id="btnCopiarTexto" class="btn btn-sm btn-primary">📋 Copiar</button>
+      ${
+        urlRemessa
+          ? `<a href="${urlRemessa}" target="_blank" class="btn btn-sm btn-outline-dark">🚚 Gerar Remessa</a>`
+          : ""
+      }
       <button id="btnFecharModal" class="btn btn-sm btn-outline-secondary">Fechar</button>
     </div>
   `;
@@ -3510,9 +3505,7 @@ function mostrarModalDeTextoCopiavel(texto, metodo) {
     alert("✅ Códigos copiados para a área de transferência!");
   });
 
-  document.getElementById("btnFecharModal").addEventListener("click", () => {
-    modal.remove();
-  });
+  document.getElementById("btnFecharModal").addEventListener("click", closeModal);
 }
 
 window.exibirRastreiosPorMetodo = exibirRastreiosPorMetodo;
@@ -4540,17 +4533,4 @@ async function fetchErrosMes() {
     return [];
   }
   return data || [];
-} // Force eager loading for images inside Bootstrap tooltips
-document.addEventListener("shown.bs.tooltip", (ev) => {
-  const trigger = ev.target;
-  const tipId = trigger && trigger.getAttribute("aria-describedby");
-  if (!tipId) return;
-  const tipEl = document.getElementById(tipId);
-  if (!tipEl) return;
-  tipEl.querySelectorAll("img").forEach((img) => {
-    img.setAttribute("loading", "eager");
-    img.setAttribute("decoding", "sync");
-    const src = img.getAttribute("src");
-    if (src) img.src = src; // poke reload if needed
-  });
-});
+}
