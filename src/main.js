@@ -3516,24 +3516,6 @@ function mostrarModalDeTextoCopiavel(texto, metodo){
   document.addEventListener("keydown", onKey);
 }
 
-      <button id="btnFecharModal" class="btn btn-sm btn-outline-light">Fechar</button>
-    </div>
-  `;
-
-  document.body.appendChild(modal);
-
-  document.getElementById("btnCopiarTexto").addEventListener("click", () => {
-    const textarea = document.getElementById("textoRastreios");
-    textarea.select();
-    document.execCommand("copy");
-    alert("✅ Códigos copiados para a área de transferência!");
-  });
-
-  document.getElementById("btnFecharModal").addEventListener("click", () => {
-    modal.remove();
-  });
-}
-
 window.exibirRastreiosPorMetodo = exibirRastreiosPorMetodo;
 
 function solicitarCestoNL() {
