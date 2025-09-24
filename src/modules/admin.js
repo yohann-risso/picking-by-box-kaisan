@@ -508,3 +508,18 @@ async function carregarOperadoresDropdown() {
 }
 
 initAdmin();
+
+
+// === lazy-load Chart.js on demand (2025-09-24) ===
+(function(){
+  const target = document.getElementById('collapseGraficos');
+  if (!target) return;
+  let loading = false;
+  target.addEventListener('shown.bs.collapse', async () => {
+    if (window.Chart || loading) return;
+    loading = true;
+    const lib = await import('https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js');
+    window.Chart = lib.Chart;
+    document.dispatchEvent(new CustomEvent('charts:lib-ready'));
+  }, { once: true });
+})();
