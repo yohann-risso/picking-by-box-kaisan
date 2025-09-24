@@ -154,11 +154,9 @@ h6 {
   transition: transform 0.15s ease;
 }
 
-.table tbody tr:hover {
-  transform: scale(1.01);
-  box-shadow: 0 0.4rem 0.8rem rgba(0, 0, 0, 0.05);
-  cursor: pointer;
-}
+.table tbody tr:hover {cursor: pointer;
+
+  background-color: #f8f9fa;}
 
 /* ===== Badges ===== */
 .badge-status {
@@ -245,3 +243,4 @@ h6 {
 .table th.text-end {
   text-align: right !important;
 }
+.card .card-body h6{ color: inherit; opacity:.8; letter-spacing:.02em; }
