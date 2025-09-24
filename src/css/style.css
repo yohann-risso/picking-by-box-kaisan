@@ -216,11 +216,13 @@ table td,
   gap: 0.5rem;
   margin-bottom: 1rem;
   transition: transform 0.2s ease;
+
+  box-shadow: var(--shadow-inner);
 }
 
 .card-produto:hover {
   transform: scale(1.02);
-  box-shadow: 0 6px 18px rgb(0 0 0 / 8%);
+  box-shadow: var(--shadow-inner), 0 6px 18px rgb(0 0 0 / 8%);
 }
 
 .card-produto .card-info {
@@ -232,7 +234,7 @@ table td,
   padding: 1rem;
   gap: 1rem;
   position: relative;
-  box-shadow: 0 0 8px var(--color-info-border);
+  box-shadow: var(--shadow-inner), 0 0 8px var(--color-info-border);
   color: var(--color-text);
 }
 
@@ -838,7 +840,7 @@ input::placeholder {
   background-color: var(--color-primary);
   color: var(--color-white);
   font-weight: 700;
-  font-size: clamp(1rem, 2.5vw, 2.5rem);
+  font-size: clamp(2.5rem, 1.2vw, 1.5rem);
   width: 5rem;
   height: 3rem;
   border-radius: 10px;
@@ -1360,60 +1362,4 @@ button.btn:hover {
   /* ativa scroll se passar */
   scrollbar-gutter: stable;
   /* evita “pulo” quando aparece a barra */
-}
-
-/* === UI/UX patches (2025-09-24) === */
-:root{
-  --color-warning: #ffc107;
-  --color-warning-dark: #d39e00;
-  --color-warning-contrast: #212529;
-  --placeholder: #6b7280;
-  --interactive-scale: 1.02;
-  --interactive-press: .98;
-}
-
-[data-theme="dark"]{
-  --color-warning: #e0a800;
-  --color-warning-dark: #b98c00;
-  --color-warning-contrast: #1a1d20;
-  --placeholder: #9aa4b2;
-}
-
-/* Progress semantic helpers */
-.progress-bar.is-danger  { background-color: var(--color-danger) !important; }
-.progress-bar.is-warning { background-color: var(--color-warning) !important; color: var(--color-warning-contrast); }
-.progress-bar.is-success { background-color: var(--color-success) !important; }
-
-/* Focus visible */
-:where(button,[role="button"],a,input,select,textarea):focus-visible{
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
-  box-shadow: 0 0 0 3px rgb(28 63 96 / 20%);
-}
-
-/* Reduce motion */
-@media (prefers-reduced-motion: reduce){
-  *{ animation: none !important; transition: none !important; }
-}
-
-/* Cronômetro responsivo */
-#cronometroModal{
-  width: min(90vw, 780px);
-  inset: auto 1rem 1rem auto;
-  max-height: 90dvh;
-  border-radius: var(--radius-md, 12px);
-  backdrop-filter: blur(6px);
-}
-
-/* Bottom-sheet no mobile para resumo */
-@media (max-width: 768px){
-  #resumoWrapper{
-    top: auto; bottom: 0; transform: none;
-    width: 100%;
-  }
-  #resumoRomaneio{
-    width: 100%;
-    border-radius: 12px 12px 0 0;
-  }
-  #resumoToggle{ writing-mode: horizontal-tb; transform: none; }
 }

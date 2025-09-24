@@ -1719,7 +1719,7 @@ function renderCardProduto(result) {
         </div>
         <div class="image-container">
           <img
-            src="${urlImg}"
+            loading="eager" decoding="sync" class="product-image" draggable="false" src="${urlImg}"
             alt="Imagem do Produto"
             onerror="this.onerror=null;this.src='https://via.placeholder.com/80?text=Sem+Img';"
           />
@@ -2513,7 +2513,7 @@ function renderProductMap() {
     card.className = "card card-produto p-2";
     card.style.width = "120px";
     card.innerHTML = `
-      <img
+      <img loading="lazy" decoding="async"
         src="${urlImg}"
         alt="SKU ${sku}"
         class="img-produto mb-1"
@@ -4538,44 +4538,17 @@ async function fetchErrosMes() {
 }
 
 
-// === UI helpers (2025-09-24): tooltips cache, image lazy, ARIA ===
-const __ttCache = new WeakMap();
-function __ensureTooltip(el){
-  if (__ttCache.has(el)) return __ttCache.get(el);
-  const instance = new bootstrap.Tooltip(el);
-  __ttCache.set(el, instance);
-  return instance;
-}
-function initTooltipsWithin(root=document){
-  root.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(__ensureTooltip);
-}
-
-function enhanceImages(root=document){
-  root.querySelectorAll('#boxContainer img, [data-bs-toggle="tooltip"] img, img.product-image').forEach(img => {
-    if (!img.hasAttribute('loading')) img.setAttribute('loading','lazy');
-    if (!img.hasAttribute('decoding')) img.setAttribute('decoding','async');
+// Force eager loading for images inside Bootstrap tooltips
+document.addEventListener('shown.bs.tooltip', (ev) => {
+  const trigger = ev.target;
+  const tipId = trigger && trigger.getAttribute('aria-describedby');
+  if (!tipId) return;
+  const tipEl = document.getElementById(tipId);
+  if (!tipEl) return;
+  tipEl.querySelectorAll('img').forEach(img => {
+    img.setAttribute('loading','eager');
+    img.setAttribute('decoding','sync');
+    const src = img.getAttribute('src');
+    if (src) img.src = src; // poke reload if needed
   });
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-  // ARIA for grid of boxes
-  const grid = document.getElementById('boxContainer');
-  if (grid && !grid.hasAttribute('role')) grid.setAttribute('role','grid');
-  initTooltipsWithin(document);
-  enhanceImages(document);
-
-  // Observe DOM changes to keep enhancements
-  const mo = new MutationObserver((mut) => {
-    for (const m of mut){
-      if (m.addedNodes && m.addedNodes.length){
-        m.addedNodes.forEach(n => {
-          if (n.nodeType === 1){
-            initTooltipsWithin(n);
-            enhanceImages(n);
-          }
-        });
-      }
-    }
-  });
-  mo.observe(document.body, { childList:true, subtree:true });
 });
