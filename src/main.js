@@ -3505,7 +3505,9 @@ function mostrarModalDeTextoCopiavel(texto, metodo) {
     alert("✅ Códigos copiados para a área de transferência!");
   });
 
-  document.getElementById("btnFecharModal").addEventListener("click", closeModal);
+  document
+    .getElementById("btnFecharModal")
+    .addEventListener("click", closeModal);
 }
 
 window.exibirRastreiosPorMetodo = exibirRastreiosPorMetodo;
@@ -4534,3 +4536,20 @@ async function fetchErrosMes() {
   }
   return data || [];
 }
+
+function closeModal() {
+  modal.remove();
+  backdrop.remove();
+  document.body.style.overflow = "";
+  document.removeEventListener("keydown", onKey);
+}
+
+/* ✅ garante acesso global e tolera variações de case */
+window.closeModal = closeModal;
+window.closemodal = closeModal;
+
+document
+  .getElementById("btnFecharModal")
+  ?.addEventListener("click", closeModal);
+backdrop.addEventListener("click", closeModal);
+document.addEventListener("keydown", onKey);
