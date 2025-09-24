@@ -1,5 +1,12 @@
 import { supabase } from "../services/supabase.js";
 import "../css/admin.css";
+async function ensureChart(){
+  if (!window.Chart){
+    const lib = await import('https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js');
+    window.Chart = lib.Chart;
+  }
+}
+
 // === Admin module gate: only run when the admin page is active ===
 const __ADMIN_MOUNTS__ = ['#accordionAdmin', '#adminApp', '#dashboardAdmin'];
 const __ADMIN_ACTIVE__ = __ADMIN_MOUNTS__.some(sel => document.querySelector(sel));
@@ -452,7 +459,7 @@ document.addEventListener("click", async (e) => {
 });
 
 // ===== Init =====
-function initAdmin() {
+async function initAdmin(){
   const operador = localStorage.getItem("operador1");
   if (!operador || operador.toLowerCase() !== "yohann risso") {
     document.body.innerHTML = `
@@ -464,6 +471,7 @@ function initAdmin() {
     return;
   }
 
+  await ensureChart();
   carregarMetricas();
   carregarResumoOperadores();
   carregarRomaneios();
@@ -482,7 +490,8 @@ function initAdmin() {
   }
 
   autoRefresh = setInterval(() => {
-    carregarMetricas();
+    await ensureChart();
+  carregarMetricas();
     carregarResumoOperadores();
     carregarRomaneios();
     carregarMetricaExpedicao();
@@ -515,4 +524,3 @@ async function carregarOperadoresDropdown() {
 
 initAdmin();
 }
-// === End admin module gate ===

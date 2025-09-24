@@ -2,9 +2,9 @@
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap");
 
 body {
-  font-family: "Inter", sans-serif;
-  background-color: #f4f6f9;
-  color: #212529;
+  font-family: var(--font-default);
+  background-color: var(--surface-bg);
+  color: var(--text-strong);
   line-height: 1.5;
 }
 
@@ -24,7 +24,7 @@ h6 {
   border: none;
   border-radius: 0.75rem;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
-  background-color: #fff;
+  background-color: var(--surface-1);
 }
 
 .card:hover {
@@ -36,7 +36,7 @@ h6 {
   font-weight: 600;
   font-size: 0.95rem;
   background: #fff;
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid var(--info-border);
   border-radius: 0.75rem 0.75rem 0 0;
 }
 
@@ -45,7 +45,7 @@ h6 {
   font-size: 0.8rem;
   font-weight: 600;
   text-transform: uppercase;
-  color: #e9ecef;
+  color: inherit;
   margin-bottom: 0.25rem;
 }
 
@@ -115,13 +115,13 @@ h6 {
 .table {
   font-size: 0.9rem;
   border-radius: 0.75rem;
-  background-color: #fff;
+  background-color: var(--surface-1);
   margin-bottom: 0;
 }
 
 .table thead th {
-  background: #f1f3f5;
-  color: #343a40;
+  background: var(--surface-2);
+  color: var(--text-strong);
   font-weight: 600;
   text-transform: uppercase;
   font-size: 0.75rem;
@@ -131,12 +131,12 @@ h6 {
 
 .table tbody td {
   vertical-align: middle;
-  border-top: 1px solid #e9ecef;
+  border-top: 1px solid var(--info-border);
   padding: 0.65rem;
 }
 
 .table-hover tbody tr:hover {
-  background-color: #f8f9fa;
+  background-color: var(--surface-2);
   transition: background-color 0.2s ease-in-out;
 }
 
@@ -243,4 +243,4 @@ h6 {
 .table th.text-end {
   text-align: right !important;
 }
-.card .card-body h6{  opacity:.8; letter-spacing:.02em; color: inherit; opacity:.8; letter-spacing:.02em; }
+.card .card-body h6{ color: inherit; opacity:.8; letter-spacing:.02em; }
