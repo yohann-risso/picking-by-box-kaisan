@@ -1719,7 +1719,7 @@ function renderCardProduto(result) {
         </div>
         <div class="image-container">
           <img
-            src="${urlImg}"
+            loading="eager" decoding="sync" class="product-image" draggable="false" src="${urlImg}"
             alt="Imagem do Produto"
             onerror="this.onerror=null;this.src='https://via.placeholder.com/80?text=Sem+Img';"
           />
@@ -2513,7 +2513,7 @@ function renderProductMap() {
     card.className = "card card-produto p-2";
     card.style.width = "120px";
     card.innerHTML = `
-      <img
+      <img loading="lazy" decoding="async"
         src="${urlImg}"
         alt="SKU ${sku}"
         class="img-produto mb-1"
@@ -3299,7 +3299,7 @@ async function gerarResumoVisualRomaneio() {
       ${remessa}
       <br />
       <button
-        class="btn btn-sm btn-outline-secondary mt-1"
+        class="btn btn-sm btn-outline-light mt-1"
         onclick="exibirRastreiosPorMetodo('${metodo}')"
         title="Ver códigos de rastreio para ${metodo}"
       >
@@ -3311,7 +3311,7 @@ async function gerarResumoVisualRomaneio() {
 
     const btnRemessa = document.createElement("button");
     btnRemessa.textContent = "📋 Ver Códigos";
-    btnRemessa.className = "btn btn-sm btn-outline-secondary";
+    btnRemessa.className = "btn btn-sm btn-outline-light";
     btnRemessa.addEventListener("click", () =>
       exibirRastreiosPorMetodo(metodo.toUpperCase())
     );
@@ -3456,43 +3456,67 @@ async function exibirRastreiosPorMetodo(metodo) {
   mostrarModalDeTextoCopiavel(textoFinal, metodo);
 }
 
-function mostrarModalDeTextoCopiavel(texto, metodo) {
-  const linksRemessa = {
-    SEDEX:
-      "https://ge.kaisan.com.br/?page=nfe_arquivo_remessa/inicia_confere_remessa_transportadora&cod_bandeira=1&cod_loja=-1&cod_transportadora=2",
-    PAC: "https://ge.kaisan.com.br/?page=nfe_arquivo_remessa/inicia_confere_remessa_transportadora&cod_bandeira=1&cod_loja=-1&cod_transportadora=1",
-    "RETIRADA LOCAL":
-      "https://ge.kaisan.com.br/?page=nfe_arquivo_remessa/inicia_confere_remessa_transportadora&cod_bandeira=1&cod_loja=-1&cod_transportadora=4",
-  };
 
-  const metodoNormalizado = metodo.toUpperCase();
+function mostrarModalDeTextoCopiavel(texto, metodo){
+  const linksRemessa = {
+    SEDEX: "https://ge.kaisan.com.br/?page=nfe_arquivo_remessa/inicia_confere_remessa_transportadora&cod_bandeira=1&cod_loja=-1&cod_transportadora=2",
+    PAC: "https://ge.kaisan.com.br/?page=nfe_arquivo_remessa/inicia_confere_remessa_transportadora&cod_bandeira=1&cod_loja=-1&cod_transportadora=1",
+    "RETIRADA LOCAL": "https://ge.kaisan.com.br/?page=nfe_arquivo_remessa/inicia_confere_remessa_transportadora&cod_bandeira=1&cod_loja=-1&cod_transportadora=4",
+  };
+  const metodoNormalizado = (metodo||'').toUpperCase();
   const urlRemessa = linksRemessa[metodoNormalizado] || null;
 
+  // Backdrop
+  const backdrop = document.createElement("div");
+  backdrop.className = "modal-backdrop-custom";
+
+  // Modal
   const modal = document.createElement("div");
-  modal.style.position = "fixed";
-  modal.style.top = "10%";
-  modal.style.left = "50%";
-  modal.style.transform = "translateX(-50%)";
-  modal.style.background = "var(--color-white)";
-  modal.style.border = "1px solid var(--color-info-border)";
-  modal.style.padding = "20px";
-  modal.style.zIndex = "9999";
-  modal.style.width = "90%";
-  modal.style.maxWidth = "600px";
-  modal.style.boxShadow = "0 0 10px rgb(0 0 0 / 30%)";
-  modal.style.borderRadius = "8px";
+  modal.className = "modal-elevated";
+  modal.setAttribute("role","dialog");
+  modal.setAttribute("aria-modal","true");
+  modal.setAttribute("aria-labelledby","tituloModalRastreio");
 
   modal.innerHTML = `
-    <div style="margin-bottom:10px;font-weight:bold;">Lista de Códigos de Rastreio – ${metodo}</div>
-    <textarea id="textoRastreios" style="width:100%;height:300px;" readonly>${texto}</textarea>
-    <div style="margin-top:10px;text-align:right; gap: 0.5rem;">
+    <div class="modal-heading" id="tituloModalRastreio">Lista de Códigos de Rastreio – ${metodo}</div>
+    <div class="modal-body">
+      <textarea id="textoRastreios" readonly>${texto}</textarea>
+    </div>
+    <div class="modal-actions">
       <button id="btnCopiarTexto" class="btn btn-sm btn-primary">📋 Copiar</button>
-      ${
-        urlRemessa
-          ? `<a href="${urlRemessa}" target="_blank" class="btn btn-sm btn-outline-dark">🚚 Gerar Remessa</a>`
-          : ""
-      }
+      ${ urlRemessa ? `<a href="${urlRemessa}" target="_blank" class="btn btn-sm btn-outline-dark">🚚 Gerar Remessa</a>` : "" }
       <button id="btnFecharModal" class="btn btn-sm btn-outline-secondary">Fechar</button>
+    </div>
+  `;
+
+  function onKey(ev){ if (ev.key === "Escape") close(); }
+  function close(){
+    document.removeEventListener("keydown", onKey);
+    try { modal.remove(); } catch(e){}
+    try { backdrop.remove(); } catch(e){}
+    document.body.style.overflow = "";
+  }
+
+  // expose for legacy calls
+  window.closeModal = close;
+  window.closemodal = close;
+
+  document.body.appendChild(backdrop);
+  document.body.appendChild(modal);
+  document.body.style.overflow = "hidden";
+
+  // actions
+  modal.querySelector("#btnCopiarTexto")?.addEventListener("click", () => {
+    const textarea = modal.querySelector("#textoRastreios");
+    textarea.select();
+    document.execCommand("copy");
+  });
+  modal.querySelector("#btnFecharModal")?.addEventListener("click", close);
+  backdrop.addEventListener("click", close);
+  document.addEventListener("keydown", onKey);
+}
+
+      <button id="btnFecharModal" class="btn btn-sm btn-outline-light">Fechar</button>
     </div>
   `;
 
@@ -3505,9 +3529,9 @@ function mostrarModalDeTextoCopiavel(texto, metodo) {
     alert("✅ Códigos copiados para a área de transferência!");
   });
 
-  document
-    .getElementById("btnFecharModal")
-    .addEventListener("click", closeModal);
+  document.getElementById("btnFecharModal").addEventListener("click", () => {
+    modal.remove();
+  });
 }
 
 window.exibirRastreiosPorMetodo = exibirRastreiosPorMetodo;
@@ -4535,21 +4559,17 @@ async function fetchErrosMes() {
     return [];
   }
   return data || [];
-}
-
-function closeModal() {
-  modal.remove();
-  backdrop.remove();
-  document.body.style.overflow = "";
-  document.removeEventListener("keydown", onKey);
-}
-
-/* ✅ garante acesso global e tolera variações de case */
-window.closeModal = closeModal;
-window.closemodal = closeModal;
-
-document
-  .getElementById("btnFecharModal")
-  ?.addEventListener("click", closeModal);
-backdrop.addEventListener("click", closeModal);
-document.addEventListener("keydown", onKey);
+} // Force eager loading for images inside Bootstrap tooltips
+document.addEventListener("shown.bs.tooltip", (ev) => {
+  const trigger = ev.target;
+  const tipId = trigger && trigger.getAttribute("aria-describedby");
+  if (!tipId) return;
+  const tipEl = document.getElementById(tipId);
+  if (!tipEl) return;
+  tipEl.querySelectorAll("img").forEach((img) => {
+    img.setAttribute("loading", "eager");
+    img.setAttribute("decoding", "sync");
+    const src = img.getAttribute("src");
+    if (src) img.src = src; // poke reload if needed
+  });
+});
