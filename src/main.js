@@ -3456,102 +3456,82 @@ async function exibirRastreiosPorMetodo(metodo) {
   mostrarModalDeTextoCopiavel(textoFinal, metodo);
 }
 
-function mostrarModalDeTextoCopiavel(texto, metodo) {
+
+function mostrarModalDeTextoCopiavel(texto, metodo){
   const linksRemessa = {
-    SEDEX:
-      "https://ge.kaisan.com.br/?page=nfe_arquivo_remessa/inicia_confere_remessa_transportadora&cod_bandeira=1&cod_loja=-1&cod_transportadora=2",
+    SEDEX: "https://ge.kaisan.com.br/?page=nfe_arquivo_remessa/inicia_confere_remessa_transportadora&cod_bandeira=1&cod_loja=-1&cod_transportadora=2",
     PAC: "https://ge.kaisan.com.br/?page=nfe_arquivo_remessa/inicia_confere_remessa_transportadora&cod_bandeira=1&cod_loja=-1&cod_transportadora=1",
-    "RETIRADA LOCAL":
-      "https://ge.kaisan.com.br/?page=nfe_arquivo_remessa/inicia_confere_remessa_transportadora&cod_bandeira=1&cod_loja=-1&cod_transportadora=4",
+    "RETIRADA LOCAL": "https://ge.kaisan.com.br/?page=nfe_arquivo_remessa/inicia_confere_remessa_transportadora&cod_bandeira=1&cod_loja=-1&cod_transportadora=4",
   };
-  const metodoUpper = (metodo || "").toUpperCase();
-  const urlRemessa = linksRemessa[metodoUpper] || null;
+  const metodoNormalizado = (metodo||'').toUpperCase();
+  const urlRemessa = linksRemessa[metodoNormalizado] || null;
 
-  // conta linhas (códigos)
-  const totalCodigos = texto.trim() ? texto.trim().split(/\r?\n/).length : 0;
-
-  // botão remessa sem backticks aninhados
-  const remessaBtn = urlRemessa
-    ? '<a href="' +
-      urlRemessa +
-      '" target="_blank" class="btn btn-sm btn-outline-dark">🚚 Gerar Remessa</a>'
-    : "";
-
-  // Backdrop e Modal
+  // Backdrop
   const backdrop = document.createElement("div");
   backdrop.className = "modal-backdrop-custom";
 
+  // Modal
   const modal = document.createElement("div");
   modal.className = "modal-elevated";
-  modal.setAttribute("role", "dialog");
-  modal.setAttribute("aria-modal", "true");
-  modal.setAttribute("aria-labelledby", "tituloModalRastreio");
+  modal.setAttribute("role","dialog");
+  modal.setAttribute("aria-modal","true");
+  modal.setAttribute("aria-labelledby","tituloModalRastreio");
 
   modal.innerHTML = `
-    <div class="modal-header-lite">
-      <div>
-        <div class="modal-title" id="tituloModalRastreio">
-          Lista de Códigos de Rastreio – ${metodoUpper}
-        </div>
-        <div class="modal-subtle">${totalCodigos} código(s)</div>
-      </div>
-      <button type="button" class="btn btn-sm btn-outline-secondary modal-close" aria-label="Fechar">×</button>
-    </div>
-
+    <div class="modal-heading" id="tituloModalRastreio">Lista de Códigos de Rastreio – ${metodo}</div>
     <div class="modal-body">
       <textarea id="textoRastreios" readonly>${texto}</textarea>
     </div>
-
     <div class="modal-actions">
       <button id="btnCopiarTexto" class="btn btn-sm btn-primary">📋 Copiar</button>
-      ${remessaBtn}
+      ${ urlRemessa ? `<a href="${urlRemessa}" target="_blank" class="btn btn-sm btn-outline-dark">🚚 Gerar Remessa</a>` : "" }
       <button id="btnFecharModal" class="btn btn-sm btn-outline-secondary">Fechar</button>
     </div>
   `;
 
-  function onKey(ev) {
-    if (ev.key === "Escape") close();
-  }
-  function close() {
+  function onKey(ev){ if (ev.key === "Escape") close(); }
+  function close(){
     document.removeEventListener("keydown", onKey);
-    try {
-      modal.remove();
-    } catch {}
-    try {
-      backdrop.remove();
-    } catch {}
+    try { modal.remove(); } catch(e){}
+    try { backdrop.remove(); } catch(e){}
     document.body.style.overflow = "";
   }
 
-  // expõe só pra legados
+  // expose for legacy calls
   window.closeModal = close;
   window.closemodal = close;
 
-  document.body.append(backdrop, modal);
+  document.body.appendChild(backdrop);
+  document.body.appendChild(modal);
   document.body.style.overflow = "hidden";
 
-  // foco/seleção imediata
-  const ta = modal.querySelector("#textoRastreios");
-  ta?.focus();
-  ta?.select();
-
-  // ações
-  const btnCopy = modal.querySelector("#btnCopiarTexto");
-  btnCopy?.addEventListener("click", () => {
-    ta.select();
+  // actions
+  modal.querySelector("#btnCopiarTexto")?.addEventListener("click", () => {
+    const textarea = modal.querySelector("#textoRastreios");
+    textarea.select();
     document.execCommand("copy");
-    const old = btnCopy.innerHTML;
-    btnCopy.innerHTML = "✅ Copiado!";
-    btnCopy.disabled = true;
-    setTimeout(() => {
-      btnCopy.innerHTML = old;
-      btnCopy.disabled = false;
-    }, 1200);
   });
   modal.querySelector("#btnFecharModal")?.addEventListener("click", close);
-  modal.querySelector(".modal-close")?.addEventListener("click", close);
   backdrop.addEventListener("click", close);
   document.addEventListener("keydown", onKey);
+}
+
+      <button id="btnFecharModal" class="btn btn-sm btn-outline-light">Fechar</button>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  document.getElementById("btnCopiarTexto").addEventListener("click", () => {
+    const textarea = document.getElementById("textoRastreios");
+    textarea.select();
+    document.execCommand("copy");
+    alert("✅ Códigos copiados para a área de transferência!");
+  });
+
+  document.getElementById("btnFecharModal").addEventListener("click", () => {
+    modal.remove();
+  });
 }
 
 window.exibirRastreiosPorMetodo = exibirRastreiosPorMetodo;
