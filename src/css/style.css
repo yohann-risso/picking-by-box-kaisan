@@ -46,6 +46,8 @@
   --shadow-lg: 0 10px 15px rgb(0 0 0 / 15%);
   --shadow-inner: inset 0 2px 4px rgb(0 0 0 / 6%);
   --t-fast:.2s ease-in-out; --t-base:.3s ease-in-out; --t-slow:.5s ease;
+
+  --font-default: "Geist","Inter",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
 }
 /* === Compat aliases (Tokens v2 <-> legacy tokens) === */
 :root{
@@ -65,6 +67,8 @@
   /* timing & radius legacy aliases */
   --transition-base: var(--t-base);
   --radius: var(--radius-md);
+
+  --color-danger-dark: #b71c1c;
 }
 
 
@@ -115,9 +119,9 @@ html,body{ background: var(--surface-bg) !important; color: var(--text-strong) !
 input,
 select,
 textarea {
-  transition: background-color var(--transition-base),
-    color var(--transition-base), border-color var(--transition-base),
-    transform var(--transition-base), box-shadow var(--transition-base);
+  transition: background-color var(--t-base),
+    color var(--t-base), border-color var(--t-base),
+    transform var(--t-base), box-shadow var(--t-base);
 }
 
 .btn:hover,
@@ -186,9 +190,9 @@ textarea:active {
 body {
   margin: 0 !important;
   padding: 0 !important;
-  background-color: var(--color-bg) !important;
+  background-color: var(--surface-bg) !important;
   font-family: var(--font-default) !important;
-  color: var(--color-text) !important;
+  color: var(--text-strong) !important;
   transition: background-color 0.3s, color 0.3s;
 }
 
@@ -235,7 +239,7 @@ table td,
 
 /* Cartão de erro */
 .card-erro {
-  background-color: var(--color-danger-light);
+  background-color: var(--color-danger-subtle);
   border: 2px dashed var(--color-danger);
   color: var(--color-danger);
   padding: 1rem;
@@ -262,13 +266,13 @@ table td,
   flex: 1;
   display: flex;
   align-items: center;
-  background-color: var(--color-info-bg);
+  background-color: var(--color-primary-light);
   border-radius: 8px;
   padding: 1rem;
   gap: 1rem;
   position: relative;
-  box-shadow: var(--shadow-inner), 0 0 8px var(--color-info-border);
-  color: var(--color-text);
+  box-shadow: var(--shadow-inner), 0 0 8px var(--info-border);
+  color: var(--text-strong);
 }
 
 .card-info .details {
@@ -309,13 +313,13 @@ table td,
   display: flex;
   align-items: center;
   gap: 0.25rem;
-  border: 1px solid var(--color-text);
+  border: 1px solid var(--text-strong);
   background: transparent;
   padding: 0.3rem 0.6rem;
   border-radius: 4px;
   font-size: 0.9rem;
   cursor: pointer;
-  color: var(--color-text);
+  color: var(--text-strong);
 }
 
 .card-info .details .btn-undo-simple:hover {
@@ -355,7 +359,7 @@ table td,
 
 /* Status */
 .bg-success-subtle {
-  background-color: var(--color-success-light);
+  background-color: var(--color-success-subtle);
 }
 
 .bg-success {
@@ -364,7 +368,7 @@ table td,
 }
 
 .bg-danger-subtle {
-  background-color: var(--color-danger-light);
+  background-color: var(--color-danger-subtle);
 }
 
 .bg-danger {
@@ -600,8 +604,8 @@ tr.bloco-spacer td {
 
 [data-theme="dark"] #resumoRomaneio {
   background-color: var(--color-white);
-  color: var(--color-text);
-  border: 1px solid var(--color-info-border);
+  color: var(--text-strong);
+  border: 1px solid var(--info-border);
 }
 
 [data-theme="dark"] .text-muted {
@@ -610,33 +614,33 @@ tr.bloco-spacer td {
 
 [data-theme="dark"] footer {
   background-color: var(--color-white);
-  color: var(--color-text);
+  color: var(--text-strong);
 }
 
 [data-theme="dark"] footer hr {
-  border-color: var(--color-info-border);
+  border-color: var(--info-border);
 }
 
 [data-theme="dark"] .bg-white {
   background-color: var(--color-white) !important;
-  color: var(--color-text) !important;
+  color: var(--text-strong) !important;
 }
 
 [data-theme="dark"] .input-group-text {
   background-color: var(--color-primary-light);
-  color: var(--color-text);
-  border-color: var(--color-info-border);
+  color: var(--text-strong);
+  border-color: var(--info-border);
 }
 
 [data-theme="dark"] #toggleThemeBtn {
   background-color: var(--color-white);
-  color: var(--color-text);
+  color: var(--text-strong);
 }
 
 [data-theme="dark"] .modal-content {
   background-color: var(--color-white);
-  color: var(--color-text);
-  border: 1px solid var(--color-info-border);
+  color: var(--text-strong);
+  border: 1px solid var(--info-border);
 }
 
 [data-theme="dark"] .btn-close {
@@ -712,8 +716,8 @@ tr.bloco-spacer td {
 
 .btn-success:hover,
 .btn-success:focus {
-  background-color: var(--color-success-dark) !important;
-  border-color: var(--color-success-dark) !important;
+  background-color: #256528 !important;
+  border-color: #256528 !important;
   color: var(--color-white) !important;
 }
 
@@ -785,13 +789,11 @@ input,
 select,
 textarea {
   background-color: var(--color-white);
-  color: var(--color-text);
-  border: 1px solid var(--color-info-border);
+  color: var(--text-strong);
+  border: 1px solid var(--info-border);
 }
 
-input::placeholder {
-  color: rgb(255 255 255 / 40%);
-}
+input::placeholder{ color: var(--text-muted) !important; }
 
 /* Botões com hover claro */
 .btn-outline-primary:hover,
@@ -806,9 +808,9 @@ input::placeholder {
 
 /* Card de produto e elementos relacionados */
 .card-info {
-  background-color: var(--color-info-bg);
-  box-shadow: 0 0 6px var(--color-info-border);
-  color: var(--color-text);
+  background-color: var(--color-primary-light);
+  box-shadow: 0 0 6px var(--info-border);
+  color: var(--text-strong);
 }
 
 .card-info .details .sku,
@@ -873,7 +875,7 @@ input::placeholder {
   background-color: var(--color-primary);
   color: var(--color-white);
   font-weight: 700;
-  font-size: clamp(2.5rem, 1.2vw, 1.5rem);
+  ;
   width: 5rem;
   height: 3rem;
   border-radius: 10px;
@@ -942,8 +944,8 @@ input::placeholder {
 }
 
 #btnAbrirRemessaModal {
-  background-color: var(--color-text);
-  color: var(--color-bg);
+  background-color: var(--text-strong);
+  color: var(--surface-bg);
   border-radius: 6px;
   font-weight: 600;
 }
@@ -974,9 +976,9 @@ select,
 textarea,
 .card-produto,
 .badge-endereco {
-  transition: background-color var(--transition-base),
-    color var(--transition-base), border-color var(--transition-base),
-    transform var(--transition-base), box-shadow var(--transition-base);
+  transition: background-color var(--t-base),
+    color var(--t-base), border-color var(--t-base),
+    transform var(--t-base), box-shadow var(--t-base);
 }
 
 /* ========================
@@ -1046,9 +1048,9 @@ textarea:active {
 .btn-outline-secondary,
 .btn-warning,
 .btn-dark {
-  transition: background-color var(--transition-base),
-    color var(--transition-base), border-color var(--transition-base),
-    transform var(--transition-base), box-shadow var(--transition-base);
+  transition: background-color var(--t-base),
+    color var(--t-base), border-color var(--t-base),
+    transform var(--t-base), box-shadow var(--t-base);
 }
 
 .btn:hover,
@@ -1078,9 +1080,9 @@ textarea:active {
 
 .card-produto,
 .card-info {
-  transition: background-color var(--transition-base),
-    color var(--transition-base), box-shadow var(--transition-base),
-    transform var(--transition-base);
+  transition: background-color var(--t-base),
+    color var(--t-base), box-shadow var(--t-base),
+    transform var(--t-base);
 }
 
 .card-produto:hover,
@@ -1096,9 +1098,9 @@ textarea:active {
 
 .badge-endereco,
 .badge-box {
-  transition: background-color var(--transition-base),
-    color var(--transition-base), transform var(--transition-base),
-    box-shadow var(--transition-base);
+  transition: background-color var(--t-base),
+    color var(--t-base), transform var(--t-base),
+    box-shadow var(--t-base);
 }
 
 .badge-endereco:hover,
@@ -1111,9 +1113,9 @@ textarea:active {
 input,
 select,
 textarea {
-  transition: background-color var(--transition-base),
-    color var(--transition-base), border-color var(--transition-base),
-    box-shadow var(--transition-base);
+  transition: background-color var(--t-base),
+    color var(--t-base), border-color var(--t-base),
+    box-shadow var(--t-base);
 }
 
 input:hover,
@@ -1288,7 +1290,7 @@ button.btn:hover {
 #listaHistorico,
 #listaPendentes {
   background-color: rgb(255 255 255 / 70%);
-  border: 1px solid var(--color-info-border);
+  border: 1px solid var(--info-border);
   border-radius: var(--radius-md);
   padding: var(--space-xs);
 }
@@ -1325,11 +1327,11 @@ button.btn:hover {
 }
 
 .painel-produtividade {
-  background-color: var(--color-info-bg);
-  border: 1px solid var(--color-info-border);
+  background-color: var(--color-primary-light);
+  border: 1px solid var(--info-border);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
-  font-family: var(--font-default);
+  font-family: var(--font-default) !important;
   padding: var(--space-md);
 }
 
@@ -1490,14 +1492,11 @@ button.btn:hover {
 
 /* === Legibility corrections (placeholders, clamp, summary, progress) === */
 input::placeholder,
-textarea::placeholder{
-  color: var(--text-muted) !important;
-  opacity: .9;
-}
+textarea::placeholder{ color: var(--text-muted) !important; }
 
 /* Clamp fix for .badge-box */
 .badge-box{
-  font-size: clamp(1rem, 2.5vw, 2.5rem);
+  ;
 }
 
 /* Card numbers inner shadow */
