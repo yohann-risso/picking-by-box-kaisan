@@ -1,7 +1,8 @@
 /* =============================
    TOKENS DE DESIGN EXPANDIDOS
    ============================= */
-:root {
+:root{
+  --color-on-elevated: #1a1d20;
   --color-primary: #1c3f60;
   --color-primary-dark: #142f47;
   --color-primary-light: #d9e9f2;
@@ -46,7 +47,8 @@
   --transition-slow: 0.5s ease;
 }
 
-[data-theme="dark"] {
+[data-theme="dark"]{
+  --color-on-elevated: #0f1115;
   --color-bg: #121212;
   --color-white: #ffffff;
   --color-text: #e0e0e0;
@@ -216,7 +218,6 @@ table td,
   gap: 0.5rem;
   margin-bottom: 1rem;
   transition: transform 0.2s ease;
-
   box-shadow: var(--shadow-inner);
 }
 
@@ -1362,4 +1363,26 @@ button.btn:hover {
   /* ativa scroll se passar */
   scrollbar-gutter: stable;
   /* evita “pulo” quando aparece a barra */
+}
+
+/* === Dark-mode legibility for tracking list & summary (2025-09-24) === */
+#textoRastreios{
+  background: var(--color-white) !important;
+  color: var(--color-on-elevated) !important;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.45;
+}
+[data-theme="dark"] #resumoRomaneio,
+[data-theme="dark"] #resumoRomaneio .table,
+[data-theme="dark"] #resumoRomaneio .table th,
+[data-theme="dark"] #resumoRomaneio .table td{
+  color: var(--color-on-elevated) !important;
+}
+[data-theme="dark"] .destacar-remessa .btn-outline-secondary{
+  color: var(--color-white) !important;
+  border-color: var(--color-white) !important;
+}
+[data-theme="dark"] .destacar-remessa .btn-outline-secondary:hover{
+  background: rgba(255,255,255,.12) !important;
 }

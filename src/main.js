@@ -3299,7 +3299,7 @@ async function gerarResumoVisualRomaneio() {
       ${remessa}
       <br />
       <button
-        class="btn btn-sm btn-outline-secondary mt-1"
+        class="btn btn-sm btn-outline-light mt-1"
         onclick="exibirRastreiosPorMetodo('${metodo}')"
         title="Ver códigos de rastreio para ${metodo}"
       >
@@ -3311,7 +3311,7 @@ async function gerarResumoVisualRomaneio() {
 
     const btnRemessa = document.createElement("button");
     btnRemessa.textContent = "📋 Ver Códigos";
-    btnRemessa.className = "btn btn-sm btn-outline-secondary";
+    btnRemessa.className = "btn btn-sm btn-outline-light";
     btnRemessa.addEventListener("click", () =>
       exibirRastreiosPorMetodo(metodo.toUpperCase())
     );
@@ -3492,7 +3492,7 @@ function mostrarModalDeTextoCopiavel(texto, metodo) {
           ? `<a href="${urlRemessa}" target="_blank" class="btn btn-sm btn-outline-dark">🚚 Gerar Remessa</a>`
           : ""
       }
-      <button id="btnFecharModal" class="btn btn-sm btn-outline-secondary">Fechar</button>
+      <button id="btnFecharModal" class="btn btn-sm btn-outline-light">Fechar</button>
     </div>
   `;
 
@@ -4535,20 +4535,17 @@ async function fetchErrosMes() {
     return [];
   }
   return data || [];
-}
-
-
-// Force eager loading for images inside Bootstrap tooltips
-document.addEventListener('shown.bs.tooltip', (ev) => {
+} // Force eager loading for images inside Bootstrap tooltips
+document.addEventListener("shown.bs.tooltip", (ev) => {
   const trigger = ev.target;
-  const tipId = trigger && trigger.getAttribute('aria-describedby');
+  const tipId = trigger && trigger.getAttribute("aria-describedby");
   if (!tipId) return;
   const tipEl = document.getElementById(tipId);
   if (!tipEl) return;
-  tipEl.querySelectorAll('img').forEach(img => {
-    img.setAttribute('loading','eager');
-    img.setAttribute('decoding','sync');
-    const src = img.getAttribute('src');
+  tipEl.querySelectorAll("img").forEach((img) => {
+    img.setAttribute("loading", "eager");
+    img.setAttribute("decoding", "sync");
+    const src = img.getAttribute("src");
     if (src) img.src = src; // poke reload if needed
   });
 });
