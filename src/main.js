@@ -4536,3 +4536,46 @@ async function fetchErrosMes() {
   }
   return data || [];
 }
+
+
+// === UI helpers (2025-09-24): tooltips cache, image lazy, ARIA ===
+const __ttCache = new WeakMap();
+function __ensureTooltip(el){
+  if (__ttCache.has(el)) return __ttCache.get(el);
+  const instance = new bootstrap.Tooltip(el);
+  __ttCache.set(el, instance);
+  return instance;
+}
+function initTooltipsWithin(root=document){
+  root.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(__ensureTooltip);
+}
+
+function enhanceImages(root=document){
+  root.querySelectorAll('#boxContainer img, [data-bs-toggle="tooltip"] img, img.product-image').forEach(img => {
+    if (!img.hasAttribute('loading')) img.setAttribute('loading','lazy');
+    if (!img.hasAttribute('decoding')) img.setAttribute('decoding','async');
+  });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  // ARIA for grid of boxes
+  const grid = document.getElementById('boxContainer');
+  if (grid && !grid.hasAttribute('role')) grid.setAttribute('role','grid');
+  initTooltipsWithin(document);
+  enhanceImages(document);
+
+  // Observe DOM changes to keep enhancements
+  const mo = new MutationObserver((mut) => {
+    for (const m of mut){
+      if (m.addedNodes && m.addedNodes.length){
+        m.addedNodes.forEach(n => {
+          if (n.nodeType === 1){
+            initTooltipsWithin(n);
+            enhanceImages(n);
+          }
+        });
+      }
+    }
+  });
+  mo.observe(document.body, { childList:true, subtree:true });
+});
