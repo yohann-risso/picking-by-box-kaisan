@@ -47,6 +47,26 @@
   --shadow-inner: inset 0 2px 4px rgb(0 0 0 / 6%);
   --t-fast:.2s ease-in-out; --t-base:.3s ease-in-out; --t-slow:.5s ease;
 }
+/* === Compat aliases (Tokens v2 <-> legacy tokens) === */
+:root{
+  /* surfaces & text */
+  --color-bg: var(--surface-bg);
+  --color-text: var(--text-strong);
+
+  /* info */
+  --color-info-bg: var(--color-primary-light);
+  --color-info-border: var(--info-border);
+
+  /* status subtle/dark used across legacy selectors */
+  --color-danger-light: var(--color-danger-subtle);
+  --color-success-light: var(--color-success-subtle);
+  --color-success-dark: #1b5e20; /* hover for success buttons */
+
+  /* timing & radius legacy aliases */
+  --transition-base: var(--t-base);
+  --radius: var(--radius-md);
+}
+
 
 [data-theme="dark"]{
   /* Mantemos a HUE da marca (identidade) e só ajustamos contraste */
@@ -1467,3 +1487,37 @@ button.btn:hover {
 
 /* Base bg & text (safety) */
 #resumoRomaneio{ background: var(--surface-1); color: var(--text-strong); border:1px solid var(--info-border); }
+
+/* === Legibility corrections (placeholders, clamp, summary, progress) === */
+input::placeholder,
+textarea::placeholder{
+  color: var(--text-muted) !important;
+  opacity: .9;
+}
+
+/* Clamp fix for .badge-box */
+.badge-box{
+  font-size: clamp(1rem, 2.5vw, 2.5rem);
+}
+
+/* Card numbers inner shadow */
+.card-number{ box-shadow: var(--shadow-inner); }
+.card-number:hover{ box-shadow: var(--shadow-inner), var(--shadow-md); }
+
+/* Modal tracking list */
+.modal-elevated{ background: var(--surface-elevated); color: var(--on-elevated); }
+.modal-heading{ color: var(--on-elevated); font-weight: 700; }
+
+/* Summary on white surface in dark */
+[data-theme="dark"] #resumoRomaneio,
+[data-theme="dark"] #resumoRomaneio .table,
+[data-theme="dark"] #resumoRomaneio .table th,
+[data-theme="dark"] #resumoRomaneio .table td{
+  color: var(--on-elevated) !important;
+}
+
+/* Progress helpers */
+.progress-badge{ color: var(--color-white) }
+.progress-bar.is-danger  { background-color: var(--color-danger)  !important; color: var(--on-danger) }
+.progress-bar.is-warning { background-color: var(--color-warning) !important; color: var(--on-warning) }
+.progress-bar.is-success { background-color: var(--color-success) !important; color: var(--on-success) }
