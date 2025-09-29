@@ -3456,14 +3456,15 @@ async function exibirRastreiosPorMetodo(metodo) {
   mostrarModalDeTextoCopiavel(textoFinal, metodo);
 }
 
-
-function mostrarModalDeTextoCopiavel(texto, metodo){
+function mostrarModalDeTextoCopiavel(texto, metodo) {
   const linksRemessa = {
-    SEDEX: "https://ge.kaisan.com.br/?page=nfe_arquivo_remessa/inicia_confere_remessa_transportadora&cod_bandeira=1&cod_loja=-1&cod_transportadora=2",
+    SEDEX:
+      "https://ge.kaisan.com.br/?page=nfe_arquivo_remessa/inicia_confere_remessa_transportadora&cod_bandeira=1&cod_loja=-1&cod_transportadora=2",
     PAC: "https://ge.kaisan.com.br/?page=nfe_arquivo_remessa/inicia_confere_remessa_transportadora&cod_bandeira=1&cod_loja=-1&cod_transportadora=1",
-    "RETIRADA LOCAL": "https://ge.kaisan.com.br/?page=nfe_arquivo_remessa/inicia_confere_remessa_transportadora&cod_bandeira=1&cod_loja=-1&cod_transportadora=4",
+    "RETIRADA LOCAL":
+      "https://ge.kaisan.com.br/?page=nfe_arquivo_remessa/inicia_confere_remessa_transportadora&cod_bandeira=1&cod_loja=-1&cod_transportadora=4",
   };
-  const metodoNormalizado = (metodo||'').toUpperCase();
+  const metodoNormalizado = (metodo || "").toUpperCase();
   const urlRemessa = linksRemessa[metodoNormalizado] || null;
 
   // Backdrop
@@ -3473,9 +3474,9 @@ function mostrarModalDeTextoCopiavel(texto, metodo){
   // Modal
   const modal = document.createElement("div");
   modal.className = "modal-elevated";
-  modal.setAttribute("role","dialog");
-  modal.setAttribute("aria-modal","true");
-  modal.setAttribute("aria-labelledby","tituloModalRastreio");
+  modal.setAttribute("role", "dialog");
+  modal.setAttribute("aria-modal", "true");
+  modal.setAttribute("aria-labelledby", "tituloModalRastreio");
 
   modal.innerHTML = `
     <div class="modal-heading" id="tituloModalRastreio">Lista de Códigos de Rastreio – ${metodo}</div>
@@ -3484,16 +3485,26 @@ function mostrarModalDeTextoCopiavel(texto, metodo){
     </div>
     <div class="modal-actions">
       <button id="btnCopiarTexto" class="btn btn-sm btn-primary">📋 Copiar</button>
-      ${ urlRemessa ? `<a href="${urlRemessa}" target="_blank" class="btn btn-sm btn-outline-dark">🚚 Gerar Remessa</a>` : "" }
+      ${
+        urlRemessa
+          ? `<a href="${urlRemessa}" target="_blank" class="btn btn-sm btn-outline-dark">🚚 Gerar Remessa</a>`
+          : ""
+      }
       <button id="btnFecharModal" class="btn btn-sm btn-outline-secondary">Fechar</button>
     </div>
   `;
 
-  function onKey(ev){ if (ev.key === "Escape") close(); }
-  function close(){
+  function onKey(ev) {
+    if (ev.key === "Escape") close();
+  }
+  function close() {
     document.removeEventListener("keydown", onKey);
-    try { modal.remove(); } catch(e){}
-    try { backdrop.remove(); } catch(e){}
+    try {
+      modal.remove();
+    } catch (e) {}
+    try {
+      backdrop.remove();
+    } catch (e) {}
     document.body.style.overflow = "";
   }
 
@@ -4057,6 +4068,23 @@ async function carregarProdutividadeDoOperador() {
   // Mantém cálculo de metas individuais/equipe
   const totalPedidosDoDia = await carregarTotalPedidosDoDia();
 
+  // busca operadores ativos hoje
+  const { data: ativosHoje, error } = await supabase
+    .from("romaneios_em_uso")
+    .select("operador1, operador2");
+
+  if (error) {
+    console.error("Erro ao buscar operadores ativos:", error);
+  }
+
+  const operadoresAtivos = new Set();
+  ativosHoje?.forEach((r) => {
+    if (r.operador1) operadoresAtivos.add(r.operador1);
+    if (r.operador2) operadoresAtivos.add(r.operador2);
+  });
+
+  const qtdOperadores = operadoresAtivos.size || 1; // fallback = 1 para evitar divisão por 0
+
   const hojeDate = new Date();
   const diaSemana = hojeDate.getDay(); // 0=Dom, 1=Seg, ..., 5=Sex, 6=Sáb
 
@@ -4064,10 +4092,16 @@ async function carregarProdutividadeDoOperador() {
 
   if (diaSemana >= 1 && diaSemana <= 4) {
     // Segunda a quinta
-    metaIndividual = Math.min(Math.ceil(totalPedidosDoDia / 4), 450);
+    metaIndividual = Math.min(
+      Math.ceil(totalPedidosDoDia / qtdOperadores),
+      450
+    );
   } else if (diaSemana === 5) {
     // Sexta
-    metaIndividual = Math.min(Math.ceil(totalPedidosDoDia / 4), 400);
+    metaIndividual = Math.min(
+      Math.ceil(totalPedidosDoDia / qtdOperadores),
+      400
+    );
   }
   // Sábado (6) e domingo (0) mantêm meta = 0
 
