@@ -516,10 +516,7 @@ if (!__ADMIN_ACTIVE__) {
   }
 
   async function carregarOperadoresDropdown() {
-    const { data, error } = await supabase
-      .from("pesagens")
-      .select("operador", { distinct: true }) // pega operadores únicos
-      .order("operador", { ascending: true });
+    const { data, error } = await supabase.rpc("listar_operadores_pesagens"); // chama a função
 
     if (error) {
       console.error("Erro ao carregar operadores:", error);
@@ -529,11 +526,10 @@ if (!__ADMIN_ACTIVE__) {
     const select = document.getElementById("erroOperador");
     select.innerHTML = `<option value="">Selecione...</option>`;
 
-    data?.forEach((row) => {
-      if (!row.operador) return; // evita valores nulos
+    data?.forEach(({ operador }) => {
       const opt = document.createElement("option");
-      opt.value = row.operador;
-      opt.textContent = row.operador;
+      opt.value = operador;
+      opt.textContent = operador;
       select.appendChild(opt);
     });
   }
