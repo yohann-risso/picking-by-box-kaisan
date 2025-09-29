@@ -66,8 +66,9 @@ if (!__ADMIN_ACTIVE__) {
     const hoje = new Date().toISOString().slice(0, 10);
 
     const { count: usuarios } = await supabase
-      .from("usuarios_ativos")
-      .select("*", { count: "exact", head: true });
+      .from("operadores_em_uso")
+      .select("operador", { count: "exact", head: true, distinct: true });
+
     animarNumero(document.getElementById("usuariosAtivosCount"), usuarios ?? 0);
 
     const { count: pedidos } = await supabase
