@@ -5,7 +5,8 @@ async function ensureChart() {
     const lib = await import(
       "https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"
     );
-    window.Chart = lib.Chart;
+    // Se o import vier como { default: Chart }, pega desse jeito
+    window.Chart = lib.Chart || lib.default;
   }
 }
 
