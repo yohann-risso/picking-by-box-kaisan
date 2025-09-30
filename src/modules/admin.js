@@ -5,7 +5,6 @@ async function ensureChart() {
     const lib = await import(
       "https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"
     );
-    // Se o import vier como { default: Chart }, pega desse jeito
     window.Chart = lib.Chart || lib.default;
   }
 }
@@ -426,7 +425,9 @@ if (!__ADMIN_ACTIVE__) {
     const labels = Object.keys(motivos);
     const valores = Object.values(motivos);
 
-    if (chartMotivosErro instanceof Chart) chartMotivosErro.destroy();
+    if (window.Chart && chartMotivosErro instanceof window.Chart) {
+      chartMotivosErro.destroy();
+    }
     chartMotivosErro = new Chart(document.getElementById("chartMotivosErro"), {
       type: "pie",
       data: {
