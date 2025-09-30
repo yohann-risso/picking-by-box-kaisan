@@ -2,13 +2,14 @@ import { supabase } from "../services/supabase.js";
 import "../css/admin.css";
 async function ensureChart() {
   if (!window.Chart) {
-    const lib = await import(
-      "https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"
-    );
-
-    // UMD exporta como default.Chart
-    window.Chart =
-      lib.Chart || (lib.default && lib.default.Chart) || lib.default;
+    await new Promise((resolve, reject) => {
+      const script = document.createElement("script");
+      script.src =
+        "https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js";
+      script.onload = resolve;
+      script.onerror = reject;
+      document.head.appendChild(script);
+    });
   }
 }
 
