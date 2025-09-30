@@ -5,7 +5,10 @@ async function ensureChart() {
     const lib = await import(
       "https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"
     );
-    window.Chart = lib.Chart || lib.default;
+
+    // UMD exporta como default.Chart
+    window.Chart =
+      lib.Chart || (lib.default && lib.default.Chart) || lib.default;
   }
 }
 
