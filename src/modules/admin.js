@@ -636,6 +636,27 @@ async function atualizarRastro(codigos) {
 
       const eventos = resultado.data?.objetos?.[0]?.eventos || [];
       const ultimo = eventos[0];
+      const objeto = resultado.data?.objetos?.[0];
+
+      // 🛑 Verifica se já existe com status final
+      const { data: existente } = await supabase
+        .from("slas_transportadora")
+        .select("status_atual")
+        .eq("codigo_rastreio", resultado.codigo.trim())
+        .maybeSingle();
+
+      const STATUS_FINAIS = ["BDE", "EX", "LDI", "LDE"];
+      if (
+        existente &&
+        (STATUS_FINAIS.some((sf) => existente.status_atual?.includes(sf)) ||
+          existente.status_atual?.toLowerCase().includes("entregue") ||
+          existente.status_atual?.toLowerCase().includes("extraviado"))
+      ) {
+        console.log(
+          `⏭️ Pedido ${resultado.codigo} já em status final (${existente.status_atual}). Não será atualizado.`
+        );
+        continue;
+      }
 
       const payload = {
         codigo_rastreio: resultado.codigo.trim(),
@@ -652,10 +673,11 @@ async function atualizarRastro(codigos) {
             ).toISOString()
           : null,
         entregue: !!eventos.find((e) => e.codigo === "BDE"),
-        data_coleta: new Date().toISOString(), // 👈 garantir valor
+        data_coleta: new Date().toISOString(),
+        dt_prevista: objeto?.dtPrevista
+          ? new Date(objeto.dtPrevista).toISOString()
+          : null,
       };
-
-      console.log("Upsert SLA", resultado.codigo, payload);
 
       const { error } = await supabase.from("slas_transportadora").upsert(
         {
