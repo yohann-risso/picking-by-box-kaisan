@@ -641,15 +641,6 @@ async function atualizarRastro(codigos) {
   carregarSLAs();
 }
 
-async function atualizarTodosSLAs() {
-  const { data } = await supabase
-    .from("slas_transportadora")
-    .select("codigo_rastreio");
-  if (!data) return;
-  const codigos = data.map((s) => s.codigo_rastreio);
-  atualizarRastro(codigos);
-}
-
 document
   .getElementById("slaFormLote")
   ?.addEventListener("submit", async (e) => {
