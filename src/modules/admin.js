@@ -38,7 +38,9 @@ if (!__ADMIN_ACTIVE__) {
 
   function formatarDataISO(dateStr) {
     if (!dateStr) return "-";
+    // força tratar como ISO string pura
     const d = new Date(dateStr);
+    // monta manualmente sem aplicar timezone local
     return `${String(d.getUTCDate()).padStart(2, "0")}/${String(
       d.getUTCMonth() + 1
     ).padStart(2, "0")}/${d.getUTCFullYear()}`;
@@ -898,4 +900,3 @@ window.atualizarTodosSLAs = atualizarTodosSLAs;
 window.atualizarColetados = atualizarColetados;
 window.filtrarSLA = filtrarSLA;
 window.carregarMetricasDetalhadasSLA = carregarMetricasDetalhadasSLA;
-window.formatarDataISO = formatarDataISO;
