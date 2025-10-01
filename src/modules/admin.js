@@ -638,6 +638,7 @@ async function atualizarRastro(codigos) {
       const ultimo = eventos[0];
 
       const payload = {
+        codigo_rastreio: resultado.codigo.trim(),
         status_atual: ultimo?.descricao || "Sem atualização",
         historico: eventos ?? [],
         data_postagem: eventos.find((e) => e.codigo === "PO")
@@ -651,7 +652,7 @@ async function atualizarRastro(codigos) {
             ).toISOString()
           : null,
         entregue: !!eventos.find((e) => e.codigo === "BDE"),
-        atualizado_em: new Date().toISOString(),
+        data_coleta: new Date().toISOString(), // 👈 garantir valor
       };
 
       console.log("Upsert SLA", resultado.codigo, payload);
