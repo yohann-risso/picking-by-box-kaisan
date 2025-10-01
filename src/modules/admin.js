@@ -552,6 +552,7 @@ async function carregarSLAs() {
   const { data, error } = await supabase
     .from("slas_transportadora")
     .select("*")
+    .range(0, 999999)
     .order("criado_em", { ascending: false });
 
   if (error) return console.error(error);
