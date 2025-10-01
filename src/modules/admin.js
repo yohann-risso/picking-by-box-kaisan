@@ -562,16 +562,6 @@ async function carregarSLAs() {
   const tbody = document.getElementById("slaList");
   tbody.innerHTML = "";
 
-  // Contadores para cards
-  const statusCounts = {
-    Coletado: 0,
-    Postado: 0,
-    "Em trânsito": 0,
-    "Saiu para entrega": 0,
-    Entregue: 0,
-  };
-
-  // Função para gerar badge a partir do último evento
   function badgeStatusByCodigo(eventos) {
     if (!eventos || eventos.length === 0) {
       return '<span class="badge bg-secondary">-</span>';
@@ -601,18 +591,9 @@ async function carregarSLAs() {
     }
   }
 
-  // Monta tabela
+  // Monta tabela (sem atualizar contadores)
   data.forEach((sla) => {
     const eventos = sla.historico || [];
-    const ultimoCodigo = eventos[0]?.codigo || null;
-
-    // Incrementa contadores
-    if (ultimoCodigo === "PO") statusCounts.Postado++;
-    else if (["RO", "DO", "TR", "PAR"].includes(ultimoCodigo))
-      statusCounts["Em trânsito"]++;
-    else if (ultimoCodigo === "OEC") statusCounts["Saiu para entrega"]++;
-    else if (ultimoCodigo === "BDE") statusCounts.Entregue++;
-    else if (/coletado/i.test(sla.status_atual)) statusCounts.Coletado++; // fallback para coleta
 
     const tr = document.createElement("tr");
     tr.innerHTML = `
@@ -642,14 +623,8 @@ async function carregarSLAs() {
     tbody.appendChild(tr);
   });
 
-  // Atualiza cards de resumo
-  document.getElementById("countColetado").textContent = statusCounts.Coletado;
-  document.getElementById("countPostado").textContent = statusCounts.Postado;
-  document.getElementById("countTransito").textContent =
-    statusCounts["Em trânsito"];
-  document.getElementById("countSaiuEntrega").textContent =
-    statusCounts["Saiu para entrega"];
-  document.getElementById("countEntregue").textContent = statusCounts.Entregue;
+  // 🚀 Atualiza cards pelo RPC
+  carregarMetricasSLA();
 }
 
 async function atualizarTodosSLAs() {
