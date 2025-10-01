@@ -501,6 +501,7 @@ if (!__ADMIN_ACTIVE__) {
     carregarMetricaExpedicao();
     carregarRelatorioErros();
     carregarOperadoresDropdown();
+    carregarSLAs();
 
     // 👉 setar data de hoje (fuso SP) no input e carregar pivot só uma vez
     const hojeSP = new Date().toLocaleDateString("sv-SE", {
