@@ -613,7 +613,10 @@ async function atualizarRastro(codigos) {
       "https://kinpwzuobsmfkjefnrdc.functions.supabase.co/get-rastro",
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${supabaseKey}`,
+        },
         body: JSON.stringify({ codigos: lista }),
       }
     );
