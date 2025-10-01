@@ -744,7 +744,6 @@ async function atualizarRastro(codigos) {
             ).toISOString()
           : null,
         entregue: !!eventos.find((e) => e.codigo === "BDE"),
-        data_coleta: existente?.data_coleta || new Date().toISOString(),
         dt_prevista: objeto?.dtPrevista
           ? new Date(objeto.dtPrevista).toISOString()
           : null,
