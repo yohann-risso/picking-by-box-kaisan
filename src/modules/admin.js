@@ -1,4 +1,5 @@
 import { supabase } from "../services/supabase.js";
+import { supabaseUrl, supabaseKey } from "../services/supabase.js";
 import "../css/admin.css";
 async function ensureChart() {
   if (!window.Chart) {
@@ -607,39 +608,51 @@ async function atualizarTodosSLAs() {
 async function atualizarRastro(codigos) {
   const lista = Array.isArray(codigos) ? codigos : [codigos];
 
-  const resp = await fetch("/functions/v1/get-rastro", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ codigos: lista }),
-  });
+  try {
+    const resp = await fetch(
+      "https://<PROJECT-REF>.functions.supabase.co/get-rastro",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ codigos: lista }),
+      }
+    );
 
-  const resultados = await resp.json();
-
-  for (const resultado of resultados) {
-    if (resultado.error) {
-      console.error(`Erro no código ${resultado.codigo}:`, resultado.error);
-      continue;
+    if (!resp.ok) {
+      console.error("Erro ao chamar get-rastro:", resp.status);
+      return;
     }
 
-    const eventos = resultado.data?.objetos?.[0]?.eventos || [];
-    const ultimo = eventos[0];
+    const resultados = await resp.json();
 
-    await supabase
-      .from("slas_transportadora")
-      .update({
-        status_atual: ultimo?.descricao || "Sem atualização",
-        historico: eventos,
-        data_postagem:
-          eventos.find((e) => e.codigo === "PO")?.dtHrCriado || null,
-        data_entrega:
-          eventos.find((e) => e.codigo === "BDE")?.dtHrCriado || null,
-        entregue: !!eventos.find((e) => e.codigo === "BDE"),
-        atualizado_em: new Date().toISOString(),
-      })
-      .eq("codigo_rastreio", resultado.codigo);
+    for (const resultado of resultados) {
+      if (resultado.error) {
+        console.error(`Erro no código ${resultado.codigo}:`, resultado.error);
+        continue;
+      }
+
+      const eventos = resultado.data?.objetos?.[0]?.eventos || [];
+      const ultimo = eventos[0];
+
+      await supabase
+        .from("slas_transportadora")
+        .update({
+          status_atual: ultimo?.descricao || "Sem atualização",
+          historico: eventos,
+          data_postagem:
+            eventos.find((e) => e.codigo === "PO")?.dtHrCriado || null,
+          data_entrega:
+            eventos.find((e) => e.codigo === "BDE")?.dtHrCriado || null,
+          entregue: !!eventos.find((e) => e.codigo === "BDE"),
+          atualizado_em: new Date().toISOString(),
+        })
+        .eq("codigo_rastreio", resultado.codigo);
+    }
+
+    carregarSLAs();
+  } catch (err) {
+    console.error("Falha em atualizarRastro:", err);
   }
-
-  carregarSLAs();
 }
 
 document
