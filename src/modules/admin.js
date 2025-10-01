@@ -550,52 +550,32 @@ if (!__ADMIN_ACTIVE__) {
   initAdmin();
 }
 
-async function carregarSLAs() {
-  const { data, error } = await supabase
+let pagina = 1;
+const pageSize = 20;
+
+async function carregarSLAs(filtro = "") {
+  const offset = (pagina - 1) * pageSize;
+  let query = supabase
     .from("slas_transportadora")
     .select("*")
-    .range(0, 999999)
-    .order("criado_em", { ascending: false });
+    .order("criado_em", { ascending: false })
+    .range(offset, offset + pageSize - 1);
 
+  if (filtro && filtro !== "fluxo") {
+    query = query.ilike("status_atual", `%${filtro}%`);
+  } else if (filtro === "fluxo") {
+    query = query
+      .not("status_atual", "ilike", "%Entregue%")
+      .not("status_atual", "ilike", "%Devolvido%")
+      .not("status_atual", "ilike", "%Extraviado%");
+  }
+
+  const { data, error } = await query;
   if (error) return console.error(error);
 
   const tbody = document.getElementById("slaList");
   tbody.innerHTML = "";
 
-  function badgeStatusByCodigo(eventos) {
-    if (!eventos || eventos.length === 0) {
-      return '<span class="badge bg-secondary">-</span>';
-    }
-    const ultimoCodigo = eventos[0].codigo;
-
-    switch (ultimoCodigo) {
-      case "FC":
-        return `<span class="badge bg-secondary">Etiqueta emitida</span>`;
-      case "CO":
-        return `<span class="badge bg-dark">Coletado</span>`;
-      case "PO":
-        return `<span class="badge bg-primary">Postado</span>`;
-      case "RO":
-      case "DO":
-      case "TR":
-      case "PAR":
-        return `<span class="badge bg-info text-dark">Em trânsito</span>`;
-      case "OEC":
-        return `<span class="badge bg-warning text-dark">Saiu p/ entrega</span>`;
-      case "BDE":
-        return `<span class="badge bg-success">Entregue</span>`;
-      case "EX":
-        return `<span class="badge bg-danger">Extraviado</span>`;
-      case "LDI":
-        return `<span class="badge bg-dark">Aguardando retirada</span>`;
-      case "LDE":
-        return `<span class="badge bg-secondary">Devolvido</span>`;
-      default:
-        return `<span class="badge bg-light text-dark">${ultimoCodigo}</span>`;
-    }
-  }
-
-  // Monta tabela (sem atualizar contadores)
   data.forEach((sla) => {
     const eventos = sla.historico || [];
 
@@ -627,8 +607,67 @@ async function carregarSLAs() {
     tbody.appendChild(tr);
   });
 
+  // Atualiza paginação
+  document.getElementById("paginaAtual").textContent = `Página ${pagina}`;
+
   // 🚀 Atualiza cards pelo RPC
   carregarMetricasSLA();
+}
+
+function badgeStatusByCodigo(eventos) {
+  if (!eventos || eventos.length === 0) {
+    return '<span class="badge bg-secondary">-</span>';
+  }
+  const ultimoCodigo = eventos[0].codigo;
+
+  switch (ultimoCodigo) {
+    case "FC":
+      return `<span class="badge bg-secondary">Etiqueta emitida</span>`;
+    case "CO":
+      return `<span class="badge bg-dark">Coletado</span>`;
+    case "PO":
+      return `<span class="badge bg-primary">Postado</span>`;
+    case "RO":
+    case "DO":
+    case "TR":
+    case "PAR":
+      return `<span class="badge bg-info text-dark">Em trânsito</span>`;
+    case "OEC":
+      return `<span class="badge bg-warning text-dark">Saiu p/ entrega</span>`;
+    case "BDE":
+      return `<span class="badge bg-success">Entregue</span>`;
+    case "EX":
+      return `<span class="badge bg-danger">Extraviado</span>`;
+    case "LDI":
+      return `<span class="badge bg-dark">Aguardando retirada</span>`;
+    case "LDE":
+      return `<span class="badge bg-secondary">Devolvido</span>`;
+    default:
+      return `<span class="badge bg-light text-dark">${ultimoCodigo}</span>`;
+  }
+}
+
+// Paginação
+document.getElementById("prevPage")?.addEventListener("click", () => {
+  if (pagina > 1) {
+    pagina--;
+    carregarSLAs(document.getElementById("filtroStatus").value);
+  }
+});
+document.getElementById("nextPage")?.addEventListener("click", () => {
+  pagina++;
+  carregarSLAs(document.getElementById("filtroStatus").value);
+});
+
+// Filtro
+document.getElementById("filtroStatus")?.addEventListener("change", (e) => {
+  pagina = 1;
+  carregarSLAs(e.target.value);
+});
+
+function filtrarSLA(tipo) {
+  pagina = 1;
+  carregarSLAs(tipo);
 }
 
 async function atualizarTodosSLAs() {
@@ -828,93 +867,27 @@ async function carregarMetricasSLA() {
   document.getElementById("countDevolvido").textContent = resumo.devolvido;
 }
 
-let pagina = 1;
-const pageSize = 20;
-
-async function carregarSLAs(filtro = "") {
-  const offset = (pagina - 1) * pageSize;
-  let query = supabase
-    .from("slas_transportadora")
-    .select("*")
-    .order("criado_em", { ascending: false })
-    .range(offset, offset + pageSize - 1);
-
-  if (filtro && filtro !== "fluxo") {
-    query = query.ilike("status_atual", `%${filtro}%`);
-  } else if (filtro === "fluxo") {
-    query = query
-      .not("status_atual", "ilike", "%Entregue%")
-      .not("status_atual", "ilike", "%Devolvido%")
-      .not("status_atual", "ilike", "%Extraviado%");
-  }
-
-  const { data, error } = await query;
-  if (error) return console.error(error);
-
-  const tbody = document.getElementById("slaList");
-  tbody.innerHTML = "";
-  data.forEach((sla) => {
-    const eventos = sla.historico || [];
-    tbody.innerHTML += `
-      <tr>
-        <td><strong>${sla.pedido_id || "-"}</strong></td>
-        <td>${sla.codigo_rastreio}</td>
-        <td>${badgeStatusByCodigo(eventos)}</td>
-        <td>${
-          sla.data_coleta
-            ? new Date(sla.data_coleta).toLocaleDateString("pt-BR")
-            : "-"
-        }</td>
-        <td>${
-          sla.atualizado_em
-            ? new Date(sla.atualizado_em).toLocaleString("pt-BR", {
-                timeZone: "America/Sao_Paulo",
-              })
-            : "-"
-        }</td>
-        <td><button class="btn btn-sm btn-outline-secondary" onclick="atualizarRastro('${
-          sla.codigo_rastreio
-        }')">Atualizar</button></td>
-      </tr>`;
-  });
-
-  document.getElementById("paginaAtual").textContent = `Página ${pagina}`;
-}
-
-document.getElementById("prevPage")?.addEventListener("click", () => {
-  if (pagina > 1) {
-    pagina--;
-    carregarSLAs(document.getElementById("filtroStatus").value);
-  }
-});
-document.getElementById("nextPage")?.addEventListener("click", () => {
-  pagina++;
-  carregarSLAs(document.getElementById("filtroStatus").value);
-});
-
-document.getElementById("filtroStatus")?.addEventListener("change", (e) => {
-  pagina = 1;
-  carregarSLAs(e.target.value);
-});
-
-function filtrarSLA(tipo) {
-  pagina = 1;
-  carregarSLAs(tipo);
-}
-
 async function carregarMetricasDetalhadasSLA() {
   const { data, error } = await supabase.rpc("metricas_sla");
   if (error) return console.error("Erro métricas SLA:", error);
 
   const m = data[0];
-  document.getElementById("tempoMedioPostagem").textContent = m.tempo_medio_postagem ? `D+${m.tempo_medio_postagem}` : "-";
-  document.getElementById("tempoMedioEntrega").textContent = m.tempo_medio_entrega ? `D+${m.tempo_medio_entrega}` : "-";
-  document.getElementById("tempoMedioTransito").textContent = m.tempo_medio_transito ? `D+${m.tempo_medio_transito}` : "-";
-  document.getElementById("pctNoPrazo").textContent = `${m.pct_no_prazo?.toFixed(1) ?? 0}%`;
-  document.getElementById("pctAtraso").textContent = `${m.pct_atraso?.toFixed(1) ?? 0}%`;
-  document.getElementById("pctExtraviado").textContent = `${m.pct_extraviado?.toFixed(1) ?? 0}%`;
+  document.getElementById("tempoMedioPostagem").textContent =
+    m.tempo_medio_postagem ? `D+${m.tempo_medio_postagem}` : "-";
+  document.getElementById("tempoMedioEntrega").textContent =
+    m.tempo_medio_entrega ? `D+${m.tempo_medio_entrega}` : "-";
+  document.getElementById("tempoMedioTransito").textContent =
+    m.tempo_medio_transito ? `D+${m.tempo_medio_transito}` : "-";
+  document.getElementById("pctNoPrazo").textContent = `${
+    m.pct_no_prazo?.toFixed(1) ?? 0
+  }%`;
+  document.getElementById("pctAtraso").textContent = `${
+    m.pct_atraso?.toFixed(1) ?? 0
+  }%`;
+  document.getElementById("pctExtraviado").textContent = `${
+    m.pct_extraviado?.toFixed(1) ?? 0
+  }%`;
 }
-
 
 window.carregarSLAs = carregarSLAs;
 window.atualizarRastro = atualizarRastro;
