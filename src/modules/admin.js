@@ -1,5 +1,8 @@
-import { supabase } from "../services/supabase.js";
-import { supabaseUrl, supabaseKey } from "../services/supabase.js";
+import {
+  supabase,
+  supabaseKey,
+  supabaseFunctionsUrl,
+} from "../services/supabase.js";
 import "../css/admin.css";
 async function ensureChart() {
   if (!window.Chart) {
