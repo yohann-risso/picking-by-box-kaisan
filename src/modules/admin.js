@@ -696,6 +696,27 @@ async function atualizarRastro(codigos) {
   }
 }
 
+async function atualizarColetados() {
+  const { data, error } = await supabase
+    .from("slas_transportadora")
+    .select("codigo_rastreio, status_atual")
+    .eq("status_atual", "Coletado"); // 👈 filtra só os coletados
+
+  if (error) {
+    console.error("Erro ao carregar coletados:", error);
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    alert("Nenhum pedido com status 'Coletado' encontrado.");
+    return;
+  }
+
+  const codigos = data.map((s) => s.codigo_rastreio);
+  console.log(`Atualizando ${codigos.length} pedidos coletados...`);
+  atualizarRastro(codigos);
+}
+
 document
   .getElementById("slaFormLote")
   ?.addEventListener("submit", async (e) => {
