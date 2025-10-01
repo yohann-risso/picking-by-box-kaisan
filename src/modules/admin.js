@@ -556,6 +556,10 @@ async function carregarSLAs() {
 
   if (error) return console.error(error);
 
+  const tbody = document.getElementById("slaList");
+  tbody.innerHTML = "";
+
+  // Contadores para cards
   const statusCounts = {
     Coletado: 0,
     Postado: 0,
@@ -564,9 +568,11 @@ async function carregarSLAs() {
     Entregue: 0,
   };
 
+  // Função para gerar badge visual
   function badgeStatus(descricao) {
     if (!descricao) return '<span class="badge bg-secondary">-</span>';
     const desc = descricao.toLowerCase();
+
     if (desc.includes("coletado"))
       return `<span class="badge bg-dark">Coletado</span>`;
     if (desc.includes("postado"))
@@ -577,28 +583,27 @@ async function carregarSLAs() {
       return `<span class="badge bg-warning text-dark">Saiu p/ entrega</span>`;
     if (desc.includes("entregue"))
       return `<span class="badge bg-success">Entregue</span>`;
+
     return `<span class="badge bg-secondary">${descricao}</span>`;
   }
 
-  const tbody = document.getElementById("slaList");
-  tbody.innerHTML = "";
-
+  // Monta tabela
   data.forEach((sla) => {
+    const statusAtual = sla.status_atual || "-";
+
+    // Incrementa contadores
+    if (/coletado/i.test(statusAtual)) statusCounts.Coletado++;
+    else if (/postado/i.test(statusAtual)) statusCounts.Postado++;
+    else if (/trânsito/i.test(statusAtual)) statusCounts["Em trânsito"]++;
+    else if (/saiu para entrega/i.test(statusAtual))
+      statusCounts["Saiu para entrega"]++;
+    else if (/entregue/i.test(statusAtual)) statusCounts.Entregue++;
+
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td><strong>${sla.pedido_id || "-"}</strong></td>
       <td>${sla.codigo_rastreio}</td>
-      <td>
-        <span class="badge-status ${
-          sla.entregue
-            ? "success"
-            : sla.status_atual?.toLowerCase().includes("trânsito")
-            ? "info"
-            : "secondary"
-        }">
-          ${sla.status_atual || "-"}
-        </span>
-      </td>
+      <td>${badgeStatus(statusAtual)}</td>
       <td>${
         sla.data_coleta
           ? new Date(sla.data_coleta).toLocaleDateString("pt-BR")
@@ -621,6 +626,15 @@ async function carregarSLAs() {
     `;
     tbody.appendChild(tr);
   });
+
+  // Atualiza cards de resumo
+  document.getElementById("countColetado").textContent = statusCounts.Coletado;
+  document.getElementById("countPostado").textContent = statusCounts.Postado;
+  document.getElementById("countTransito").textContent =
+    statusCounts["Em trânsito"];
+  document.getElementById("countSaiuEntrega").textContent =
+    statusCounts["Saiu para entrega"];
+  document.getElementById("countEntregue").textContent = statusCounts.Entregue;
 }
 
 async function atualizarTodosSLAs() {
