@@ -506,6 +506,7 @@ if (!__ADMIN_ACTIVE__) {
     carregarRelatorioErros();
     carregarOperadoresDropdown();
     carregarSLAs();
+    carregarMetricasSLA();
 
     // 👉 setar data de hoje (fuso SP) no input e carregar pivot só uma vez
     const hojeSP = new Date().toLocaleDateString("sv-SE", {
@@ -822,6 +823,25 @@ document
       carregarSLAs();
     }
   });
+
+async function carregarMetricasSLA() {
+  const { data, error } = await supabase.rpc("resumo_sla");
+
+  if (error) {
+    console.error("Erro ao carregar métricas SLA:", error);
+    return;
+  }
+
+  if (!data || !data.length) return;
+
+  const resumo = data[0];
+
+  document.getElementById("countColetado").textContent = resumo.coletado;
+  document.getElementById("countPostado").textContent = resumo.postado;
+  document.getElementById("countTransito").textContent = resumo.em_transito;
+  document.getElementById("countSaiuEntrega").textContent = resumo.saiu_entrega;
+  document.getElementById("countEntregue").textContent = resumo.entregue;
+}
 
 window.carregarSLAs = carregarSLAs;
 window.atualizarRastro = atualizarRastro;
