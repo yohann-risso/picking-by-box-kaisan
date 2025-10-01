@@ -542,3 +542,117 @@ if (!__ADMIN_ACTIVE__) {
 
   initAdmin();
 }
+
+async function carregarSLAs() {
+  const { data, error } = await supabase
+    .from("slas_transportadora")
+    .select("*")
+    .order("criado_em", { ascending: false });
+
+  if (error) return console.error(error);
+
+  const container = document.getElementById("slaList");
+  container.innerHTML = `
+    <button class="btn btn-outline-primary mb-3" onclick="atualizarTodosSLAs()">🔄 Atualizar Todos</button>
+  `;
+
+  data.forEach((sla) => {
+    container.innerHTML += `
+      <div class="card mb-2 p-2">
+        <h6>Pedido #${sla.pedido_id}</h6>
+        <p><b>Rastreio:</b> ${sla.codigo_rastreio}</p>
+        <p><b>Status:</b> ${sla.status_atual}</p>
+        <button class="btn btn-sm btn-secondary" onclick="atualizarRastro('${sla.codigo_rastreio}')">Atualizar</button>
+      </div>
+    `;
+  });
+}
+
+async function atualizarTodosSLAs() {
+  const { data } = await supabase
+    .from("slas_transportadora")
+    .select("codigo_rastreio");
+  if (!data) return;
+  const codigos = data.map((s) => s.codigo_rastreio);
+  atualizarRastro(codigos);
+}
+
+async function atualizarRastro(codigos) {
+  // aceita string ou array
+  const lista = Array.isArray(codigos) ? codigos : [codigos];
+
+  const resp = await fetch("/functions/v1/get-rastro", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ codigos: lista }),
+  });
+
+  const resultados = await resp.json();
+
+  for (const resultado of resultados) {
+    if (resultado.error) {
+      console.error(`Erro no código ${resultado.codigo}:`, resultado.error);
+      continue;
+    }
+
+    const eventos = resultado.data?.objetos?.[0]?.eventos || [];
+    const ultimo = eventos[0]; // evento mais recente
+
+    // Atualiza tabela no Supabase
+    await supabase
+      .from("slas_transportadora")
+      .update({
+        status_atual: ultimo?.descricao || "Sem atualização",
+        historico: eventos,
+        data_postagem:
+          eventos.find((e) => e.codigo === "PO")?.dtHrCriado || null,
+        data_entrega:
+          eventos.find((e) => e.codigo === "BDE")?.dtHrCriado || null,
+        entregue: !!eventos.find((e) => e.codigo === "BDE"),
+      })
+      .eq("codigo_rastreio", resultado.codigo);
+
+    console.log(`✅ ${resultado.codigo} atualizado -> ${ultimo?.descricao}`);
+  }
+
+  carregarSLAs(); // recarrega listagem
+}
+
+document.getElementById("slaForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const form = new FormData(e.target);
+
+  const pedido_id = form.get("pedido_id") || null;
+  const data_coleta = form.get("data_coleta");
+  const codigos = form
+    .get("codigos_rastreio")
+    .split("\n") // quebra em linhas
+    .map((c) => c.trim())
+    .filter((c) => c.length > 0);
+
+  if (!codigos.length) {
+    alert("Cole pelo menos um código de rastreio.");
+    return;
+  }
+
+  // Monta array de objetos
+  const insertData = codigos.map((codigo) => ({
+    pedido_id,
+    codigo_rastreio: codigo,
+    data_coleta,
+    transportadora: "Correios",
+  }));
+
+  // Inserir em lote
+  const { error } = await supabase
+    .from("slas_transportadora")
+    .insert(insertData);
+
+  if (error) {
+    alert("Erro: " + error.message);
+  } else {
+    alert(`✅ ${insertData.length} SLAs salvos com sucesso!`);
+    e.target.reset();
+    carregarSLAs(); // atualiza a listagem
+  }
+});

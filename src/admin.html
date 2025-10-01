@@ -19,7 +19,7 @@
     />
     <link rel="stylesheet" href="./css/style.css" />
     <link rel="stylesheet" href="./css/admin.css" />
-</head>
+  </head>
   <body class="bg-light">
     <!-- Header fixo -->
     <header class="bg-dark text-white shadow-sm py-3 mb-4 sticky-top">
@@ -362,6 +362,32 @@
             </div>
           </div>
         </div>
+      </div>
+
+      <div class="card">
+        <h5>Adicionar SLA (em lote)</h5>
+        <form id="slaForm" class="mb-3">
+          <input
+            type="text"
+            name="pedido_id"
+            placeholder="Pedido ID (opcional)"
+            class="form-control mb-2"
+          />
+          <textarea
+            name="codigos_rastreio"
+            class="form-control mb-2"
+            rows="4"
+            placeholder="Cole os códigos de rastreio aqui, um por linha"
+            required
+          ></textarea>
+          <input
+            type="date"
+            name="data_coleta"
+            class="form-control mb-2"
+            required
+          />
+          <button type="submit" class="btn btn-primary">Salvar em Lote</button>
+        </form>
       </div>
     </main>
 
