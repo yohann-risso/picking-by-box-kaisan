@@ -556,6 +556,30 @@ async function carregarSLAs() {
 
   if (error) return console.error(error);
 
+  const statusCounts = {
+    Coletado: 0,
+    Postado: 0,
+    "Em trânsito": 0,
+    "Saiu para entrega": 0,
+    Entregue: 0,
+  };
+
+  function badgeStatus(descricao) {
+    if (!descricao) return '<span class="badge bg-secondary">-</span>';
+    const desc = descricao.toLowerCase();
+    if (desc.includes("coletado"))
+      return `<span class="badge bg-dark">Coletado</span>`;
+    if (desc.includes("postado"))
+      return `<span class="badge bg-primary">Postado</span>`;
+    if (desc.includes("trânsito"))
+      return `<span class="badge bg-info text-dark">Em trânsito</span>`;
+    if (desc.includes("saiu para entrega"))
+      return `<span class="badge bg-warning text-dark">Saiu p/ entrega</span>`;
+    if (desc.includes("entregue"))
+      return `<span class="badge bg-success">Entregue</span>`;
+    return `<span class="badge bg-secondary">${descricao}</span>`;
+  }
+
   const tbody = document.getElementById("slaList");
   tbody.innerHTML = "";
 
