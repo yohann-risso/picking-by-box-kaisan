@@ -36,6 +36,14 @@ if (!__ADMIN_ACTIVE__) {
     return `${h}:${m}:${s}`;
   }
 
+  function formatarDataISO(dateStr) {
+    if (!dateStr) return "-";
+    const d = new Date(dateStr);
+    return `${String(d.getUTCDate()).padStart(2, "0")}/${String(
+      d.getUTCMonth() + 1
+    ).padStart(2, "0")}/${d.getUTCFullYear()}`;
+  }
+
   function formatarParaBR(isoDate) {
     if (!isoDate) return null;
     const [ano, mes, dia] = isoDate.split("-");
@@ -584,11 +592,7 @@ async function carregarSLAs(filtro = "") {
       <td><strong>${sla.pedido_id || "-"}</strong></td>
       <td>${sla.codigo_rastreio}</td>
       <td>${badgeStatusByCodigo(eventos)}</td>
-      <td>${
-        sla.data_coleta
-          ? new Date(sla.data_coleta).toLocaleDateString("pt-BR")
-          : "-"
-      }</td>
+      <td>${formatarDataISO(sla.data_coleta)}</td>
       <td>${
         sla.atualizado_em
           ? new Date(sla.atualizado_em).toLocaleString("pt-BR", {
