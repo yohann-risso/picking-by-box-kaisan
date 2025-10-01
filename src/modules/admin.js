@@ -524,6 +524,7 @@ if (!__ADMIN_ACTIVE__) {
       carregarRomaneios();
       carregarMetricaExpedicao();
       carregarRelatorioErros();
+      carregarMetricasSLA();
     }, 30000);
   }
 
