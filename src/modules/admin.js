@@ -644,7 +644,7 @@ async function atualizarRastro(codigos) {
         .from("slas_transportadora")
         .update({
           status_atual: ultimo?.descricao || "Sem atualização",
-          historico: eventos,
+          historico: JSON.stringify(eventos), // 👈 garante que vai salvar como JSON válido
           data_postagem:
             eventos.find((e) => e.codigo === "PO")?.dtHrCriado || null,
           data_entrega:
@@ -652,7 +652,7 @@ async function atualizarRastro(codigos) {
           entregue: !!eventos.find((e) => e.codigo === "BDE"),
           atualizado_em: new Date().toISOString(),
         })
-        .eq("codigo_rastreio", resultado.codigo);
+        .eq("codigo_rastreio", resultado.codigo.trim());
     }
 
     carregarSLAs();
