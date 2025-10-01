@@ -364,32 +364,110 @@
         </div>
       </div>
 
-      <div class="card">
-        <h5>Adicionar SLA (em lote)</h5>
-        <form id="slaForm" class="mb-3">
-          <input
-            type="text"
-            name="pedido_id"
-            placeholder="Pedido ID (opcional)"
-            class="form-control mb-2"
-          />
-          <textarea
-            name="codigos_rastreio"
-            class="form-control mb-2"
-            rows="4"
-            placeholder="Cole os códigos de rastreio aqui, um por linha"
-            required
-          ></textarea>
-          <input
-            type="date"
-            name="data_coleta"
-            class="form-control mb-2"
-            required
-          />
-          <button type="submit" class="btn btn-primary">Salvar em Lote</button>
-        </form>
+      <div class="card mt-4">
+        <div
+          class="card-header d-flex justify-content-between align-items-center"
+        >
+          <span>📦 SLAs Transportadora</span>
+          <div class="d-flex gap-2">
+            <button
+              class="btn btn-sm btn-outline-primary"
+              onclick="atualizarTodosSLAs()"
+            >
+              🔄 Atualizar Todos
+            </button>
+            <button
+              class="btn btn-sm btn-success"
+              data-bs-toggle="modal"
+              data-bs-target="#slaModal"
+            >
+              ➕ Adicionar em Lote
+            </button>
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table
+            class="table table-striped table-hover align-middle mb-0 text-center"
+          >
+            <thead class="table-light">
+              <tr>
+                <th>Pedido</th>
+                <th>Código de Rastreio</th>
+                <th>Status Atual</th>
+                <th>Data Coleta</th>
+                <th>Última Atualização</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="slaList"></tbody>
+          </table>
+        </div>
       </div>
     </main>
+
+    <!-- Modal de SLA -->
+    <div class="modal fade" id="slaModal" tabindex="-1">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header bg-success text-white">
+            <h5 class="modal-title">Adicionar SLA em lote</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <form id="slaFormLote">
+              <div class="mb-3">
+                <label for="slaData" class="form-label">Data da Coleta</label>
+                <input
+                  type="date"
+                  class="form-control"
+                  id="slaData"
+                  name="data_coleta"
+                  required
+                />
+              </div>
+              <div class="mb-3">
+                <label for="slaLote" class="form-label"
+                  >Pedidos e Rastreios</label
+                >
+                <textarea
+                  class="form-control"
+                  id="slaLote"
+                  name="lote"
+                  rows="6"
+                  placeholder="Cole aqui Pedido e Rastreio separados por TAB ou ; 
+Exemplo:
+12345<TAB>LX123456789BR
+67890;LX987654321BR"
+                  required
+                ></textarea>
+                <small class="text-muted">
+                  Cada linha deve conter: <b>Pedido</b> + separador (<code
+                    >TAB</code
+                  >
+                  ou <code>;</code>) + <b>Código de rastreio</b>
+                </small>
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              Cancelar
+            </button>
+            <button type="submit" class="btn btn-success" form="slaFormLote">
+              Salvar em Lote
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- Modal de erro -->
     <div class="modal fade" id="erroModal" tabindex="-1">

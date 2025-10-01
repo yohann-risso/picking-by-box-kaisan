@@ -551,20 +551,46 @@ async function carregarSLAs() {
 
   if (error) return console.error(error);
 
-  const container = document.getElementById("slaList");
-  container.innerHTML = `
-    <button class="btn btn-outline-primary mb-3" onclick="atualizarTodosSLAs()">🔄 Atualizar Todos</button>
-  `;
+  const tbody = document.getElementById("slaList");
+  tbody.innerHTML = "";
 
   data.forEach((sla) => {
-    container.innerHTML += `
-      <div class="card mb-2 p-2">
-        <h6>Pedido #${sla.pedido_id}</h6>
-        <p><b>Rastreio:</b> ${sla.codigo_rastreio}</p>
-        <p><b>Status:</b> ${sla.status_atual}</p>
-        <button class="btn btn-sm btn-secondary" onclick="atualizarRastro('${sla.codigo_rastreio}')">Atualizar</button>
-      </div>
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td><strong>${sla.pedido_id || "-"}</strong></td>
+      <td>${sla.codigo_rastreio}</td>
+      <td>
+        <span class="badge-status ${
+          sla.entregue
+            ? "success"
+            : sla.status_atual?.toLowerCase().includes("trânsito")
+            ? "info"
+            : "secondary"
+        }">
+          ${sla.status_atual || "-"}
+        </span>
+      </td>
+      <td>${
+        sla.data_coleta
+          ? new Date(sla.data_coleta).toLocaleDateString("pt-BR")
+          : "-"
+      }</td>
+      <td>${
+        sla.atualizado_em
+          ? new Date(sla.atualizado_em).toLocaleString("pt-BR", {
+              timeZone: "America/Sao_Paulo",
+            })
+          : "-"
+      }</td>
+      <td>
+        <button class="btn btn-sm btn-outline-secondary" onclick="atualizarRastro('${
+          sla.codigo_rastreio
+        }')">
+          Atualizar
+        </button>
+      </td>
     `;
+    tbody.appendChild(tr);
   });
 }
 
@@ -578,7 +604,6 @@ async function atualizarTodosSLAs() {
 }
 
 async function atualizarRastro(codigos) {
-  // aceita string ou array
   const lista = Array.isArray(codigos) ? codigos : [codigos];
 
   const resp = await fetch("/functions/v1/get-rastro", {
@@ -596,9 +621,8 @@ async function atualizarRastro(codigos) {
     }
 
     const eventos = resultado.data?.objetos?.[0]?.eventos || [];
-    const ultimo = eventos[0]; // evento mais recente
+    const ultimo = eventos[0];
 
-    // Atualiza tabela no Supabase
     await supabase
       .from("slas_transportadora")
       .update({
@@ -609,50 +633,74 @@ async function atualizarRastro(codigos) {
         data_entrega:
           eventos.find((e) => e.codigo === "BDE")?.dtHrCriado || null,
         entregue: !!eventos.find((e) => e.codigo === "BDE"),
+        atualizado_em: new Date().toISOString(),
       })
       .eq("codigo_rastreio", resultado.codigo);
-
-    console.log(`✅ ${resultado.codigo} atualizado -> ${ultimo?.descricao}`);
   }
 
-  carregarSLAs(); // recarrega listagem
+  carregarSLAs();
 }
 
-document.getElementById("slaForm").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const form = new FormData(e.target);
-
-  const pedido_id = form.get("pedido_id") || null;
-  const data_coleta = form.get("data_coleta");
-  const codigos = form
-    .get("codigos_rastreio")
-    .split("\n") // quebra em linhas
-    .map((c) => c.trim())
-    .filter((c) => c.length > 0);
-
-  if (!codigos.length) {
-    alert("Cole pelo menos um código de rastreio.");
-    return;
-  }
-
-  // Monta array de objetos
-  const insertData = codigos.map((codigo) => ({
-    pedido_id,
-    codigo_rastreio: codigo,
-    data_coleta,
-    transportadora: "Correios",
-  }));
-
-  // Inserir em lote
-  const { error } = await supabase
+async function atualizarTodosSLAs() {
+  const { data } = await supabase
     .from("slas_transportadora")
-    .insert(insertData);
+    .select("codigo_rastreio");
+  if (!data) return;
+  const codigos = data.map((s) => s.codigo_rastreio);
+  atualizarRastro(codigos);
+}
 
-  if (error) {
-    alert("Erro: " + error.message);
-  } else {
-    alert(`✅ ${insertData.length} SLAs salvos com sucesso!`);
-    e.target.reset();
-    carregarSLAs(); // atualiza a listagem
-  }
-});
+document
+  .getElementById("slaFormLote")
+  ?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const data_coleta =
+      document.getElementById("slaData").value ||
+      new Date().toISOString().slice(0, 10);
+    const lote = document.getElementById("slaLote").value.trim();
+
+    // Quebra por linha
+    const linhas = lote
+      .split("\n")
+      .map((l) => l.trim())
+      .filter(Boolean);
+
+    const insertData = [];
+
+    linhas.forEach((linha) => {
+      // tenta split por tab primeiro, depois por ;
+      let [pedido, rastreio] = linha.includes("\t")
+        ? linha.split("\t")
+        : linha.split(";");
+
+      pedido = pedido?.trim();
+      rastreio = rastreio?.trim();
+
+      if (pedido && rastreio) {
+        insertData.push({
+          pedido_id: pedido,
+          codigo_rastreio: rastreio,
+          data_coleta,
+          transportadora: "Correios",
+        });
+      }
+    });
+
+    if (!insertData.length) {
+      alert("❌ Nenhum dado válido encontrado. Use TAB ou ; como separador.");
+      return;
+    }
+
+    const { error } = await supabase
+      .from("slas_transportadora")
+      .insert(insertData);
+
+    if (error) {
+      alert("❌ Erro ao salvar: " + error.message);
+    } else {
+      alert(`✅ ${insertData.length} SLAs adicionados com sucesso!`);
+      e.target.reset();
+      carregarSLAs();
+    }
+  });
