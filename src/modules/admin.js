@@ -775,3 +775,4 @@ document
 window.carregarSLAs = carregarSLAs;
 window.atualizarRastro = atualizarRastro;
 window.atualizarTodosSLAs = atualizarTodosSLAs;
+window.atualizarColetados = atualizarColetados;
