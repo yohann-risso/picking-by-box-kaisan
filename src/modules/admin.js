@@ -828,7 +828,97 @@ async function carregarMetricasSLA() {
   document.getElementById("countDevolvido").textContent = resumo.devolvido;
 }
 
+let pagina = 1;
+const pageSize = 20;
+
+async function carregarSLAs(filtro = "") {
+  const offset = (pagina - 1) * pageSize;
+  let query = supabase
+    .from("slas_transportadora")
+    .select("*")
+    .order("criado_em", { ascending: false })
+    .range(offset, offset + pageSize - 1);
+
+  if (filtro && filtro !== "fluxo") {
+    query = query.ilike("status_atual", `%${filtro}%`);
+  } else if (filtro === "fluxo") {
+    query = query
+      .not("status_atual", "ilike", "%Entregue%")
+      .not("status_atual", "ilike", "%Devolvido%")
+      .not("status_atual", "ilike", "%Extraviado%");
+  }
+
+  const { data, error } = await query;
+  if (error) return console.error(error);
+
+  const tbody = document.getElementById("slaList");
+  tbody.innerHTML = "";
+  data.forEach((sla) => {
+    const eventos = sla.historico || [];
+    tbody.innerHTML += `
+      <tr>
+        <td><strong>${sla.pedido_id || "-"}</strong></td>
+        <td>${sla.codigo_rastreio}</td>
+        <td>${badgeStatusByCodigo(eventos)}</td>
+        <td>${
+          sla.data_coleta
+            ? new Date(sla.data_coleta).toLocaleDateString("pt-BR")
+            : "-"
+        }</td>
+        <td>${
+          sla.atualizado_em
+            ? new Date(sla.atualizado_em).toLocaleString("pt-BR", {
+                timeZone: "America/Sao_Paulo",
+              })
+            : "-"
+        }</td>
+        <td><button class="btn btn-sm btn-outline-secondary" onclick="atualizarRastro('${
+          sla.codigo_rastreio
+        }')">Atualizar</button></td>
+      </tr>`;
+  });
+
+  document.getElementById("paginaAtual").textContent = `Página ${pagina}`;
+}
+
+document.getElementById("prevPage")?.addEventListener("click", () => {
+  if (pagina > 1) {
+    pagina--;
+    carregarSLAs(document.getElementById("filtroStatus").value);
+  }
+});
+document.getElementById("nextPage")?.addEventListener("click", () => {
+  pagina++;
+  carregarSLAs(document.getElementById("filtroStatus").value);
+});
+
+document.getElementById("filtroStatus")?.addEventListener("change", (e) => {
+  pagina = 1;
+  carregarSLAs(e.target.value);
+});
+
+function filtrarSLA(tipo) {
+  pagina = 1;
+  carregarSLAs(tipo);
+}
+
+async function carregarMetricasDetalhadasSLA() {
+  const { data, error } = await supabase.rpc("metricas_sla");
+  if (error) return console.error("Erro métricas SLA:", error);
+
+  const m = data[0];
+  document.getElementById("tempoMedioPostagem").textContent = m.tempo_medio_postagem ? `D+${m.tempo_medio_postagem}` : "-";
+  document.getElementById("tempoMedioEntrega").textContent = m.tempo_medio_entrega ? `D+${m.tempo_medio_entrega}` : "-";
+  document.getElementById("tempoMedioTransito").textContent = m.tempo_medio_transito ? `D+${m.tempo_medio_transito}` : "-";
+  document.getElementById("pctNoPrazo").textContent = `${m.pct_no_prazo?.toFixed(1) ?? 0}%`;
+  document.getElementById("pctAtraso").textContent = `${m.pct_atraso?.toFixed(1) ?? 0}%`;
+  document.getElementById("pctExtraviado").textContent = `${m.pct_extraviado?.toFixed(1) ?? 0}%`;
+}
+
+
 window.carregarSLAs = carregarSLAs;
 window.atualizarRastro = atualizarRastro;
 window.atualizarTodosSLAs = atualizarTodosSLAs;
 window.atualizarColetados = atualizarColetados;
+window.filtrarSLA = filtrarSLA;
+window.carregarMetricasDetalhadasSLA = carregarMetricasDetalhadasSLA;

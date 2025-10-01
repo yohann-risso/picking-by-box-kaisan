@@ -405,6 +405,29 @@
                   </button>
                 </div>
               </div>
+              <div
+                class="d-flex justify-content-between align-items-center mb-2"
+              >
+                <div>
+                  <label for="filtroStatus">Filtro:</label>
+                  <select
+                    id="filtroStatus"
+                    class="form-select form-select-sm d-inline-block"
+                    style="width: auto"
+                  >
+                    <option value="">Todos</option>
+                    <option value="FC">Etiqueta Emitida</option>
+                    <option value="CO">Coletado</option>
+                    <option value="PO">Postado</option>
+                    <option value="RO">Em Trânsito</option>
+                    <option value="OEC">Saiu p/ Entrega</option>
+                    <option value="BDE">Entregue</option>
+                    <option value="EX">Extraviado</option>
+                    <option value="LDI">Aguardando Retirada</option>
+                    <option value="LDE">Devolvido</option>
+                  </select>
+                </div>
+              </div>
               <div class="table-responsive">
                 <table
                   class="table table-striped table-hover align-middle mb-0 text-center"
@@ -421,6 +444,23 @@
                   </thead>
                   <tbody id="slaList"></tbody>
                 </table>
+                <div
+                  class="d-flex justify-content-between align-items-center mt-2"
+                >
+                  <button
+                    class="btn btn-sm btn-outline-secondary"
+                    id="prevPage"
+                  >
+                    ⬅️ Anterior
+                  </button>
+                  <span id="paginaAtual">Página 1</span>
+                  <button
+                    class="btn btn-sm btn-outline-secondary"
+                    id="nextPage"
+                  >
+                    Próxima ➡️
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -497,6 +537,17 @@
               <div class="card-body">
                 <h6>↩️ Devolvido</h6>
                 <h4 id="countDevolvido">0</h4>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div
+              class="card shadow-sm bg-light h-100 clickable"
+              onclick="filtrarSLA('fluxo')"
+            >
+              <div class="card-body">
+                <h6>🔄 Em Fluxo</h6>
+                <h4 id="countFluxo">0</h4>
               </div>
             </div>
           </div>
