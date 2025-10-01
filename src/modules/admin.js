@@ -695,3 +695,7 @@ document
       carregarSLAs();
     }
   });
+
+window.carregarSLAs = carregarSLAs;
+window.atualizarRastro = atualizarRastro;
+window.atualizarTodosSLAs = atualizarTodosSLAs;
