@@ -569,6 +569,10 @@ async function carregarSLAs() {
     const ultimoCodigo = eventos[0].codigo;
 
     switch (ultimoCodigo) {
+      case "FC":
+        return `<span class="badge bg-secondary">Etiqueta emitida</span>`;
+      case "CO":
+        return `<span class="badge bg-dark">Coletado</span>`;
       case "PO":
         return `<span class="badge bg-primary">Postado</span>`;
       case "RO":
@@ -587,7 +591,7 @@ async function carregarSLAs() {
       case "LDE":
         return `<span class="badge bg-secondary">Devolvido</span>`;
       default:
-        return `<span class="badge bg-secondary">${ultimoCodigo}</span>`;
+        return `<span class="badge bg-light text-dark">${ultimoCodigo}</span>`;
     }
   }
 
@@ -807,16 +811,21 @@ async function carregarMetricasSLA() {
     console.error("Erro ao carregar métricas SLA:", error);
     return;
   }
-
   if (!data || !data.length) return;
 
   const resumo = data[0];
 
+  document.getElementById("countEtiqueta").textContent =
+    resumo.etiqueta_emitida;
   document.getElementById("countColetado").textContent = resumo.coletado;
   document.getElementById("countPostado").textContent = resumo.postado;
   document.getElementById("countTransito").textContent = resumo.em_transito;
   document.getElementById("countSaiuEntrega").textContent = resumo.saiu_entrega;
   document.getElementById("countEntregue").textContent = resumo.entregue;
+  document.getElementById("countExtraviado").textContent = resumo.extraviado;
+  document.getElementById("countAguardando").textContent =
+    resumo.aguardando_retirada;
+  document.getElementById("countDevolvido").textContent = resumo.devolvido;
 }
 
 window.carregarSLAs = carregarSLAs;
