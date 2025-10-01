@@ -568,42 +568,54 @@ async function carregarSLAs() {
     Entregue: 0,
   };
 
-  // Função para gerar badge visual
-  function badgeStatus(descricao) {
-    if (!descricao) return '<span class="badge bg-secondary">-</span>';
-    const desc = descricao.toLowerCase();
+  // Função para gerar badge a partir do último evento
+  function badgeStatusByCodigo(eventos) {
+    if (!eventos || eventos.length === 0) {
+      return '<span class="badge bg-secondary">-</span>';
+    }
+    const ultimoCodigo = eventos[0].codigo;
 
-    if (desc.includes("coletado"))
-      return `<span class="badge bg-dark">Coletado</span>`;
-    if (desc.includes("postado"))
-      return `<span class="badge bg-primary">Postado</span>`;
-    if (desc.includes("trânsito"))
-      return `<span class="badge bg-info text-dark">Em trânsito</span>`;
-    if (desc.includes("saiu para entrega"))
-      return `<span class="badge bg-warning text-dark">Saiu p/ entrega</span>`;
-    if (desc.includes("entregue"))
-      return `<span class="badge bg-success">Entregue</span>`;
-
-    return `<span class="badge bg-secondary">${descricao}</span>`;
+    switch (ultimoCodigo) {
+      case "PO":
+        return `<span class="badge bg-primary">Postado</span>`;
+      case "RO":
+      case "DO":
+      case "TR":
+      case "PAR":
+        return `<span class="badge bg-info text-dark">Em trânsito</span>`;
+      case "OEC":
+        return `<span class="badge bg-warning text-dark">Saiu p/ entrega</span>`;
+      case "BDE":
+        return `<span class="badge bg-success">Entregue</span>`;
+      case "EX":
+        return `<span class="badge bg-danger">Extraviado</span>`;
+      case "LDI":
+        return `<span class="badge bg-dark">Aguardando retirada</span>`;
+      case "LDE":
+        return `<span class="badge bg-secondary">Devolvido</span>`;
+      default:
+        return `<span class="badge bg-secondary">${ultimoCodigo}</span>`;
+    }
   }
 
   // Monta tabela
   data.forEach((sla) => {
-    const statusAtual = sla.status_atual || "-";
+    const eventos = sla.historico || [];
+    const ultimoCodigo = eventos[0]?.codigo || null;
 
     // Incrementa contadores
-    if (/coletado/i.test(statusAtual)) statusCounts.Coletado++;
-    else if (/postado/i.test(statusAtual)) statusCounts.Postado++;
-    else if (/trânsito/i.test(statusAtual)) statusCounts["Em trânsito"]++;
-    else if (/saiu para entrega/i.test(statusAtual))
-      statusCounts["Saiu para entrega"]++;
-    else if (/entregue/i.test(statusAtual)) statusCounts.Entregue++;
+    if (ultimoCodigo === "PO") statusCounts.Postado++;
+    else if (["RO", "DO", "TR", "PAR"].includes(ultimoCodigo))
+      statusCounts["Em trânsito"]++;
+    else if (ultimoCodigo === "OEC") statusCounts["Saiu para entrega"]++;
+    else if (ultimoCodigo === "BDE") statusCounts.Entregue++;
+    else if (/coletado/i.test(sla.status_atual)) statusCounts.Coletado++; // fallback para coleta
 
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td><strong>${sla.pedido_id || "-"}</strong></td>
       <td>${sla.codigo_rastreio}</td>
-      <td>${badgeStatus(statusAtual)}</td>
+      <td>${badgeStatusByCodigo(eventos)}</td>
       <td>${
         sla.data_coleta
           ? new Date(sla.data_coleta).toLocaleDateString("pt-BR")
