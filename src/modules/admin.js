@@ -898,3 +898,4 @@ window.atualizarTodosSLAs = atualizarTodosSLAs;
 window.atualizarColetados = atualizarColetados;
 window.filtrarSLA = filtrarSLA;
 window.carregarMetricasDetalhadasSLA = carregarMetricasDetalhadasSLA;
+window.formatarDataISO = formatarDataISO;
