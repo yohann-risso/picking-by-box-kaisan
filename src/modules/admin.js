@@ -651,15 +651,23 @@ async function atualizarRastro(codigos) {
         atualizado_em: new Date().toISOString(),
       });
 
+      console.log("Filtro update:", resultado.codigo.trim());
+
       await supabase
         .from("slas_transportadora")
         .update({
           status_atual: ultimo?.descricao || "Sem atualização",
-          historico: eventos || [],
-          data_postagem:
-            eventos.find((e) => e.codigo === "PO")?.dtHrCriado ?? null,
-          data_entrega:
-            eventos.find((e) => e.codigo === "BDE")?.dtHrCriado ?? null,
+          historico: eventos ?? [],
+          data_postagem: eventos.find((e) => e.codigo === "PO")
+            ? new Date(
+                eventos.find((e) => e.codigo === "PO").dtHrCriado
+              ).toISOString()
+            : null,
+          data_entrega: eventos.find((e) => e.codigo === "BDE")
+            ? new Date(
+                eventos.find((e) => e.codigo === "BDE").dtHrCriado
+              ).toISOString()
+            : null,
           entregue: !!eventos.find((e) => e.codigo === "BDE"),
           atualizado_em: new Date().toISOString(),
         })
