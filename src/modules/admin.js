@@ -17,6 +17,15 @@ async function ensureChart() {
   }
 }
 
+function formatarDataISO(dateStr) {
+  if (!dateStr) return "-";
+  // força tratar como ISO string pura
+  const d = new Date(dateStr);
+  // monta manualmente sem aplicar timezone local
+  return `${String(d.getUTCDate()).padStart(2, "0")}/${String(
+    d.getUTCMonth() + 1
+  ).padStart(2, "0")}/${d.getUTCFullYear()}`;
+}
 // === Admin module gate: only run when the admin page is active ===
 const __ADMIN_MOUNTS__ = ["#accordionAdmin", "#adminApp", "#dashboardAdmin"];
 const __ADMIN_ACTIVE__ = __ADMIN_MOUNTS__.some((sel) =>
@@ -34,16 +43,6 @@ if (!__ADMIN_ACTIVE__) {
     const m = String(Math.floor((segundos % 3600) / 60)).padStart(2, "0");
     const s = String(segundos % 60).padStart(2, "0");
     return `${h}:${m}:${s}`;
-  }
-
-  function formatarDataISO(dateStr) {
-    if (!dateStr) return "-";
-    // força tratar como ISO string pura
-    const d = new Date(dateStr);
-    // monta manualmente sem aplicar timezone local
-    return `${String(d.getUTCDate()).padStart(2, "0")}/${String(
-      d.getUTCMonth() + 1
-    ).padStart(2, "0")}/${d.getUTCFullYear()}`;
   }
 
   function formatarParaBR(isoDate) {
