@@ -612,17 +612,14 @@ async function atualizarRastro(codigos) {
   const lista = Array.isArray(codigos) ? codigos : [codigos];
 
   try {
-    const resp = await fetch(
-      "https://kinpwzuobsmfkjefnrdc.functions.supabase.co/get-rastro",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${supabaseKey}`,
-        },
-        body: JSON.stringify({ codigos: lista }),
-      }
-    );
+    const resp = await fetch(`${supabaseFunctionsUrl}/get-rastro`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${supabaseKey}`, // usa anon key
+      },
+      body: JSON.stringify({ codigos: lista }),
+    });
 
     if (!resp.ok) {
       console.error("Erro ao chamar get-rastro:", resp.status);
@@ -640,38 +637,34 @@ async function atualizarRastro(codigos) {
       const eventos = resultado.data?.objetos?.[0]?.eventos || [];
       const ultimo = eventos[0];
 
-      console.log("Payload enviado:", {
+      const payload = {
         status_atual: ultimo?.descricao || "Sem atualização",
-        historico: eventos,
-        data_postagem:
-          eventos.find((e) => e.codigo === "PO")?.dtHrCriado ?? null,
-        data_entrega:
-          eventos.find((e) => e.codigo === "BDE")?.dtHrCriado ?? null,
+        historico: eventos ?? [],
+        data_postagem: eventos.find((e) => e.codigo === "PO")
+          ? new Date(
+              eventos.find((e) => e.codigo === "PO").dtHrCriado
+            ).toISOString()
+          : null,
+        data_entrega: eventos.find((e) => e.codigo === "BDE")
+          ? new Date(
+              eventos.find((e) => e.codigo === "BDE").dtHrCriado
+            ).toISOString()
+          : null,
         entregue: !!eventos.find((e) => e.codigo === "BDE"),
         atualizado_em: new Date().toISOString(),
-      });
+      };
 
-      console.log("Filtro update:", resultado.codigo.trim());
+      console.log("Upsert SLA", resultado.codigo, payload);
 
-      await supabase
-        .from("slas_transportadora")
-        .update({
-          status_atual: ultimo?.descricao || "Sem atualização",
-          historico: eventos ?? [],
-          data_postagem: eventos.find((e) => e.codigo === "PO")
-            ? new Date(
-                eventos.find((e) => e.codigo === "PO").dtHrCriado
-              ).toISOString()
-            : null,
-          data_entrega: eventos.find((e) => e.codigo === "BDE")
-            ? new Date(
-                eventos.find((e) => e.codigo === "BDE").dtHrCriado
-              ).toISOString()
-            : null,
-          entregue: !!eventos.find((e) => e.codigo === "BDE"),
-          atualizado_em: new Date().toISOString(),
-        })
-        .eq("codigo_rastreio", resultado.codigo.trim());
+      const { error } = await supabase.from("slas_transportadora").upsert(
+        {
+          codigo_rastreio: resultado.codigo.trim(),
+          ...payload,
+        },
+        { onConflict: "codigo_rastreio" }
+      );
+
+      if (error) console.error("Erro no upsert:", error);
     }
 
     carregarSLAs();
