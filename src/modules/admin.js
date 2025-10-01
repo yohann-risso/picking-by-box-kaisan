@@ -610,7 +610,7 @@ async function atualizarRastro(codigos) {
 
   try {
     const resp = await fetch(
-      "https://<PROJECT-REF>.functions.supabase.co/get-rastro",
+      "https://kinpwzuobsmfkjefnrdc.functions.supabase.co/get-rastro",
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
