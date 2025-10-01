@@ -640,15 +640,26 @@ async function atualizarRastro(codigos) {
       const eventos = resultado.data?.objetos?.[0]?.eventos || [];
       const ultimo = eventos[0];
 
+      console.log("Payload enviado:", {
+        status_atual: ultimo?.descricao || "Sem atualização",
+        historico: eventos,
+        data_postagem:
+          eventos.find((e) => e.codigo === "PO")?.dtHrCriado ?? null,
+        data_entrega:
+          eventos.find((e) => e.codigo === "BDE")?.dtHrCriado ?? null,
+        entregue: !!eventos.find((e) => e.codigo === "BDE"),
+        atualizado_em: new Date().toISOString(),
+      });
+
       await supabase
         .from("slas_transportadora")
         .update({
           status_atual: ultimo?.descricao || "Sem atualização",
-          historico: JSON.stringify(eventos), // 👈 garante que vai salvar como JSON válido
+          historico: eventos || [],
           data_postagem:
-            eventos.find((e) => e.codigo === "PO")?.dtHrCriado || null,
+            eventos.find((e) => e.codigo === "PO")?.dtHrCriado ?? null,
           data_entrega:
-            eventos.find((e) => e.codigo === "BDE")?.dtHrCriado || null,
+            eventos.find((e) => e.codigo === "BDE")?.dtHrCriado ?? null,
           entregue: !!eventos.find((e) => e.codigo === "BDE"),
           atualizado_em: new Date().toISOString(),
         })
