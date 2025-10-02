@@ -622,37 +622,32 @@ function badgeStatusByCodigo(eventos) {
   if (!eventos || eventos.length === 0) {
     return '<span class="badge bg-secondary">-</span>';
   }
-  const ultimoCodigo = eventos[0].codigo;
 
-  switch (ultimoCodigo) {
-    case "FC":
-      return `<span class="badge bg-secondary">Etiqueta emitida</span>`;
-    case "CO":
-      return `<span class="badge bg-dark">Coletado</span>`;
-    case "PO":
-      return `<span class="badge bg-primary">Postado</span>`;
-    case "RO":
-    case "DO":
-    case "TR":
-    case "PAR":
-      return `<span class="badge bg-info text-dark">Em trânsito</span>`;
-    case "OEC":
-      return `<span class="badge bg-warning text-dark">Saiu p/ entrega</span>`;
-    case "BDE":
-      if (eventos[0]?.tipo === "01") {
-        return `<span class="badge bg-success">Entregue</span>`;
-      } else {
-        return `<span class="badge bg-danger">Não entregue</span>`;
-      }
-    case "EX":
-      return `<span class="badge bg-danger">Extraviado</span>`;
-    case "LDI":
-      return `<span class="badge bg-dark">Aguardando retirada</span>`;
-    case "LDE":
-      return `<span class="badge bg-secondary">Devolvido</span>`;
-    default:
-      return `<span class="badge bg-light text-dark">${ultimoCodigo}</span>`;
-  }
+  const ultimo = eventos[0];
+  const codigo = ultimo.codigo;
+  const tipo = ultimo.tipo;
+
+  // 🔑 Classificação oficial Correios
+  if (codigo === "FC" && tipo === "82")
+    return `<span class="badge bg-secondary">Etiqueta emitida</span>`;
+  if (codigo === "CO") return `<span class="badge bg-dark">Coletado</span>`;
+  if (codigo === "PO") return `<span class="badge bg-primary">Postado</span>`;
+  if (["RO", "DO", "TR", "PAR"].includes(codigo))
+    return `<span class="badge bg-info text-dark">Em trânsito</span>`;
+  if (codigo === "OEC")
+    return `<span class="badge bg-warning text-dark">Saiu p/ entrega</span>`;
+  if (codigo === "BDE" && tipo === "01")
+    return `<span class="badge bg-success">Entregue</span>`;
+  if (codigo === "EX") return `<span class="badge bg-danger">Extraviado</span>`;
+  if (codigo === "LDI")
+    return `<span class="badge bg-dark">Aguardando retirada</span>`;
+  if (codigo === "LDE")
+    return `<span class="badge bg-secondary">Devolvido</span>`;
+
+  // fallback genérico
+  return `<span class="badge bg-light text-dark">${
+    ultimo.descricao || codigo
+  }</span>`;
 }
 
 // Paginação
@@ -791,20 +786,19 @@ async function atualizarRastro(codigos) {
           .maybeSingle();
 
         const STATUS_FINAIS = [
-          { codigo: "BDE", tipo: "01" }, // entregue de fato
-          { codigo: "EX" }, // extraviado
-          { codigo: "LDI" }, // aguardando retirada
-          { codigo: "LDE" }, // devolvido
+          { codigo: "BDE", tipo: "01" }, // entregue real
+          { codigo: "EX" },
+          { codigo: "LDI" },
+          { codigo: "LDE" },
         ];
 
-        if (
-          existente &&
-          STATUS_FINAIS.some(
-            (sf) =>
-              existente.status_codigo === sf.codigo &&
-              (!sf.tipo || existente.status_tipo === sf.tipo)
-          )
-        ) {
+        const isFinal = STATUS_FINAIS.some(
+          (sf) =>
+            existente.status_codigo === sf.codigo &&
+            (!sf.tipo || existente.status_tipo === sf.tipo)
+        );
+
+        if (existente && isFinal) {
           console.log(
             `⏭️ Pedido ${resultado.codigo} já em status final (${existente.status_atual}). Não será atualizado.`
           );
