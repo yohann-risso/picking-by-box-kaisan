@@ -682,12 +682,8 @@ async function atualizarTodosSLAs() {
   }
   console.log(`🔄 Atualizando ${codigos.length} rastreamentos...`);
 
-  // Lotes de 1000 para burlar limitação do Supabase
-  const loteSize = 1000;
-  for (let i = 0; i < codigos.length; i += loteSize) {
-    const lote = codigos.slice(i, i + loteSize);
-    await atualizarRastro(lote);
-  }
+  // Processa todos com fila visual
+  await atualizarFilaIndividual(codigos);
 }
 
 // ===== Atualizar por STATUS específico =====
@@ -715,7 +711,6 @@ async function atualizarPorStatus(statusKey) {
       .select("codigo_rastreio, status_atual, status_codigo, status_tipo");
 
     if (statusKey === "coletado") {
-      // Filtra por descrição
       query = query.ilike("status_atual", "%coletado%");
     } else if (STATUS_MAP[statusKey]?.length) {
       const codigos = STATUS_MAP[statusKey].map((s) => s.codigo);
@@ -736,12 +731,8 @@ async function atualizarPorStatus(statusKey) {
     const rastreios = data.map((s) => s.codigo_rastreio);
     console.log(`Atualizando ${rastreios.length} pedidos (${statusKey})...`);
 
-    // Chama atualizar em blocos de 1000
-    const loteSize = 1000;
-    for (let i = 0; i < rastreios.length; i += loteSize) {
-      const lote = rastreios.slice(i, i + loteSize);
-      await atualizarRastro(lote);
-    }
+    // Usa a fila visual
+    await atualizarFilaIndividual(rastreios);
   } catch (err) {
     console.error(`Erro atualizarPorStatus(${statusKey}):`, err);
   }
@@ -982,6 +973,90 @@ async function buscarTodosCodigos() {
   return codigos;
 }
 
+async function atualizarFilaIndividual(codigos) {
+  const tbody = document.getElementById("slaQueueList");
+  tbody.innerHTML = "";
+
+  // Inicializa a fila visual
+  codigos.forEach((cod) => {
+    const tr = document.createElement("tr");
+    tr.id = `fila-${cod}`;
+    tr.innerHTML = `
+      <td>${cod}</td>
+      <td><span class="badge bg-secondary">⏳ Na fila</span></td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  // Processa item por item
+  for (const codigo of codigos) {
+    const row = document.getElementById(`fila-${codigo}`);
+    const badge = row.querySelector("span");
+
+    try {
+      badge.className = "badge bg-warning text-dark";
+      badge.textContent = "🔄 Atualizando";
+
+      const resp = await fetch(`${supabaseFunctionsUrl}/get-rastro`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${supabaseKey}`,
+        },
+        body: JSON.stringify({ codigos: [codigo] }),
+      });
+
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const resultados = await resp.json();
+      const resultado = resultados[0];
+
+      if (resultado.error) throw new Error(resultado.error);
+
+      // Upsert no Supabase
+      const eventos = resultado.data?.objetos?.[0]?.eventos || [];
+      const ultimo = eventos[0];
+      const objeto = resultado.data?.objetos?.[0];
+
+      const payload = {
+        codigo_rastreio: codigo,
+        status_atual: ultimo?.descricao || "Sem atualização",
+        status_codigo: ultimo?.codigo || null,
+        status_tipo: ultimo?.tipo || null,
+        historico: eventos,
+        data_postagem: eventos.find((e) => e.codigo === "PO")
+          ? new Date(
+              eventos.find((e) => e.codigo === "PO").dtHrCriado
+            ).toISOString()
+          : null,
+        data_entrega: eventos.find((e) => e.codigo === "BDE" && e.tipo === "01")
+          ? new Date(
+              eventos.find((e) => e.codigo === "BDE").dtHrCriado
+            ).toISOString()
+          : null,
+        entregue: !!eventos.find((e) => e.codigo === "BDE" && e.tipo === "01"),
+        dt_prevista: objeto?.dtPrevista
+          ? new Date(objeto.dtPrevista).toISOString()
+          : null,
+      };
+
+      const { error } = await supabase
+        .from("slas_transportadora")
+        .upsert(payload, {
+          onConflict: "codigo_rastreio",
+        });
+      if (error) throw error;
+
+      // ✅ Sucesso
+      badge.className = "badge bg-success";
+      badge.textContent = "✅ Atualizado";
+    } catch (err) {
+      console.error(`Erro no código ${codigo}:`, err);
+      badge.className = "badge bg-danger";
+      badge.textContent = "❌ Erro";
+    }
+  }
+}
+
 window.carregarSLAs = carregarSLAs;
 window.atualizarRastro = atualizarRastro;
 window.atualizarTodosSLAs = atualizarTodosSLAs;
@@ -990,3 +1065,4 @@ window.filtrarSLA = filtrarSLA;
 window.carregarMetricasDetalhadasSLA = carregarMetricasDetalhadasSLA;
 window.buscarTodosCodigos = buscarTodosCodigos;
 window.atualizarPorStatus = atualizarPorStatus;
+window.atualizarFilaIndividual = atualizarFilaIndividual;
