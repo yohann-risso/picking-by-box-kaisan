@@ -710,32 +710,64 @@ async function atualizarTodosSLAs() {
 }
 
 // ===== Atualizar por STATUS específico =====
-async function atualizarPorStatus(status) {
-  const { data, error } = await supabase
-    .from("slas_transportadora")
-    .select("codigo_rastreio")
-    .eq("status_codigo", status);
+// 🔑 Mapeamento de botões para os códigos que precisam ser atualizados
+const STATUS_MAP = {
+  etiqueta: [{ codigo: "FC", tipo: "82" }],
+  coletado: [], // não existe código "CO", precisa filtrar pela descrição
+  postado: [{ codigo: "PO" }],
+  transito: [
+    { codigo: "RO" },
+    { codigo: "DO" },
+    { codigo: "TR" },
+    { codigo: "PAR" },
+  ],
+  saiu_entrega: [{ codigo: "OEC" }],
+  entregue: [{ codigo: "BDE", tipo: "01" }],
+  extraviado: [{ codigo: "EX" }],
+  aguardando: [{ codigo: "LDI" }],
+  devolvido: [{ codigo: "LDE" }],
+};
+async function atualizarPorStatus(statusKey) {
+  try {
+    let query = supabase
+      .from("slas_transportadora")
+      .select("codigo_rastreio, status_atual, historico");
 
-  if (error) {
-    console.error(`Erro ao buscar status ${status}:`, error);
-    return;
-  }
+    if (statusKey === "coletado") {
+      // 👈 coletado é apenas descrição, não existe código oficial
+      query = query.ilike("status_atual", "%coletado%");
+    } else if (STATUS_MAP[statusKey]?.length) {
+      // filtra pelos códigos conhecidos
+      const codigos = STATUS_MAP[statusKey].map((s) => s.codigo);
+      query = query.in("status_codigo", codigos);
+    }
 
-  if (!data || data.length === 0) {
-    alert(`Nenhum objeto com status ${status} encontrado.`);
-    return;
-  }
+    const { data, error } = await query;
+    if (error) {
+      console.error(`Erro ao buscar ${statusKey}:`, error);
+      return;
+    }
 
-  const codigos = data.map((s) => s.codigo_rastreio);
-  console.log(`🔄 Atualizando ${codigos.length} com status ${status}`);
+    if (!data || data.length === 0) {
+      alert(`Nenhum pedido encontrado com status "${statusKey}".`);
+      return;
+    }
 
-  // Lotes de até 1000
-  const loteSize = 1000;
-  for (let i = 0; i < codigos.length; i += loteSize) {
-    const lote = codigos.slice(i, i + loteSize);
-    await atualizarRastro(lote);
+    const rastreios = data.map((s) => s.codigo_rastreio);
+    console.log(`Atualizando ${rastreios.length} pedidos (${statusKey})...`);
+    atualizarRastro(rastreios);
+  } catch (err) {
+    console.error(`Erro atualizarPorStatus(${statusKey}):`, err);
   }
 }
+
+document
+  .getElementById("btnAtualizarColetados")
+  ?.addEventListener("click", () => atualizarPorStatus("coletado"));
+
+document
+  .getElementById("btnAtualizarTransito")
+  ?.addEventListener("click", () => atualizarPorStatus("transito"));
 
 async function atualizarRastro(codigos) {
   const lista = Array.isArray(codigos) ? codigos : [codigos];
