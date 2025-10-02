@@ -675,45 +675,25 @@ function filtrarSLA(tipo) {
 
 // ===== Atualizar TODOS (em lotes) =====
 async function atualizarTodosSLAs() {
-  // Busca todos os rastreios elegíveis (exclui os finais)
-  const { data, error } = await supabase
-    .from("slas_transportadora")
-    .select("codigo_rastreio, status_codigo, status_tipo");
-
-  if (error) {
-    console.error("Erro ao buscar SLAs:", error);
+  const codigos = await buscarTodosCodigos();
+  if (!codigos.length) {
+    alert("Nenhum SLA encontrado para atualizar.");
     return;
   }
+  console.log(`🔄 Atualizando ${codigos.length} rastreamentos...`);
 
-  // Finais: entregue (BDE tipo=01), extraviado, LDI, LDE
-  const finais = data
-    .filter(
-      (s) =>
-        (s.status_codigo === "BDE" && s.status_tipo === "01") ||
-        ["EX", "LDI", "LDE"].includes(s.status_codigo)
-    )
-    .map((s) => s.codigo_rastreio);
-
-  // Elegíveis = todos os demais
-  const elegiveis = data
-    .filter((s) => !finais.includes(s.codigo_rastreio))
-    .map((s) => s.codigo_rastreio);
-
-  console.log(`🔄 Atualizando ${elegiveis.length} rastreamentos...`);
-
-  // Processa em lotes de 1000
+  // Lotes de 1000 para burlar limitação do Supabase
   const loteSize = 1000;
-  for (let i = 0; i < elegiveis.length; i += loteSize) {
-    const lote = elegiveis.slice(i, i + loteSize);
+  for (let i = 0; i < codigos.length; i += loteSize) {
+    const lote = codigos.slice(i, i + loteSize);
     await atualizarRastro(lote);
   }
 }
 
 // ===== Atualizar por STATUS específico =====
-// 🔑 Mapeamento de botões para os códigos que precisam ser atualizados
 const STATUS_MAP = {
   etiqueta: [{ codigo: "FC", tipo: "82" }],
-  coletado: [], // não existe código "CO", precisa filtrar pela descrição
+  coletado: [], // não existe código, só descrição
   postado: [{ codigo: "PO" }],
   transito: [
     { codigo: "RO" },
@@ -727,17 +707,17 @@ const STATUS_MAP = {
   aguardando: [{ codigo: "LDI" }],
   devolvido: [{ codigo: "LDE" }],
 };
+
 async function atualizarPorStatus(statusKey) {
   try {
     let query = supabase
       .from("slas_transportadora")
-      .select("codigo_rastreio, status_atual, historico");
+      .select("codigo_rastreio, status_atual, status_codigo, status_tipo");
 
     if (statusKey === "coletado") {
-      // 👈 coletado é apenas descrição, não existe código oficial
+      // Filtra por descrição
       query = query.ilike("status_atual", "%coletado%");
     } else if (STATUS_MAP[statusKey]?.length) {
-      // filtra pelos códigos conhecidos
       const codigos = STATUS_MAP[statusKey].map((s) => s.codigo);
       query = query.in("status_codigo", codigos);
     }
@@ -749,32 +729,30 @@ async function atualizarPorStatus(statusKey) {
     }
 
     if (!data || data.length === 0) {
-      alert(`Nenhum pedido encontrado com status "${statusKey}".`);
+      alert(`Nenhum pedido encontrado para "${statusKey}".`);
       return;
     }
 
     const rastreios = data.map((s) => s.codigo_rastreio);
     console.log(`Atualizando ${rastreios.length} pedidos (${statusKey})...`);
-    atualizarRastro(rastreios);
+
+    // Chama atualizar em blocos de 1000
+    const loteSize = 1000;
+    for (let i = 0; i < rastreios.length; i += loteSize) {
+      const lote = rastreios.slice(i, i + loteSize);
+      await atualizarRastro(lote);
+    }
   } catch (err) {
     console.error(`Erro atualizarPorStatus(${statusKey}):`, err);
   }
 }
 
-document
-  .getElementById("btnAtualizarColetados")
-  ?.addEventListener("click", () => atualizarPorStatus("coletado"));
-
-document
-  .getElementById("btnAtualizarTransito")
-  ?.addEventListener("click", () => atualizarPorStatus("transito"));
-
+// ===== Atualizar rastreio (com loader) =====
 async function atualizarRastro(codigos) {
   const lista = Array.isArray(codigos) ? codigos : [codigos];
-
-  // Loader inicial
   const loader = document.getElementById("slaLoader");
   const loaderBar = document.getElementById("slaLoaderBar");
+
   loader.style.display = "block";
   loaderBar.style.width = "0%";
   loaderBar.textContent = "0%";
@@ -783,7 +761,6 @@ async function atualizarRastro(codigos) {
     let processados = 0;
 
     for (const codigo of lista) {
-      // 🔹 Chamada em lote? Ou 1 por 1 — aqui exemplo 1 por 1
       const resp = await fetch(`${supabaseFunctionsUrl}/get-rastro`, {
         method: "POST",
         headers: {
@@ -794,12 +771,11 @@ async function atualizarRastro(codigos) {
       });
 
       if (!resp.ok) {
-        console.error("Erro ao chamar get-rastro:", resp.status, codigo);
+        console.error("Erro get-rastro:", resp.status, codigo);
         continue;
       }
 
       const resultados = await resp.json();
-
       for (const resultado of resultados) {
         if (resultado.error) {
           console.error(`Erro no código ${resultado.codigo}:`, resultado.error);
@@ -810,67 +786,35 @@ async function atualizarRastro(codigos) {
         const ultimo = eventos[0];
         const objeto = resultado.data?.objetos?.[0];
 
-        // 🛑 Verifica se já existe com status final
-        const { data: existente } = await supabase
-          .from("slas_transportadora")
-          .select("status_atual")
-          .eq("codigo_rastreio", resultado.codigo.trim())
-          .maybeSingle();
-
-        const STATUS_FINAIS = [
-          { codigo: "BDE", tipo: "01" }, // entregue real
-          { codigo: "EX" },
-          { codigo: "LDI" },
-          { codigo: "LDE" },
-        ];
-
-        const isFinal = STATUS_FINAIS.some(
-          (sf) =>
-            existente.status_codigo === sf.codigo &&
-            (!sf.tipo || existente.status_tipo === sf.tipo)
-        );
-
-        if (existente && isFinal) {
-          console.log(
-            `⏭️ Pedido ${resultado.codigo} já em status final (${existente.status_atual}). Não será atualizado.`
-          );
-          continue;
-        }
+        // Atualiza apenas se não for status final
+        const isEntregaReal = ultimo?.codigo === "BDE" && ultimo?.tipo === "01";
 
         const payload = {
           codigo_rastreio: resultado.codigo.trim(),
           status_atual: ultimo?.descricao || "Sem atualização",
           status_codigo: ultimo?.codigo || null,
           status_tipo: ultimo?.tipo || null,
-          historico: eventos ?? [],
+          historico: eventos,
           data_postagem: eventos.find((e) => e.codigo === "PO")
             ? new Date(
                 eventos.find((e) => e.codigo === "PO").dtHrCriado
               ).toISOString()
             : null,
-          data_entrega: eventos.find(
-            (e) => e.codigo === "BDE" && e.tipo === "01"
-          ) // só tipo 01 é entregue
-            ? new Date(
-                eventos.find((e) => e.codigo === "BDE").dtHrCriado
-              ).toISOString()
+          data_entrega: isEntregaReal
+            ? new Date(ultimo.dtHrCriado).toISOString()
             : null,
-          entregue: !!eventos.find(
-            (e) => e.codigo === "BDE" && e.tipo === "01"
-          ), // só entregue real
+          entregue: isEntregaReal,
           dt_prevista: objeto?.dtPrevista
             ? new Date(objeto.dtPrevista).toISOString()
             : null,
         };
 
-        const { error } = await supabase.from("slas_transportadora").upsert(
-          {
-            codigo_rastreio: resultado.codigo.trim(),
-            ...payload,
-          },
-          { onConflict: "codigo_rastreio" }
-        );
-
+        const { error } = await supabase
+          .from("slas_transportadora")
+          .upsert(
+            { codigo_rastreio: resultado.codigo.trim(), ...payload },
+            { onConflict: "codigo_rastreio" }
+          );
         if (error) console.error("Erro no upsert:", error);
       }
 
@@ -885,8 +829,8 @@ async function atualizarRastro(codigos) {
     console.error("Falha em atualizarRastro:", err);
   } finally {
     setTimeout(() => {
-      loader.style.display = "none"; // esconde ao final
-    }, 1000);
+      loader.style.display = "none";
+    }, 800);
   }
 }
 
