@@ -689,87 +689,108 @@ async function atualizarTodosSLAs() {
 async function atualizarRastro(codigos) {
   const lista = Array.isArray(codigos) ? codigos : [codigos];
 
+  // Loader inicial
+  const loader = document.getElementById("slaLoader");
+  const loaderBar = document.getElementById("slaLoaderBar");
+  loader.style.display = "block";
+  loaderBar.style.width = "0%";
+  loaderBar.textContent = "0%";
+
   try {
-    const resp = await fetch(`${supabaseFunctionsUrl}/get-rastro`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${supabaseKey}`, // usa anon key
-      },
-      body: JSON.stringify({ codigos: lista }),
-    });
+    let processados = 0;
 
-    if (!resp.ok) {
-      console.error("Erro ao chamar get-rastro:", resp.status);
-      return;
-    }
-
-    const resultados = await resp.json();
-
-    for (const resultado of resultados) {
-      if (resultado.error) {
-        console.error(`Erro no código ${resultado.codigo}:`, resultado.error);
-        continue;
-      }
-
-      const eventos = resultado.data?.objetos?.[0]?.eventos || [];
-      const ultimo = eventos[0];
-      const objeto = resultado.data?.objetos?.[0];
-
-      // 🛑 Verifica se já existe com status final
-      const { data: existente } = await supabase
-        .from("slas_transportadora")
-        .select("status_atual")
-        .eq("codigo_rastreio", resultado.codigo.trim())
-        .maybeSingle();
-
-      const STATUS_FINAIS = ["BDE", "EX", "LDI", "LDE"];
-      if (
-        existente &&
-        (STATUS_FINAIS.some((sf) => existente.status_atual?.includes(sf)) ||
-          existente.status_atual?.toLowerCase().includes("entregue") ||
-          existente.status_atual?.toLowerCase().includes("extraviado"))
-      ) {
-        console.log(
-          `⏭️ Pedido ${resultado.codigo} já em status final (${existente.status_atual}). Não será atualizado.`
-        );
-        continue;
-      }
-
-      const payload = {
-        codigo_rastreio: resultado.codigo.trim(),
-        status_atual: ultimo?.descricao || "Sem atualização",
-        historico: eventos ?? [],
-        data_postagem: eventos.find((e) => e.codigo === "PO")
-          ? new Date(
-              eventos.find((e) => e.codigo === "PO").dtHrCriado
-            ).toISOString()
-          : null,
-        data_entrega: eventos.find((e) => e.codigo === "BDE")
-          ? new Date(
-              eventos.find((e) => e.codigo === "BDE").dtHrCriado
-            ).toISOString()
-          : null,
-        entregue: !!eventos.find((e) => e.codigo === "BDE"),
-        dt_prevista: objeto?.dtPrevista
-          ? new Date(objeto.dtPrevista).toISOString()
-          : null,
-      };
-
-      const { error } = await supabase.from("slas_transportadora").upsert(
-        {
-          codigo_rastreio: resultado.codigo.trim(),
-          ...payload,
+    for (const codigo of lista) {
+      // 🔹 Chamada em lote? Ou 1 por 1 — aqui exemplo 1 por 1
+      const resp = await fetch(`${supabaseFunctionsUrl}/get-rastro`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${supabaseKey}`,
         },
-        { onConflict: "codigo_rastreio" }
-      );
+        body: JSON.stringify({ codigos: [codigo] }),
+      });
 
-      if (error) console.error("Erro no upsert:", error);
+      if (!resp.ok) {
+        console.error("Erro ao chamar get-rastro:", resp.status, codigo);
+        continue;
+      }
+
+      const resultados = await resp.json();
+
+      for (const resultado of resultados) {
+        if (resultado.error) {
+          console.error(`Erro no código ${resultado.codigo}:`, resultado.error);
+          continue;
+        }
+
+        const eventos = resultado.data?.objetos?.[0]?.eventos || [];
+        const ultimo = eventos[0];
+        const objeto = resultado.data?.objetos?.[0];
+
+        // 🛑 Verifica se já existe com status final
+        const { data: existente } = await supabase
+          .from("slas_transportadora")
+          .select("status_atual")
+          .eq("codigo_rastreio", resultado.codigo.trim())
+          .maybeSingle();
+
+        const STATUS_FINAIS = ["BDE", "EX", "LDI", "LDE"];
+        if (
+          existente &&
+          (STATUS_FINAIS.some((sf) => existente.status_atual?.includes(sf)) ||
+            existente.status_atual?.toLowerCase().includes("entregue") ||
+            existente.status_atual?.toLowerCase().includes("extraviado"))
+        ) {
+          console.log(
+            `⏭️ Pedido ${resultado.codigo} já em status final (${existente.status_atual}). Não será atualizado.`
+          );
+          continue;
+        }
+
+        const payload = {
+          codigo_rastreio: resultado.codigo.trim(),
+          status_atual: ultimo?.descricao || "Sem atualização",
+          historico: eventos ?? [],
+          data_postagem: eventos.find((e) => e.codigo === "PO")
+            ? new Date(
+                eventos.find((e) => e.codigo === "PO").dtHrCriado
+              ).toISOString()
+            : null,
+          data_entrega: eventos.find((e) => e.codigo === "BDE")
+            ? new Date(
+                eventos.find((e) => e.codigo === "BDE").dtHrCriado
+              ).toISOString()
+            : null,
+          entregue: !!eventos.find((e) => e.codigo === "BDE"),
+          dt_prevista: objeto?.dtPrevista
+            ? new Date(objeto.dtPrevista).toISOString()
+            : null,
+        };
+
+        const { error } = await supabase.from("slas_transportadora").upsert(
+          {
+            codigo_rastreio: resultado.codigo.trim(),
+            ...payload,
+          },
+          { onConflict: "codigo_rastreio" }
+        );
+
+        if (error) console.error("Erro no upsert:", error);
+      }
+
+      processados++;
+      const pct = Math.round((processados / lista.length) * 100);
+      loaderBar.style.width = `${pct}%`;
+      loaderBar.textContent = `${pct}%`;
     }
 
     carregarSLAs();
   } catch (err) {
     console.error("Falha em atualizarRastro:", err);
+  } finally {
+    setTimeout(() => {
+      loader.style.display = "none"; // esconde ao final
+    }, 1000);
   }
 }
 
@@ -895,9 +916,60 @@ async function carregarMetricasDetalhadasSLA() {
   }%`;
 }
 
+async function buscarTodosCodigos() {
+  let codigos = [];
+  let pagina = 0;
+  const pageSize = 1000;
+  let continuar = true;
+
+  while (continuar) {
+    const { data, error } = await supabase
+      .from("slas_transportadora")
+      .select("codigo_rastreio")
+      .range(pagina * pageSize, (pagina + 1) * pageSize - 1);
+
+    if (error) {
+      console.error("Erro ao buscar códigos:", error);
+      break;
+    }
+    if (!data || data.length === 0) {
+      continuar = false;
+      break;
+    }
+    codigos = codigos.concat(data.map((d) => d.codigo_rastreio));
+    pagina++;
+  }
+  return codigos;
+}
+
+async function atualizarPorStatus(status) {
+  const { data, error } = await supabase
+    .from("slas_transportadora")
+    .select("codigo_rastreio, status_atual");
+
+  if (error) {
+    console.error(`Erro ao buscar registros com status ${status}:`, error);
+    return;
+  }
+
+  const filtrados = data.filter((s) => s.status_atual?.includes(status));
+  if (!filtrados.length) {
+    alert(`Nenhum pedido com status '${status}' encontrado.`);
+    return;
+  }
+
+  const codigos = filtrados.map((s) => s.codigo_rastreio);
+  console.log(
+    `Atualizando ${codigos.length} pedidos com status '${status}'...`
+  );
+  await atualizarRastro(codigos);
+}
+
 window.carregarSLAs = carregarSLAs;
 window.atualizarRastro = atualizarRastro;
 window.atualizarTodosSLAs = atualizarTodosSLAs;
 window.atualizarColetados = atualizarColetados;
 window.filtrarSLA = filtrarSLA;
 window.carregarMetricasDetalhadasSLA = carregarMetricasDetalhadasSLA;
+window.buscarTodosCodigos = buscarTodosCodigos;
+window.atualizarPorStatus = atualizarPorStatus;
