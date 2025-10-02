@@ -642,7 +642,11 @@ function badgeStatusByCodigo(eventos) {
     case "OEC":
       return `<span class="badge bg-warning text-dark">Saiu p/ entrega</span>`;
     case "BDE":
-      return `<span class="badge bg-success">Entregue</span>`;
+      if (eventos[0]?.tipo === "01") {
+        return `<span class="badge bg-success">Entregue</span>`;
+      } else {
+        return `<span class="badge bg-danger">Não entregue</span>`;
+      }
     case "EX":
       return `<span class="badge bg-danger">Extraviado</span>`;
     case "LDI":
@@ -750,18 +754,24 @@ async function atualizarRastro(codigos) {
         const payload = {
           codigo_rastreio: resultado.codigo.trim(),
           status_atual: ultimo?.descricao || "Sem atualização",
+          status_codigo: ultimo?.codigo || null,
+          status_tipo: ultimo?.tipo || null,
           historico: eventos ?? [],
           data_postagem: eventos.find((e) => e.codigo === "PO")
             ? new Date(
                 eventos.find((e) => e.codigo === "PO").dtHrCriado
               ).toISOString()
             : null,
-          data_entrega: eventos.find((e) => e.codigo === "BDE")
+          data_entrega: eventos.find(
+            (e) => e.codigo === "BDE" && e.tipo === "01"
+          ) // só tipo 01 é entregue
             ? new Date(
                 eventos.find((e) => e.codigo === "BDE").dtHrCriado
               ).toISOString()
             : null,
-          entregue: !!eventos.find((e) => e.codigo === "BDE"),
+          entregue: !!eventos.find(
+            (e) => e.codigo === "BDE" && e.tipo === "01"
+          ), // só entregue real
           dt_prevista: objeto?.dtPrevista
             ? new Date(objeto.dtPrevista).toISOString()
             : null,
