@@ -573,12 +573,9 @@ async function carregarSLAs(filtro = "") {
     .range(offset, offset + pageSize - 1);
 
   if (filtro && filtro !== "fluxo") {
-    query = query.ilike("status_atual", `%${filtro}%`);
+    query = query.eq("status_codigo", filtro);
   } else if (filtro === "fluxo") {
-    query = query
-      .not("status_atual", "ilike", "%Entregue%")
-      .not("status_atual", "ilike", "%Devolvido%")
-      .not("status_atual", "ilike", "%Extraviado%");
+    query = query.not("status_codigo", "in", "('BDE','EX','LDI','LDE')");
   }
 
   const { data, error } = await query;
@@ -681,13 +678,68 @@ function filtrarSLA(tipo) {
   carregarSLAs(tipo);
 }
 
+// ===== Atualizar TODOS (em lotes) =====
 async function atualizarTodosSLAs() {
-  const { data } = await supabase
+  // Busca todos os rastreios elegíveis (exclui os finais)
+  const { data, error } = await supabase
     .from("slas_transportadora")
-    .select("codigo_rastreio");
-  if (!data) return;
+    .select("codigo_rastreio, status_codigo, status_tipo");
+
+  if (error) {
+    console.error("Erro ao buscar SLAs:", error);
+    return;
+  }
+
+  // Finais: entregue (BDE tipo=01), extraviado, LDI, LDE
+  const finais = data
+    .filter(
+      (s) =>
+        (s.status_codigo === "BDE" && s.status_tipo === "01") ||
+        ["EX", "LDI", "LDE"].includes(s.status_codigo)
+    )
+    .map((s) => s.codigo_rastreio);
+
+  // Elegíveis = todos os demais
+  const elegiveis = data
+    .filter((s) => !finais.includes(s.codigo_rastreio))
+    .map((s) => s.codigo_rastreio);
+
+  console.log(`🔄 Atualizando ${elegiveis.length} rastreamentos...`);
+
+  // Processa em lotes de 1000
+  const loteSize = 1000;
+  for (let i = 0; i < elegiveis.length; i += loteSize) {
+    const lote = elegiveis.slice(i, i + loteSize);
+    await atualizarRastro(lote);
+  }
+}
+
+// ===== Atualizar por STATUS específico =====
+async function atualizarPorStatus(status) {
+  const { data, error } = await supabase
+    .from("slas_transportadora")
+    .select("codigo_rastreio")
+    .eq("status_codigo", status);
+
+  if (error) {
+    console.error(`Erro ao buscar status ${status}:`, error);
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    alert(`Nenhum objeto com status ${status} encontrado.`);
+    return;
+  }
+
   const codigos = data.map((s) => s.codigo_rastreio);
-  atualizarRastro(codigos);
+  console.log(`🔄 Atualizando ${codigos.length} com status ${status}`);
+
+  // Lotes de até 1000
+  const loteSize = 1000;
+  for (let i = 0; i < codigos.length; i += loteSize) {
+    const lote = codigos.slice(i, i + loteSize);
+    await atualizarRastro(lote);
+  }
 }
 
 async function atualizarRastro(codigos) {

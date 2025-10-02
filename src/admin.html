@@ -402,11 +402,26 @@
                   >
                     🔄 Atualizar Todos
                   </button>
+
                   <button
                     class="btn btn-sm btn-outline-warning"
-                    onclick="atualizarColetados()"
+                    onclick="atualizarPorStatus('CO')"
                   >
                     📦 Atualizar Coletados
+                  </button>
+
+                  <button
+                    class="btn btn-sm btn-outline-info"
+                    onclick="atualizarPorStatus('PO')"
+                  >
+                    📨 Atualizar Postados
+                  </button>
+
+                  <button
+                    class="btn btn-sm btn-outline-dark"
+                    onclick="atualizarPorStatus('RO')"
+                  >
+                    🚚 Atualizar Em Trânsito
                   </button>
                   <button
                     class="btn btn-sm btn-success"
