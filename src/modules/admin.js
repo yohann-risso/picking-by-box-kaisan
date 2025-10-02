@@ -1012,29 +1012,6 @@ async function buscarTodosCodigos() {
   return codigos;
 }
 
-async function atualizarPorStatus(status) {
-  const { data, error } = await supabase
-    .from("slas_transportadora")
-    .select("codigo_rastreio, status_atual");
-
-  if (error) {
-    console.error(`Erro ao buscar registros com status ${status}:`, error);
-    return;
-  }
-
-  const filtrados = data.filter((s) => s.status_atual?.includes(status));
-  if (!filtrados.length) {
-    alert(`Nenhum pedido com status '${status}' encontrado.`);
-    return;
-  }
-
-  const codigos = filtrados.map((s) => s.codigo_rastreio);
-  console.log(
-    `Atualizando ${codigos.length} pedidos com status '${status}'...`
-  );
-  await atualizarRastro(codigos);
-}
-
 window.carregarSLAs = carregarSLAs;
 window.atualizarRastro = atualizarRastro;
 window.atualizarTodosSLAs = atualizarTodosSLAs;
