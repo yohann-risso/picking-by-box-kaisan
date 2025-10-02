@@ -738,12 +738,20 @@ async function atualizarRastro(codigos) {
           .eq("codigo_rastreio", resultado.codigo.trim())
           .maybeSingle();
 
-        const STATUS_FINAIS = ["BDE", "EX", "LDI", "LDE"];
+        const STATUS_FINAIS = [
+          { codigo: "BDE", tipo: "01" }, // entregue de fato
+          { codigo: "EX" }, // extraviado
+          { codigo: "LDI" }, // aguardando retirada
+          { codigo: "LDE" }, // devolvido
+        ];
+
         if (
           existente &&
-          (STATUS_FINAIS.some((sf) => existente.status_atual?.includes(sf)) ||
-            existente.status_atual?.toLowerCase().includes("entregue") ||
-            existente.status_atual?.toLowerCase().includes("extraviado"))
+          STATUS_FINAIS.some(
+            (sf) =>
+              existente.status_codigo === sf.codigo &&
+              (!sf.tipo || existente.status_tipo === sf.tipo)
+          )
         ) {
           console.log(
             `⏭️ Pedido ${resultado.codigo} já em status final (${existente.status_atual}). Não será atualizado.`
