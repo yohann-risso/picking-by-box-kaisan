@@ -517,6 +517,7 @@ if (!__ADMIN_ACTIVE__) {
     carregarSLAs();
     carregarMetricasSLA();
     carregarMetricasDetalhadasSLA();
+    carregarTempoMedioExpedicao();
 
     // 👉 setar data de hoje (fuso SP) no input e carregar pivot só uma vez
     const hojeSP = new Date().toLocaleDateString("sv-SE", {
@@ -536,6 +537,7 @@ if (!__ADMIN_ACTIVE__) {
       carregarRelatorioErros();
       carregarMetricasSLA();
       carregarMetricasDetalhadasSLA();
+      carregarTempoMedioExpedicao();
     }, 30000);
   }
 
@@ -945,6 +947,26 @@ async function carregarMetricasDetalhadasSLA() {
   document.getElementById("pctExtraviado").textContent = `${
     m.pct_extraviado?.toFixed(1) ?? 0
   }%`;
+}
+
+async function carregarTempoMedioExpedicao() {
+  try {
+    const { data, error } = await supabase
+      .from("view_tempo_medio_expedicao_resumo")
+      .select("*")
+      .single();
+
+    if (error) throw error;
+    if (!data) return;
+
+    const horas = data.media_horas ?? 0;
+    const dias = data.media_dias ?? 0;
+
+    document.getElementById("tempoMedioExpedicao").textContent =
+      horas > 0 ? `${dias.toFixed(1)} dias (${horas.toFixed(1)}h)` : "-";
+  } catch (err) {
+    console.error("Erro ao carregar tempo médio expedição:", err);
+  }
 }
 
 async function buscarTodosCodigos() {
