@@ -221,54 +221,73 @@ if (!__ADMIN_ACTIVE__) {
   }
 
   // ===== Pivot =====
-  async function carregarPivotHoras(dataFiltro = null) {
-    // Monta query
+  async function carregarPivotHoras(inicio = null, fim = null) {
     let query = supabase.from("view_pedidos_por_hora").select("*");
 
-    if (dataFiltro) {
-      query = query.eq("data", dataFiltro.slice(0, 10));
+    // 🧩 Filtro único ou intervalo
+    if (inicio && fim && inicio !== fim) {
+      query = query.gte("data", inicio).lte("data", fim);
+    } else if (inicio) {
+      query = query.eq("data", inicio);
     }
 
     const { data, error } = await query;
-    if (error) {
-      console.error("Erro ao carregar pivot:", error);
-      return;
-    }
-
     const header = document.getElementById("pivotHeader");
     const body = document.getElementById("pivotBody");
+    const titulo = document.getElementById("pivotTitulo");
+
+    if (error) {
+      console.error("Erro ao carregar pivot:", error);
+      titulo.textContent = "Erro ao carregar dados";
+      return;
+    }
 
     if (!data?.length) {
       header.innerHTML = "";
       body.innerHTML = `<tr><td colspan="99">Nenhum dado encontrado</td></tr>`;
+      titulo.textContent = "Nenhum resultado encontrado";
       return;
     }
 
-    // Obtém colunas dinamicamente (mantém ordem)
-    const cols = Object.keys(data[0]);
+    // 🧠 Atualiza título dinâmico
+    if (inicio && fim && inicio !== fim) {
+      titulo.textContent = `Pedidos por Hora – ${formatarDataBR(
+        inicio
+      )} a ${formatarDataBR(fim)}`;
+    } else if (inicio) {
+      titulo.textContent = `Pedidos por Hora – ${formatarDataBR(inicio)}`;
+    } else {
+      titulo.textContent = "Pedidos por Hora – Todos os dias";
+    }
 
-    // Monta cabeçalho
+    // 🧹 Remove colunas internas
+    const cols = Object.keys(data[0]).filter(
+      (c) => c !== "data" && c !== "ordem"
+    );
+
+    // 🧩 Cabeçalho
     header.innerHTML =
       "<tr>" +
       cols.map((c) => `<th>${c.toUpperCase()}</th>`).join("") +
       "</tr>";
 
-    // Monta corpo
+    // 🧩 Corpo
     body.innerHTML = "";
     data.forEach((row) => {
       const tr = document.createElement("tr");
       tr.innerHTML = cols
         .map((c) => {
           const val = row[c];
-          return `<td class="${typeof val === "number" ? "text-end" : ""}">
-                  ${val ?? 0}
-                </td>`;
+          const isTotal = row.operador === "TOTAL GERAL";
+          return `<td class="${typeof val === "number" ? "text-end" : ""} ${
+            isTotal ? "fw-bold bg-light text-dark" : ""
+          }">${val ?? 0}</td>`;
         })
         .join("");
       body.appendChild(tr);
     });
 
-    // Se houver TOTAL GERAL na view → gera gráfico de pedidos por hora
+    // 🧩 Gráfico de TOTAL GERAL
     const totalGeral = data.find((r) => r.operador === "TOTAL GERAL");
     if (totalGeral) {
       const horas = cols.filter((c) => c.includes("H"));
@@ -286,7 +305,7 @@ if (!__ADMIN_ACTIVE__) {
                 label: "Pedidos",
                 data: valores,
                 borderColor: "#0d6efd",
-                backgroundColor: "rgba(13, 110, 253, 0.2)",
+                backgroundColor: "rgba(13,110,253,0.2)",
                 tension: 0.3,
               },
             ],
@@ -294,14 +313,26 @@ if (!__ADMIN_ACTIVE__) {
           options: {
             responsive: true,
             plugins: { legend: { display: false } },
-            scales: {
-              y: { beginAtZero: true },
-            },
+            scales: { y: { beginAtZero: true } },
           },
         }
       );
     }
   }
+
+  // 🗓️ Helper: converte YYYY-MM-DD → DD/MM/YYYY
+  function formatarDataBR(dateStr) {
+    if (!dateStr) return "";
+    const [y, m, d] = dateStr.split("-");
+    return `${d}/${m}/${y}`;
+  }
+
+  // 🎯 Botão “Filtrar”
+  document.getElementById("btnFiltrarPeriodo").addEventListener("click", () => {
+    const inicio = document.getElementById("pivotDataInicio").value;
+    const fim = document.getElementById("pivotDataFim").value;
+    carregarPivotHoras(inicio, fim);
+  });
 
   document.getElementById("pivotData")?.addEventListener("change", (e) => {
     const dataSelecionada = e.target.value; // AAAA-MM-DD
