@@ -225,6 +225,10 @@ if (!__ADMIN_ACTIVE__) {
     // Monta query
     let query = supabase.from("view_pedidos_por_hora").select("*");
 
+    if (dataFiltro) {
+      query = query.eq("data", dataFiltro.slice(0, 10));
+    }
+
     const { data, error } = await query;
     if (error) {
       console.error("Erro ao carregar pivot:", error);
