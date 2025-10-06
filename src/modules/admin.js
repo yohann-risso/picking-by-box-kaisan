@@ -221,6 +221,7 @@ if (!__ADMIN_ACTIVE__) {
   }
 
   // ===== Pivot =====
+  // ===== Pivot =====
   async function carregarPivotHoras(inicio = null, fim = null) {
     let query = supabase.from("view_pedidos_por_hora").select("*");
 
@@ -253,7 +254,7 @@ if (!__ADMIN_ACTIVE__) {
     if (inicio && fim && inicio !== fim) {
       titulo.textContent = `Pedidos por Hora – ${formatarDataBR(
         inicio
-      )} a ${formatarDataBR(fim)}`;
+      )} a ${formatarDataBR(fim)} (Consolidado)`;
     } else if (inicio) {
       titulo.textContent = `Pedidos por Hora – ${formatarDataBR(inicio)}`;
     } else {
@@ -271,7 +272,7 @@ if (!__ADMIN_ACTIVE__) {
       cols.map((c) => `<th>${c.toUpperCase()}</th>`).join("") +
       "</tr>";
 
-    // 🧩 Corpo
+    // 🧩 Corpo da tabela
     body.innerHTML = "";
     data.forEach((row) => {
       const tr = document.createElement("tr");
@@ -279,16 +280,24 @@ if (!__ADMIN_ACTIVE__) {
         .map((c) => {
           const val = row[c];
           const isTotal = row.operador === "TOTAL GERAL";
+          const isPeriodo = row.operador === "TOTAL GERAL (Período)";
           return `<td class="${typeof val === "number" ? "text-end" : ""} ${
-            isTotal ? "fw-bold bg-light text-dark" : ""
+            isPeriodo
+              ? "fw-bold bg-primary text-white"
+              : isTotal
+              ? "fw-bold bg-light text-dark"
+              : ""
           }">${val ?? 0}</td>`;
         })
         .join("");
       body.appendChild(tr);
     });
 
-    // 🧩 Gráfico de TOTAL GERAL
-    const totalGeral = data.find((r) => r.operador === "TOTAL GERAL");
+    // 🧩 Gráfico de TOTAL GERAL (prioriza o consolidado do período)
+    const totalGeral =
+      data.find((r) => r.operador === "TOTAL GERAL (Período)") ||
+      data.find((r) => r.operador === "TOTAL GERAL");
+
     if (totalGeral) {
       const horas = cols.filter((c) => c.includes("H"));
       const valores = horas.map((h) => totalGeral[h] ?? 0);
