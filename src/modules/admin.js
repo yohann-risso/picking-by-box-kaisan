@@ -853,9 +853,14 @@ document
   ?.addEventListener("submit", async (e) => {
     e.preventDefault();
 
-    const data_coleta =
-      document.getElementById("slaData").value ||
-      new Date().toISOString().slice(0, 10);
+    const agoraSP = new Date().toLocaleString("sv-SE", {
+      timeZone: "America/Sao_Paulo",
+    });
+    const data_coleta = document.getElementById("slaData").value
+      ? `${document.getElementById("slaData").value}T${
+          agoraSP.split("T")?.[1] || new Date().toISOString().slice(11, 19)
+        }-03:00`
+      : new Date().toISOString();
     const lote = document.getElementById("slaLote").value.trim();
 
     // Quebra por linha
