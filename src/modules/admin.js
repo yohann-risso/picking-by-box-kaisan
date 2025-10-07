@@ -940,7 +940,7 @@ document
 
     // Se o usuário escolheu uma data, monta manualmente em ISO com fuso -03:00
     const data_coleta = dataInput
-      ? `${dataInput}T${horaSP}-03:00`
+      ? `${dataInput}T${horaSP}`
       : localSP.toISOString().replace("Z", "-03:00");
     const lote = document.getElementById("slaLote").value.trim();
 
