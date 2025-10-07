@@ -926,14 +926,22 @@ document
   ?.addEventListener("submit", async (e) => {
     e.preventDefault();
 
-    const agoraSP = new Date().toLocaleString("sv-SE", {
-      timeZone: "America/Sao_Paulo",
-    });
-    const data_coleta = document.getElementById("slaData").value
-      ? `${document.getElementById("slaData").value}T${
-          agoraSP.split("T")?.[1] || new Date().toISOString().slice(11, 19)
-        }-03:00`
-      : new Date().toISOString();
+    // Obter data informada (YYYY-MM-DD)
+    const dataInput = document.getElementById("slaData").value;
+    const agora = new Date();
+
+    // Corrige para fuso horário de São Paulo
+    const offsetSP = -3 * 60; // -03:00
+    const localSP = new Date(
+      agora.getTime() - (agora.getTimezoneOffset() - offsetSP) * 60000
+    );
+
+    const horaSP = localSP.toISOString().slice(11, 19); // HH:MM:SS
+
+    // Se o usuário escolheu uma data, monta manualmente em ISO com fuso -03:00
+    const data_coleta = dataInput
+      ? `${dataInput}T${horaSP}-03:00`
+      : localSP.toISOString().replace("Z", "-03:00");
     const lote = document.getElementById("slaLote").value.trim();
 
     // Quebra por linha
