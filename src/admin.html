@@ -279,7 +279,7 @@
           </div>
         </div>
 
-        <!-- Pivot -->
+        <!-- 📊 PIVOT DE PEDIDOS POR HORA -->
         <div class="accordion-item">
           <h2 class="accordion-header">
             <button
@@ -297,15 +297,21 @@
             data-bs-parent="#accordionAdmin"
           >
             <div class="accordion-body">
-              <!-- 🔎 Filtro de data + título + botão imprimir -->
+              <!-- Filtro e Ações -->
               <div
-                class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-3"
+                class="d-flex flex-wrap justify-content-between align-items-center mb-4 p-3 bg-white shadow-sm rounded border"
               >
-                <h5 id="pivotTitulo" class="fw-bold text-primary mb-0">
-                  Pedidos por Hora
-                </h5>
+                <div>
+                  <h5 id="pivotTitulo" class="fw-bold text-primary mb-1">
+                    Pedidos por Hora
+                  </h5>
+                  <small class="text-muted" id="pivotSubtitulo"
+                    >Selecione o período para visualizar o desempenho por
+                    hora.</small
+                  >
+                </div>
 
-                <div class="d-flex align-items-center gap-2 flex-wrap">
+                <div class="d-flex flex-wrap align-items-center gap-2">
                   <input
                     type="date"
                     id="pivotDataInicio"
@@ -322,19 +328,22 @@
                   </button>
                   <button
                     id="btnPrintPivot"
-                    class="btn btn-outline-secondary btn-sm"
+                    class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1"
                   >
-                    🖨️ Imprimir Pivot
+                    <i class="bi bi-printer"></i> Imprimir
                   </button>
                 </div>
               </div>
 
-              <!-- 📊 Tabela dinâmica -->
-              <div class="table-responsive">
+              <!-- Tabela responsiva -->
+              <div class="table-responsive shadow-sm rounded border">
                 <table
-                  class="table table-sm table-bordered mb-0 text-center align-middle"
+                  class="table table-sm table-bordered table-striped mb-0 text-center align-middle"
                 >
-                  <thead class="table-light" id="pivotHeader"></thead>
+                  <thead
+                    class="table-primary sticky-top"
+                    id="pivotHeader"
+                  ></thead>
                   <tbody id="pivotBody"></tbody>
                 </table>
               </div>

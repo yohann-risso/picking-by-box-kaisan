@@ -154,9 +154,11 @@ h6 {
   transition: transform 0.15s ease;
 }
 
-.table tbody tr:hover {cursor: pointer;
+.table tbody tr:hover {
+  cursor: pointer;
 
-  background-color: #f8f9fa;}
+  background-color: #f8f9fa;
+}
 
 /* ===== Badges ===== */
 .badge-status {
@@ -243,4 +245,34 @@ h6 {
 .table th.text-end {
   text-align: right !important;
 }
-.card .card-body h6{ color: inherit; opacity:.8; letter-spacing:.02em; }
+
+.card .card-body h6 {
+  color: inherit;
+  opacity: .8;
+  letter-spacing: .02em;
+}
+
+#pivotTitulo {
+  font-size: 1.25rem;
+  color: #0d6efd;
+}
+
+#pivotSubtitulo {
+  font-size: 0.9rem;
+}
+
+.table thead th {
+  position: sticky;
+  top: 0;
+  background: #f8f9fa;
+  z-index: 2;
+}
+
+.table td,
+.table th {
+  vertical-align: middle;
+}
+
+#pivotBody tr:last-child td {
+  border-top: 2px solid #0d6efd;
+}

@@ -221,7 +221,6 @@ if (!__ADMIN_ACTIVE__) {
   }
 
   // ===== Pivot =====
-  // ===== Pivot =====
   async function carregarPivotHoras(inicio = null, fim = null) {
     let query = supabase.from("view_pedidos_por_hora").select("*");
 
@@ -236,10 +235,12 @@ if (!__ADMIN_ACTIVE__) {
     const header = document.getElementById("pivotHeader");
     const body = document.getElementById("pivotBody");
     const titulo = document.getElementById("pivotTitulo");
+    const subtitulo = document.getElementById("pivotSubtitulo");
 
     if (error) {
       console.error("Erro ao carregar pivot:", error);
       titulo.textContent = "Erro ao carregar dados";
+      subtitulo.textContent = "";
       return;
     }
 
@@ -247,18 +248,49 @@ if (!__ADMIN_ACTIVE__) {
       header.innerHTML = "";
       body.innerHTML = `<tr><td colspan="99">Nenhum dado encontrado</td></tr>`;
       titulo.textContent = "Nenhum resultado encontrado";
+      subtitulo.textContent = "";
       return;
     }
 
-    // 🧠 Atualiza título dinâmico
+    // 🧮 Consolidar TOTAL GERAL (somatório de todo o período)
+    const totaisGerais = data.filter((r) => r.operador === "TOTAL GERAL");
+    if (totaisGerais.length > 1) {
+      const colsHoras = Object.keys(totaisGerais[0]).filter(
+        (c) => c.includes("H") || c === "total"
+      );
+
+      const consolidado = { operador: "TOTAL GERAL (Período)" };
+      colsHoras.forEach((col) => (consolidado[col] = 0));
+
+      totaisGerais.forEach((row) => {
+        colsHoras.forEach((col) => {
+          consolidado[col] += row[col] || 0;
+        });
+      });
+
+      // Remove os TOTAL GERAL diários e adiciona o consolidado no fim
+      const dataFiltrada = data.filter((r) => r.operador !== "TOTAL GERAL");
+      dataFiltrada.push(consolidado);
+      data.length = 0;
+      data.push(...dataFiltrada);
+    }
+
+    // 🧠 Atualiza título e subtítulo dinâmico
     if (inicio && fim && inicio !== fim) {
       titulo.textContent = `Pedidos por Hora – ${formatarDataBR(
         inicio
       )} a ${formatarDataBR(fim)} (Consolidado)`;
+      subtitulo.textContent = `Exibindo resultados consolidados entre ${formatarDataBR(
+        inicio
+      )} e ${formatarDataBR(fim)}.`;
     } else if (inicio) {
       titulo.textContent = `Pedidos por Hora – ${formatarDataBR(inicio)}`;
+      subtitulo.textContent = `Exibindo resultados de ${formatarDataBR(
+        inicio
+      )}.`;
     } else {
       titulo.textContent = "Pedidos por Hora – Todos os dias";
+      subtitulo.textContent = "Exibindo todos os registros disponíveis.";
     }
 
     // 🧹 Remove colunas internas
