@@ -653,9 +653,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   document
     .getElementById("btnToggleBoxes")
     .addEventListener("click", toggleBoxes);
-  document
-    .getElementById("btnGerarPdf")
-    .addEventListener("click", gerarPdfResumo);
+  document.getElementById("btnGerarPdf").addEventListener("click", async () => {
+    window.__permitirImpressao = true;
+    await gerarPdfResumo();
+  });
   document
     .getElementById("btnReimprimirEtiquetasNL")
     ?.addEventListener("click", () => {
@@ -2299,6 +2300,7 @@ document
   });
 
 document.getElementById("btnPrintPendentes")?.addEventListener("click", () => {
+  window.__permitirImpressao = true; // ✅ permite impressão
   const operadorLogado =
     operador2 && operador2.length
       ? `${operador1} e ${operador2}`
@@ -2310,7 +2312,6 @@ document.getElementById("btnPrintPendentes")?.addEventListener("click", () => {
     return alert("Nenhum pendente encontrado.");
   }
 
-  // Filtra os pendentes com endereço válido
   const comEndereco = pendentes.filter((p) => {
     if (!p.endereco || typeof p.endereco !== "string") return false;
     const primeiro = p.endereco.split("•")[0]?.trim();
@@ -2321,44 +2322,29 @@ document.getElementById("btnPrintPendentes")?.addEventListener("click", () => {
     return alert("Nenhum pendente com endereço válido encontrado.");
   }
 
-  // Agrupar por SKU somando a quantidade e guardando o primeiro endereço
   const agrupado = {};
   comEndereco.forEach(({ sku, qtd, endereco }) => {
     const partesEndereco = (endereco || "").split("•").map((p) => p.trim());
     const doisEnderecos = partesEndereco.slice(0, 2).join(" • ");
 
-    if (!agrupado[sku]) {
-      agrupado[sku] = { qtd: 0, endereco: doisEnderecos };
-    }
+    if (!agrupado[sku]) agrupado[sku] = { qtd: 0, endereco: doisEnderecos };
     agrupado[sku].qtd += qtd;
   });
-  // Gera e ordena os dados agrupados por endereço
+
   const linhas = Object.entries(agrupado)
-    .sort((a, b) => {
-      const enderecoA = a[1].endereco?.toUpperCase() || "";
-      const enderecoB = b[1].endereco?.toUpperCase() || "";
-      return enderecoA.localeCompare(enderecoB);
-    })
+    .sort((a, b) => a[1].endereco.localeCompare(b[1].endereco))
     .map(
-      ([sku, { qtd, endereco }]) => `
-      <tr>
-        <td>${sku}</td>
-        <td>${qtd}</td>
-        <td>${endereco}</td>
-      </tr>
-    `
+      ([sku, { qtd, endereco }]) =>
+        `<tr><td>${sku}</td><td>${qtd}</td><td>${endereco}</td></tr>`
     )
     .join("");
 
-  // Gera o HTML para impressão
   const htmlImpressao = `
     <html>
       <head>
         <title>Pendentes com Endereço</title>
         <style>
           body { font-family: sans-serif; padding: 20px; }
-          h2 { margin-bottom: 10px; }
-          .info { margin-bottom: 16px; }
           table { width: 100%; border-collapse: collapse; margin-top: 12px; }
           th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
           th { background-color: #f0f0f0; }
@@ -2366,26 +2352,14 @@ document.getElementById("btnPrintPendentes")?.addEventListener("click", () => {
       </head>
       <body>
         <h2>Lista de Pendentes com Endereço</h2>
-        <div class="info">
-          <strong>Operador:</strong> ${operadorLogado}<br/>
-          <strong>Romaneio:</strong> ${romaneioAtivo}<br/>
-          <strong>Data:</strong> ${dataHoraAtual}
-        </div>
+        <div><strong>Operador:</strong> ${operadorLogado}<br/>
+        <strong>Romaneio:</strong> ${romaneioAtivo}<br/>
+        <strong>Data:</strong> ${dataHoraAtual}</div>
         <table>
-          <thead>
-            <tr>
-              <th>SKU</th>
-              <th>Quantidade</th>
-              <th>Endereço</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${linhas}
-          </tbody>
+          <thead><tr><th>SKU</th><th>Quantidade</th><th>Endereço</th></tr></thead>
+          <tbody>${linhas}</tbody>
         </table>
-        <script>
-          window.onload = () => { window.print(); window.close(); }
-        </script>
+        <script>window.onload = () => { window.print(); window.close(); }</script>
       </body>
     </html>
   `;
@@ -3463,6 +3437,8 @@ function mostrarModalDeTextoCopiavel(texto, metodo) {
     PAC: "https://ge.kaisan.com.br/?page=nfe_arquivo_remessa/inicia_confere_remessa_transportadora&cod_bandeira=1&cod_loja=-1&cod_transportadora=1",
     "RETIRADA LOCAL":
       "https://ge.kaisan.com.br/?page=nfe_arquivo_remessa/inicia_confere_remessa_transportadora&cod_bandeira=1&cod_loja=-1&cod_transportadora=4",
+    "LOGGI EXPRESS CROSS DOCK":
+      "https://ge.kaisan.com.br/?page=nfe_arquivo_remessa/inicia_confere_remessa_transportadora&cod_bandeira=1&cod_loja=-1&cod_transportadora=36",
   };
   const metodoNormalizado = (metodo || "").toUpperCase();
   const urlRemessa = linksRemessa[metodoNormalizado] || null;
@@ -4589,3 +4565,32 @@ document.addEventListener("shown.bs.tooltip", (ev) => {
     if (src) img.src = src; // poke reload if needed
   });
 });
+
+// ============ BLOQUEAR IMPRESSÃO NÃO AUTORIZADA ============
+
+// Flag global: é liberada apenas quando um botão específico chama window.print()
+window.__permitirImpressao = false;
+
+// Intercepta Ctrl+P e Cmd+P
+window.addEventListener("keydown", (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "p") {
+    if (!window.__permitirImpressao) {
+      e.preventDefault();
+      alert("🛑 Impressão bloqueada. Use os botões específicos da aplicação.");
+      return false;
+    }
+  }
+});
+
+// Intercepta chamadas diretas a window.print() feitas fora dos botões
+const originalPrint = window.print;
+window.print = function (...args) {
+  if (window.__permitirImpressao) {
+    // volta a false depois de uma impressão autorizada
+    window.__permitirImpressao = false;
+    return originalPrint.apply(window, args);
+  } else {
+    alert("🛑 Impressão bloqueada. Utilize o botão correto.");
+    return;
+  }
+};
