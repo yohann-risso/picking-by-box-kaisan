@@ -2053,6 +2053,8 @@ document.getElementById("btnIniciar").addEventListener("click", async () => {
     .eq("romaneio", romaneio);
   const pedidoIds = pedidos.map((p) => p.id);
 
+  await atualizarStatusPedidosRomaneio(romaneio);
+
   await carregarCodNfeMap(pedidoIds);
   mapaEnderecos = await carregarEnderecosComCache();
 
@@ -2949,6 +2951,7 @@ function configurarListenersCronometro() {
     }
 
     await prepararDadosDoRomaneio(window.romaneio);
+    
 
     btnIniciar.disabled = true;
     btnPausar.disabled = false;
@@ -4607,3 +4610,30 @@ window.print = function (...args) {
     return;
   }
 };
+
+async function atualizarStatusPedidosRomaneio(romaneio) {
+  try {
+    const { data: pedidos, error } = await supabase
+      .from("pedidos")
+      .select("id, status")
+      .eq("romaneio", romaneio);
+
+    if (error) throw error;
+
+    // Limpa o mapa e atualiza os status atuais
+    pedidoStatusMap = {};
+    pedidos.forEach((p) => {
+      pedidoStatusMap[p.id] = (p.status || "").toUpperCase();
+
+      // Se o pedido estiver cancelado, garante que a caixa fique desativada
+      if (pedidoStatusMap[p.id] === "CANCELADO" && caixas[p.id]) {
+        caixas[p.id].pesado = false;
+        caixas[p.id].cancelado = true;
+      }
+    });
+
+    console.log("🔁 Status de pedidos atualizados:", pedidoStatusMap);
+  } catch (err) {
+    console.error("❌ Erro ao atualizar status dos pedidos:", err);
+  }
+}
