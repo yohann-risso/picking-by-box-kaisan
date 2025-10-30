@@ -30,6 +30,7 @@ window.pedidos = 0;
 let resumo = [];
 
 let ultimoBotaoClicado = null;
+let pedidoStatusMap = {};
 
 // --- Constantes para controle de expiração ---
 const EXPIRACAO_MS = 720 * 60 * 1000; // 720 minutos em milissegundos
@@ -727,23 +728,58 @@ function renderBoxCards(pedidosEsperados = []) {
       const { bipado, total, pedidos, codNfes } = agrupado[boxNum];
       const pedidoRef = pedidos[0];
       const codNfe = codNfes[0] || "";
+      const statusPedido = pedidoStatusMap[pedidoRef]?.toUpperCase() || ""; // ✅ novo
 
       const isPesado = pedidos.every((p) => caixas[p]?.pesado);
       const isIncompleto = bipado < total;
 
-      let light, solid;
-      if (isPesado && isIncompleto) {
+      let light, solid, botaoHtml;
+
+      // === NOVA REGRA: pedidos cancelados ===
+      if (statusPedido === "CANCELADO") {
+        light = "bg-warning-subtle text-dark"; // fundo laranja claro
+        solid = "bg-warning text-dark fw-bold"; // topo laranja escuro
+        botaoHtml = `
+          <button class="btn btn-secondary w-100" disabled>
+            🚫 CANCELADO
+          </button>`;
+      } else if (isPesado && isIncompleto) {
         light = "bg-warning-subtle text-dark";
         solid = "bg-warning text-dark fw-bold";
+        botaoHtml = `
+          <button class="btn btn-outline-secondary w-100" disabled>
+            Incompleto
+          </button>`;
       } else if (isPesado) {
         light = "bg-primary-subtle text-dark";
         solid = "bg-primary text-white";
+        botaoHtml = `
+          <button class="btn btn-outline-primary w-100 btn-reimprimir"
+                  data-codnfe="${codNfe}">
+            <i class="bi bi-printer-fill"></i> REIMPRIMIR
+          </button>`;
       } else if (bipado >= total) {
         light = "bg-success-subtle text-dark";
         solid = "bg-success text-white";
+        botaoHtml = `
+          <button class="btn-undo-simple btn-pesar ${solid}" 
+                  data-box="${boxNum}" 
+                  data-codnfe="${codNfe}" 
+                  data-pedidos='${JSON.stringify(pedidos)}' 
+                  style="border:none;box-shadow:none;" tabindex="0">
+            <i class="bi bi-balance-scale"></i> PESAR PEDIDO
+          </button>`;
       } else {
         light = "bg-danger-subtle text-dark";
         solid = "bg-danger text-white";
+        botaoHtml = `
+          <button class="btn-undo-simple btn-pesar ${solid}" 
+                  data-box="${boxNum}" 
+                  data-codnfe="${codNfe}" 
+                  data-pedidos='${JSON.stringify(pedidos)}' 
+                  style="border:none;box-shadow:none;" tabindex="0">
+            <i class="bi bi-balance-scale"></i> PESAR PEDIDO
+          </button>`;
       }
 
       const shadowColor = solid.includes("primary")
@@ -753,27 +789,6 @@ function renderBoxCards(pedidosEsperados = []) {
         : solid.includes("warning")
         ? "rgba(255, 193, 7, 0.3)"
         : "rgba(220, 53, 69, 0.3)";
-
-      let botaoHtml = "";
-
-      if (isPesado) {
-        // ✅ Box já está PESADA — mostra botão de reimpressão
-        botaoHtml = `
-    <button class="btn btn-outline-primary w-100 btn-reimprimir"
-            data-codnfe="${codNfe}">
-      <i class="bi bi-printer-fill"></i> REIMPRIMIR
-    </button>`;
-      } else {
-        // 🧪 Ainda não pesado — mostra botão de pesagem
-        botaoHtml = `
-    <button class="btn-undo-simple btn-pesar ${solid}" 
-            data-box="${boxNum}" 
-            data-codnfe="${codNfe}" 
-            data-pedidos='${JSON.stringify(pedidos)}' 
-            style="border:none;box-shadow:none;" tabindex="0">
-      <i class="bi bi-balance-scale"></i> PESAR PEDIDO
-    </button>`;
-      }
 
       const wrapper = document.createElement("div");
       wrapper.className = "card-produto";
@@ -786,19 +801,17 @@ function renderBoxCards(pedidosEsperados = []) {
       infoCard.innerHTML = `
         <div class="details text-center w-100">
           <div class="fs-6 fw-bold">${pedidoRef}</div>
-          <div>
-            <span class="badge bg-dark">${bipado}/${total}</span>
-          </div>
+          <div><span class="badge bg-dark">${bipado}/${total}</span></div>
           <div class="mt-2">${botaoHtml}</div>
         </div>
       `;
-      wrapper.appendChild(infoCard);
 
       const numCard = document.createElement("div");
       numCard.className = `card-number ${solid}`;
       numCard.innerHTML = `<div>${boxNum}</div>`;
-      wrapper.appendChild(numCard);
 
+      wrapper.appendChild(infoCard);
+      wrapper.appendChild(numCard);
       boxContainer.appendChild(wrapper);
     });
 
@@ -1851,7 +1864,7 @@ async function carregarBipagemAnterior(romaneio) {
     .select("id, status")
     .eq("romaneio", romaneio);
 
-  const pedidoStatusMap = {};
+  pedidoStatusMap = {};
   pedidos.forEach((p) => {
     pedidoStatusMap[p.id] = p.status;
   });
