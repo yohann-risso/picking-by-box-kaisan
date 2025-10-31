@@ -3451,7 +3451,7 @@ function mostrarModalDeTextoCopiavel(texto, metodo) {
     SEDEX:
       "https://ge.kaisan.com.br/?page=nfe_arquivo_remessa/inicia_confere_remessa_transportadora&cod_bandeira=1&cod_loja=-1&cod_transportadora=2",
     PAC: "https://ge.kaisan.com.br/?page=nfe_arquivo_remessa/inicia_confere_remessa_transportadora&cod_bandeira=1&cod_loja=-1&cod_transportadora=1",
-    "RETIRADA LOCAL":
+    "RETIRAR LOCAL":
       "https://ge.kaisan.com.br/?page=nfe_arquivo_remessa/inicia_confere_remessa_transportadora&cod_bandeira=1&cod_loja=-1&cod_transportadora=4",
     "LOGGI EXPRESS CROSS DOCK":
       "https://ge.kaisan.com.br/?page=nfe_arquivo_remessa/inicia_confere_remessa_transportadora&cod_bandeira=1&cod_loja=-1&cod_transportadora=36",
