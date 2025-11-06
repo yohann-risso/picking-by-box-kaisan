@@ -2951,7 +2951,6 @@ function configurarListenersCronometro() {
     }
 
     await prepararDadosDoRomaneio(window.romaneio);
-    
 
     btnIniciar.disabled = true;
     btnPausar.disabled = false;
@@ -4584,32 +4583,63 @@ document.addEventListener("shown.bs.tooltip", (ev) => {
 
 // ============ BLOQUEAR IMPRESSÃO NÃO AUTORIZADA ============
 
-// Flag global: é liberada apenas quando um botão específico chama window.print()
+// Flag global: só libera quando um botão autorizado define true
 window.__permitirImpressao = false;
 
-// Intercepta Ctrl+P e Cmd+P
-window.addEventListener("keydown", (e) => {
-  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "p") {
-    if (!window.__permitirImpressao) {
-      e.preventDefault();
-      alert("🛑 Impressão bloqueada. Use os botões específicos da aplicação.");
-      return false;
-    }
-  }
-});
+// Função auxiliar para bloquear impressão
+function bloquearImpressao() {
+  // Intercepta Ctrl+P e Cmd+P
+  window.addEventListener(
+    "keydown",
+    (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "p") {
+        if (!window.__permitirImpressao) {
+          e.preventDefault();
+          alert(
+            "🛑 Impressão bloqueada. Use os botões específicos da aplicação."
+          );
+          return false;
+        } else {
+          // volta a bloquear logo depois
+          setTimeout(() => (window.__permitirImpressao = false), 1000);
+        }
+      }
+    },
+    true
+  );
 
-// Intercepta chamadas diretas a window.print() feitas fora dos botões
-const originalPrint = window.print;
-window.print = function (...args) {
-  if (window.__permitirImpressao) {
-    // volta a false depois de uma impressão autorizada
-    window.__permitirImpressao = false;
-    return originalPrint.apply(window, args);
-  } else {
-    alert("🛑 Impressão bloqueada. Utilize o botão correto.");
-    return;
-  }
-};
+  // Intercepta chamadas diretas a window.print()
+  const originalPrint = window.print;
+  window.print = function (...args) {
+    if (window.__permitirImpressao) {
+      const permitirAgora = window.__permitirImpressao;
+      // reseta logo depois da chamada
+      window.__permitirImpressao = false;
+      return originalPrint.apply(window, args);
+    } else {
+      alert("🛑 Impressão bloqueada. Utilize os botões oficiais da aplicação.");
+      return;
+    }
+  };
+
+  // Bloqueia tentativas pelo menu do navegador (Arquivo > Imprimir)
+  window.addEventListener("beforeprint", (e) => {
+    if (!window.__permitirImpressao) {
+      e.preventDefault?.();
+      alert("🛑 Impressão bloqueada. Use os botões da aplicação.");
+      // oculta conteúdo durante tentativa manual
+      document.body.style.display = "none";
+      setTimeout(() => (document.body.style.display = ""), 1000);
+    } else {
+      // restaura flag após uso autorizado
+      setTimeout(() => (window.__permitirImpressao = false), 1000);
+    }
+  });
+}
+
+// Reaplica o bloqueio sempre que o usuário volta pra aba
+window.addEventListener("focus", bloquearImpressao);
+bloquearImpressao();
 
 async function atualizarStatusPedidosRomaneio(romaneio) {
   try {
