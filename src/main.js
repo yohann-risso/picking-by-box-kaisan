@@ -4788,7 +4788,7 @@ document
               width: 100mm;
               height: 150mm;
               page-break-after: always;
-              padding: 8mm 10mm;
+              padding: 6mm 8mm;
               display: flex;
               flex-direction: column;
               justify-content: space-between;
@@ -4799,43 +4799,43 @@ document
               align-items: center;
             }
             .box {
-              font-size: 30pt;
+              font-size: 28pt;
               font-weight: 800;
             }
             .romaneio {
-              font-size: 12pt;
+              font-size: 11pt;
             }
             .pedido {
               font-size: 16pt;
-              margin-top: 4mm;
+              margin-top: 3mm;
             }
             .cliente {
-              font-size: 12pt;
+              font-size: 11pt;
               color: #111;
               margin-top: 2mm;
-              min-height: 18pt;
               line-height: 1.1;
+              min-height: 15pt;
             }
             .qr {
               display: flex;
               flex-direction: column;
               align-items: center;
               justify-content: center;
-              margin: 6mm 0;
+              margin: 4mm 0;
             }
             .qrc canvas, .qrc img {
-              width: 45mm;
-              height: 45mm;
+              width: 30mm;     /* 🔧 tamanho reduzido */
+              height: 30mm;
             }
             .qrlink {
-              margin-top: 2mm;
-              font-size: 10pt;
+              margin-top: 1mm;
+              font-size: 9pt;
             }
             .rodape {
               display: flex;
               justify-content: space-between;
-              font-size: 9pt;
-              color: #333;
+              font-size: 8pt;
+              color: #444;
             }
           </style>
         </head>
@@ -4848,25 +4848,25 @@ document
                 const cont = document.getElementById("qrcode-" + it.pedido);
                 if (!cont) return;
                 if (!it.url) {
-                  cont.innerHTML = "<div style='font-size:11pt;color:#b00;text-align:center'>Sem QRCode</div>";
+                  cont.innerHTML = "<div style='font-size:10pt;color:#b00;text-align:center'>Sem QRCode</div>";
                   return;
                 }
-                QRCode.toCanvas(it.url, { width: 450, margin: 0 }, function(err, canvas){
+                // Gera QRCode menor (250 px = ~30mm)
+                QRCode.toCanvas(it.url, { width: 250, margin: 0 }, function(err, canvas){
                   if (err) {
-                    cont.innerHTML = "<div style='font-size:11pt;color:#b00;text-align:center'>Erro QR</div>";
+                    cont.innerHTML = "<div style='font-size:10pt;color:#b00;text-align:center'>Erro QR</div>";
                   } else {
                     cont.innerHTML = "";
                     cont.appendChild(canvas);
                   }
                 });
               });
-
-              // aguarda renderização antes da impressão
               setTimeout(() => { window.print(); window.close(); }, 700);
             })();
           </script>
         </body>
       </html>
-    `);
+      `);
+
     win.document.close();
   });
