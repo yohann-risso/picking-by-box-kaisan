@@ -3830,14 +3830,22 @@ window.mostrarRastreiosManuaisAgrupados = function () {
 
   transps.forEach((transp) => {
     const lista = mapa[transp] || [];
+    const qtd = lista.length; // ✅ contador
 
     const card = document.createElement("div");
     card.className = "mb-4 p-3 border rounded shadow-sm bg-light";
 
     card.innerHTML = `
-      <div class="d-flex justify-content-between align-items-center mb-2">
-        <h6 class="mb-0">📦 ${transp}</h6>
-        <button class="btn btn-sm btn-outline-primary" onclick="copiarRastreiosTransp('${transp}')">📋 Copiar</button>
+      <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+        <h6 class="mb-0">
+          📦 ${transp} 
+          <span class="badge bg-dark ms-2">${qtd} rastreio${
+      qtd !== 1 ? "s" : ""
+    }</span>
+        </h6>
+        <button class="btn btn-sm btn-outline-primary" onclick="copiarRastreiosTransp('${transp}')">
+          📋 Copiar
+        </button>
       </div>
       <textarea class="form-control" rows="6" readonly style="font-family: monospace;">${lista.join(
         "\n"
