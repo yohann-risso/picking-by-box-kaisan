@@ -4683,3 +4683,151 @@ async function atualizarStatusPedidosRomaneio(romaneio) {
     console.error("❌ Erro ao atualizar status dos pedidos:", err);
   }
 }
+
+// Imprimir etiquetas 100×150 mm (uma por pedido) com QRCode de pesagem
+document
+  .getElementById("btnPrintEtiquetasBox")
+  ?.addEventListener("click", async () => {
+    if (!romaneio) {
+      return alert("Nenhum romaneio ativo.");
+    }
+
+    // 1) Coletar pedidos com box visível no estado 'caixas'
+    const entradas = Object.entries(caixas)
+      .filter(([_, info]) => info?.box != null && info.total > 0)
+      .map(([pedido, info]) => ({
+        pedido: Number(pedido),
+        box: Number(info.box),
+      }));
+
+    if (!entradas.length) {
+      return alert("Nenhum pedido com box encontrado para impressão.");
+    }
+
+    // 2) Obter clientes dos pedidos
+    const pedidoIds = entradas.map((e) => e.pedido);
+    const { data: pedidosInfo, error: errPed } = await supabase
+      .from("pedidos")
+      .select("id, cliente")
+      .in("id", pedidoIds);
+
+    if (errPed) {
+      console.error("Erro ao buscar clientes:", errPed);
+    }
+
+    const clienteMap = {};
+    (pedidosInfo || []).forEach((p) => (clienteMap[p.id] = p.cliente || "—"));
+
+    // 3) Montar itens com codNfe + URL pesagem
+    const itens = entradas.map(({ pedido, box }) => {
+      const codNfe = codNfeMap[pedido];
+      const url = codNfe
+        ? `https://ge.kaisan.com.br/index2.php?page=nfe_pedido/pesa_automatico_pedido&cod_nfe_pedido=${codNfe}`
+        : null;
+      return {
+        pedido,
+        box,
+        cliente: clienteMap[pedido] || "—",
+        codNfe: codNfe || "",
+        url,
+      };
+    });
+
+    // Ordenar por box, depois pedido
+    itens.sort((a, b) => a.box - b.box || a.pedido - b.pedido);
+
+    // 4) HTML das etiquetas (100×150 mm por etiqueta)
+    const etiquetasHtml = itens
+      .map(
+        (item) => `
+    <div class="etq" data-pedido="${item.pedido}">
+      <div class="header">
+        <div class="romaneio">ROM: <strong>${romaneio}</strong></div>
+        <div class="box">BOX <strong>${item.box}</strong></div>
+      </div>
+      <div class="pedido">PEDIDO <strong>${item.pedido}</strong></div>
+      <div class="cliente">${(item.cliente || "").toString().slice(0, 42)}</div>
+      <div class="qr">
+        <div id="qrcode-${item.pedido}" class="qrc"></div>
+        <div class="qrlink">${
+          item.codNfe ? "Abrir Pesagem" : "NF-e não encontrada"
+        }</div>
+      </div>
+      <div class="rodape">
+        <span>Picking by Box</span>
+        <span>${new Date().toLocaleString("pt-BR")}</span>
+      </div>
+    </div>
+  `
+      )
+      .join("");
+
+    // 5) Abre janela e injeta conteúdo + QRCode
+    const win = window.open("", "_blank");
+    if (!win) {
+      alert("Não foi possível abrir a janela de impressão.");
+      return;
+    }
+
+    win.document.write(`
+    <html>
+      <head>
+        <meta charset="UTF-8" />
+        <title>Etiquetas Box 100×150</title>
+        <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+        <style>
+          @page { size: 100mm 150mm; margin: 0; }
+          * { box-sizing: border-box; }
+          body { margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; }
+          .etq {
+            width: 100mm; height: 150mm; page-break-after: always;
+            padding: 6mm 7mm; display: flex; flex-direction: column; justify-content: space-between;
+          }
+          .header { display:flex; justify-content: space-between; align-items: center; }
+          .box { font-size: 28pt; font-weight: 800; }
+          .romaneio { font-size: 11pt; }
+          .pedido { font-size: 18pt; margin-top: 4mm; }
+          .cliente { font-size: 12pt; color: #111; min-height: 16pt; }
+          .qr { display:flex; flex-direction: column; align-items:center; margin: 6mm 0; }
+          .qrc canvas, .qrc img { width: 60mm; height: 60mm; }
+          .qrlink { margin-top: 4mm; font-size: 11pt; }
+          .rodape { display:flex; justify-content: space-between; font-size: 9pt; color:#333; }
+        </style>
+      </head>
+      <body>
+        ${etiquetasHtml}
+        <script>
+          (function(){
+            const itens = ${JSON.stringify(itens)};
+            // Gera o QR de cada etiqueta
+            itens.forEach(it => {
+              const cont = document.getElementById("qrcode-" + it.pedido);
+              if (!cont) return;
+              if (!it.url) {
+                cont.innerHTML = "<div style='font-size:12pt;color:#b00;text-align:center'>Sem QRCode</div>";
+                return;
+              }
+              // Gera QRCode (usa CDN já carregada)
+              QRCode.toCanvas(it.url, { width: 600, margin: 0 }, function(err, canvas){
+                if (err) {
+                  cont.innerHTML = "<div style='font-size:12pt;color:#b00;text-align:center'>Falha QR</div>";
+                } else {
+                  // Redimensiona via CSS (60mm)
+                  cont.innerHTML = "";
+                  cont.appendChild(canvas);
+                }
+              });
+            });
+
+            // Pequeno delay para garantir render do QR antes de imprimir
+            setTimeout(function(){
+              window.print();
+              window.close();
+            }, 600);
+          })();
+        </script>
+      </body>
+    </html>
+  `);
+    win.document.close();
+  });
