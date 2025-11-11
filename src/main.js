@@ -3684,6 +3684,14 @@ async function pesarPedidoManual() {
   const url = `https://ge.kaisan.com.br/index2.php?page=nfe_pedido/pesa_automatico_pedido&cod_nfe_pedido=${codNfe}`;
   window.open(url, "_blank");
 
+  setTimeout(() => {
+    const input = document.getElementById("inputPedidoManual");
+    if (input) {
+      input.focus();
+      input.select(); // simula o Ctrl+A
+    }
+  }, 400);
+
   // 4. Busca rastreios
   const { data: rastreios } = await supabase
     .from("pedidos_rastreio")
