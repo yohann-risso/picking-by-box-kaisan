@@ -4770,64 +4770,103 @@ document
     }
 
     win.document.write(`
-    <html>
-      <head>
-        <meta charset="UTF-8" />
-        <title>Etiquetas Box 100×150</title>
-        <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
-        <style>
-          @page { size: 100mm 150mm; margin: 0; }
-          * { box-sizing: border-box; }
-          body { margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; }
-          .etq {
-            width: 100mm; height: 150mm; page-break-after: always;
-            padding: 6mm 7mm; display: flex; flex-direction: column; justify-content: space-between;
-          }
-          .header { display:flex; justify-content: space-between; align-items: center; }
-          .box { font-size: 28pt; font-weight: 800; }
-          .romaneio { font-size: 11pt; }
-          .pedido { font-size: 18pt; margin-top: 4mm; }
-          .cliente { font-size: 12pt; color: #111; min-height: 16pt; }
-          .qr { display:flex; flex-direction: column; align-items:center; margin: 6mm 0; }
-          .qrc canvas, .qrc img { width: 60mm; height: 60mm; }
-          .qrlink { margin-top: 4mm; font-size: 11pt; }
-          .rodape { display:flex; justify-content: space-between; font-size: 9pt; color:#333; }
-        </style>
-      </head>
-      <body>
-        ${etiquetasHtml}
-        <script>
-          (function(){
-            const itens = ${JSON.stringify(itens)};
-            // Gera o QR de cada etiqueta
-            itens.forEach(it => {
-              const cont = document.getElementById("qrcode-" + it.pedido);
-              if (!cont) return;
-              if (!it.url) {
-                cont.innerHTML = "<div style='font-size:12pt;color:#b00;text-align:center'>Sem QRCode</div>";
-                return;
-              }
-              // Gera QRCode (usa CDN já carregada)
-              QRCode.toCanvas(it.url, { width: 600, margin: 0 }, function(err, canvas){
-                if (err) {
-                  cont.innerHTML = "<div style='font-size:12pt;color:#b00;text-align:center'>Falha QR</div>";
-                } else {
-                  // Redimensiona via CSS (60mm)
-                  cont.innerHTML = "";
-                  cont.appendChild(canvas);
+      <html>
+        <head>
+          <meta charset="UTF-8" />
+          <title>Etiquetas Box 100×150</title>
+          <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+          <style>
+            @page { size: 100mm 150mm; margin: 0; }
+            * { box-sizing: border-box; }
+            body {
+              margin: 0;
+              padding: 0;
+              font-family: 'Segoe UI', Arial, sans-serif;
+              -webkit-print-color-adjust: exact;
+            }
+            .etq {
+              width: 100mm;
+              height: 150mm;
+              page-break-after: always;
+              padding: 8mm 10mm;
+              display: flex;
+              flex-direction: column;
+              justify-content: space-between;
+            }
+            .header {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+            }
+            .box {
+              font-size: 30pt;
+              font-weight: 800;
+            }
+            .romaneio {
+              font-size: 12pt;
+            }
+            .pedido {
+              font-size: 16pt;
+              margin-top: 4mm;
+            }
+            .cliente {
+              font-size: 12pt;
+              color: #111;
+              margin-top: 2mm;
+              min-height: 18pt;
+              line-height: 1.1;
+            }
+            .qr {
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              margin: 6mm 0;
+            }
+            .qrc canvas, .qrc img {
+              width: 45mm;
+              height: 45mm;
+            }
+            .qrlink {
+              margin-top: 2mm;
+              font-size: 10pt;
+            }
+            .rodape {
+              display: flex;
+              justify-content: space-between;
+              font-size: 9pt;
+              color: #333;
+            }
+          </style>
+        </head>
+        <body>
+          ${etiquetasHtml}
+          <script>
+            (function(){
+              const itens = ${JSON.stringify(itens)};
+              itens.forEach(it => {
+                const cont = document.getElementById("qrcode-" + it.pedido);
+                if (!cont) return;
+                if (!it.url) {
+                  cont.innerHTML = "<div style='font-size:11pt;color:#b00;text-align:center'>Sem QRCode</div>";
+                  return;
                 }
+                QRCode.toCanvas(it.url, { width: 450, margin: 0 }, function(err, canvas){
+                  if (err) {
+                    cont.innerHTML = "<div style='font-size:11pt;color:#b00;text-align:center'>Erro QR</div>";
+                  } else {
+                    cont.innerHTML = "";
+                    cont.appendChild(canvas);
+                  }
+                });
               });
-            });
 
-            // Pequeno delay para garantir render do QR antes de imprimir
-            setTimeout(function(){
-              window.print();
-              window.close();
-            }, 600);
-          })();
-        </script>
-      </body>
-    </html>
-  `);
+              // aguarda renderização antes da impressão
+              setTimeout(() => { window.print(); window.close(); }, 700);
+            })();
+          </script>
+        </body>
+      </html>
+    `);
     win.document.close();
   });
