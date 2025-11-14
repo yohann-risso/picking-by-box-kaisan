@@ -30,6 +30,7 @@ window.pedidos = 0;
 let resumo = [];
 
 let ultimoBotaoClicado = null;
+let pedidoStatusMap = {};
 
 // --- Constantes para controle de expiração ---
 const EXPIRACAO_MS = 720 * 60 * 1000; // 720 minutos em milissegundos
@@ -248,6 +249,21 @@ document.getElementById("btnLogout").addEventListener("click", () => {
   loginInput.focus();
 });
 
+function checkAdminAccess() {
+  // Pega o login do operador logado
+  const operadorLogado = localStorage.getItem("operador1");
+
+  if (operadorLogado && operadorLogado.toLowerCase() === "yohann risso") {
+    import("./modules/admin.js").then(() => {
+      console.log("📊 Módulo administrativo carregado para Yohann.");
+    });
+  } else {
+    console.log("Usuário comum, módulo admin bloqueado.");
+  }
+}
+
+checkAdminAccess();
+
 async function verificarRomaneioEmUso(romaneio) {
   // 1) tenta ler um registro que já exista para este romaneio
   const { data, error } = await supabase
@@ -308,12 +324,10 @@ async function verificarRomaneioEmUso(romaneio) {
 }
 
 function nowInBrazilISO() {
-  const date = new Date();
-  const offset = -3 * 60; // em minutos
-  const localDate = new Date(
-    date.getTime() - (date.getTimezoneOffset() - offset) * 60000
+  return (
+    new Date().toLocaleString("sv-SE", { timeZone: "America/Sao_Paulo" }) +
+    "-03:00"
   );
-  return localDate.toISOString();
 }
 
 async function gerarPdfResumo() {
@@ -640,9 +654,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   document
     .getElementById("btnToggleBoxes")
     .addEventListener("click", toggleBoxes);
-  document
-    .getElementById("btnGerarPdf")
-    .addEventListener("click", gerarPdfResumo);
+  document.getElementById("btnGerarPdf").addEventListener("click", async () => {
+    window.__permitirImpressao = true;
+    await gerarPdfResumo();
+  });
   document
     .getElementById("btnReimprimirEtiquetasNL")
     ?.addEventListener("click", () => {
@@ -713,23 +728,58 @@ function renderBoxCards(pedidosEsperados = []) {
       const { bipado, total, pedidos, codNfes } = agrupado[boxNum];
       const pedidoRef = pedidos[0];
       const codNfe = codNfes[0] || "";
+      const statusPedido = pedidoStatusMap[pedidoRef]?.toUpperCase() || ""; // ✅ novo
 
       const isPesado = pedidos.every((p) => caixas[p]?.pesado);
       const isIncompleto = bipado < total;
 
-      let light, solid;
-      if (isPesado && isIncompleto) {
+      let light, solid, botaoHtml;
+
+      // === NOVA REGRA: pedidos cancelados ===
+      if (statusPedido === "CANCELADO") {
+        light = "bg-warning-subtle text-dark"; // fundo laranja claro
+        solid = "bg-warning text-dark fw-bold"; // topo laranja escuro
+        botaoHtml = `
+          <button class="btn btn-secondary w-100" disabled>
+            🚫 CANCELADO
+          </button>`;
+      } else if (isPesado && isIncompleto) {
         light = "bg-warning-subtle text-dark";
         solid = "bg-warning text-dark fw-bold";
+        botaoHtml = `
+          <button class="btn btn-outline-secondary w-100" disabled>
+            Incompleto
+          </button>`;
       } else if (isPesado) {
         light = "bg-primary-subtle text-dark";
         solid = "bg-primary text-white";
+        botaoHtml = `
+          <button class="btn btn-outline-primary w-100 btn-reimprimir"
+                  data-codnfe="${codNfe}">
+            <i class="bi bi-printer-fill"></i> REIMPRIMIR
+          </button>`;
       } else if (bipado >= total) {
         light = "bg-success-subtle text-dark";
         solid = "bg-success text-white";
+        botaoHtml = `
+          <button class="btn-undo-simple btn-pesar ${solid}" 
+                  data-box="${boxNum}" 
+                  data-codnfe="${codNfe}" 
+                  data-pedidos='${JSON.stringify(pedidos)}' 
+                  style="border:none;box-shadow:none;" tabindex="0">
+            <i class="bi bi-balance-scale"></i> PESAR PEDIDO
+          </button>`;
       } else {
         light = "bg-danger-subtle text-dark";
         solid = "bg-danger text-white";
+        botaoHtml = `
+          <button class="btn-undo-simple btn-pesar ${solid}" 
+                  data-box="${boxNum}" 
+                  data-codnfe="${codNfe}" 
+                  data-pedidos='${JSON.stringify(pedidos)}' 
+                  style="border:none;box-shadow:none;" tabindex="0">
+            <i class="bi bi-balance-scale"></i> PESAR PEDIDO
+          </button>`;
       }
 
       const shadowColor = solid.includes("primary")
@@ -739,27 +789,6 @@ function renderBoxCards(pedidosEsperados = []) {
         : solid.includes("warning")
         ? "rgba(255, 193, 7, 0.3)"
         : "rgba(220, 53, 69, 0.3)";
-
-      let botaoHtml = "";
-
-      if (isPesado) {
-        // ✅ Box já está PESADA — mostra botão de reimpressão
-        botaoHtml = `
-    <button class="btn btn-outline-primary w-100 btn-reimprimir"
-            data-codnfe="${codNfe}">
-      <i class="bi bi-printer-fill"></i> REIMPRIMIR
-    </button>`;
-      } else {
-        // 🧪 Ainda não pesado — mostra botão de pesagem
-        botaoHtml = `
-    <button class="btn-undo-simple btn-pesar ${solid}" 
-            data-box="${boxNum}" 
-            data-codnfe="${codNfe}" 
-            data-pedidos='${JSON.stringify(pedidos)}' 
-            style="border:none;box-shadow:none;" tabindex="0">
-      <i class="bi bi-balance-scale"></i> PESAR PEDIDO
-    </button>`;
-      }
 
       const wrapper = document.createElement("div");
       wrapper.className = "card-produto";
@@ -772,19 +801,17 @@ function renderBoxCards(pedidosEsperados = []) {
       infoCard.innerHTML = `
         <div class="details text-center w-100">
           <div class="fs-6 fw-bold">${pedidoRef}</div>
-          <div>
-            <span class="badge bg-dark">${bipado}/${total}</span>
-          </div>
+          <div><span class="badge bg-dark">${bipado}/${total}</span></div>
           <div class="mt-2">${botaoHtml}</div>
         </div>
       `;
-      wrapper.appendChild(infoCard);
 
       const numCard = document.createElement("div");
       numCard.className = `card-number ${solid}`;
       numCard.innerHTML = `<div>${boxNum}</div>`;
-      wrapper.appendChild(numCard);
 
+      wrapper.appendChild(infoCard);
+      wrapper.appendChild(numCard);
       boxContainer.appendChild(wrapper);
     });
 
@@ -911,7 +938,6 @@ function atualizarBoxIndividual(boxNum) {
   const boxContainer = document.getElementById("boxContainer");
   if (!boxContainer) return;
 
-  // Remove o card existente
   const cards = boxContainer.querySelectorAll(".card-produto");
   const totalPedidosNaBox = Object.values(caixas).filter(
     (info) => String(info.box) === String(boxNum)
@@ -926,16 +952,14 @@ function atualizarBoxIndividual(boxNum) {
     });
   }
 
-  // Reinsere apenas o card atualizado
   const entradas = Object.entries(caixas).filter(
     ([_, info]) => String(info.box) === String(boxNum)
   );
-
   if (!entradas.length) return;
 
-  // Simula chamada para criar um novo card (usando parte do renderBoxCards)
+  const pedidosNaBox = entradas.map(([pedido]) => pedido); // ✅ define aqui
+
   for (const [pedido, info] of entradas) {
-    const pedidos = [pedido];
     const codNfe = codNfeMap[pedido] || "";
     const isPesado = pedidosNaBox.every((p) => caixas[p]?.pesado);
     const isIncompleto = info.bipado < info.total;
@@ -954,6 +978,14 @@ function atualizarBoxIndividual(boxNum) {
       light = "bg-danger-subtle text-dark";
       solid = "bg-danger text-white";
     }
+
+    const shadowColor = solid.includes("primary")
+      ? "rgba(13,110,253,.3)"
+      : solid.includes("success")
+      ? "rgba(25,135,84,.3)"
+      : solid.includes("warning")
+      ? "rgba(255,193,7,.3)"
+      : "rgba(220,53,69,.3)";
 
     let botaoHtml = "";
     if (isPesado) {
@@ -1701,7 +1733,7 @@ function renderCardProduto(result) {
         </div>
         <div class="image-container">
           <img
-            src="${urlImg}"
+            loading="eager" decoding="sync" class="product-image" draggable="false" src="${urlImg}"
             alt="Imagem do Produto"
             onerror="this.onerror=null;this.src='https://via.placeholder.com/80?text=Sem+Img';"
           />
@@ -1832,7 +1864,7 @@ async function carregarBipagemAnterior(romaneio) {
     .select("id, status")
     .eq("romaneio", romaneio);
 
-  const pedidoStatusMap = {};
+  pedidoStatusMap = {};
   pedidos.forEach((p) => {
     pedidoStatusMap[p.id] = p.status;
   });
@@ -1989,7 +2021,7 @@ document.getElementById("btnIniciar").addEventListener("click", async () => {
   romaneio = input.value.trim();
   if (!romaneio) return alert("Digite o romaneio");
 
-  // 🔒 Verifica se o romaneio existe no banco de dados
+  // 🔒 Verifica se o romaneio existe
   const { data: romaneioValido, error: erroRom } = await supabase
     .from("romaneios")
     .select("romaneio")
@@ -2004,24 +2036,24 @@ document.getElementById("btnIniciar").addEventListener("click", async () => {
   window.romaneio = romaneio;
   atualizarCamposDoCronometroModal();
 
-  // Se operador1 não existir, não adianta nem tentar
   if (!operador1) {
     return alert("Você precisa fazer login antes de iniciar um romaneio.");
   }
 
-  // Checa se já há alguém usando:
   const status = await verificarRomaneioEmUso(romaneio);
   if (status.emUso) {
     alert(`Este romaneio está em uso por: ${status.por}`);
     return;
   }
 
-  // 1) buscar todos os produtos desse romaneio
+  // Carregar dados
   const { data: pedidos } = await supabase
     .from("pedidos")
     .select("id")
     .eq("romaneio", romaneio);
   const pedidoIds = pedidos.map((p) => p.id);
+
+  await atualizarStatusPedidosRomaneio(romaneio);
 
   await carregarCodNfeMap(pedidoIds);
   mapaEnderecos = await carregarEnderecosComCache();
@@ -2031,19 +2063,15 @@ document.getElementById("btnIniciar").addEventListener("click", async () => {
     .select("sku")
     .in("pedido_id", pedidoIds);
 
-  // 2) extrair lista única de SKUs
   const skus = Array.from(
     new Set(produtos.map((p) => p.sku?.trim().toUpperCase()).filter(Boolean))
   );
 
-  // 3) carregar só as refs desses SKUs
   await carregarRefs(skus);
 
-  // limpa o cartão antes de liberar o bipar
   currentProduto = null;
   document.getElementById("cardAtual").innerHTML = "";
 
-  // depois segue com o unlock dos campos, focus etc.
   await carregarBipagemAnterior(romaneio);
 
   document.getElementById("skuInput").parentElement.classList.remove("d-none");
@@ -2064,14 +2092,16 @@ document.getElementById("btnIniciar").addEventListener("click", async () => {
   await carregarBipagemAnterior(romaneio);
   await gerarResumoVisualRomaneio();
 
-  if (typeof atualizarInfosCronometro === "function") {
+  if (typeof atualizarInfosCronometro === "function")
     atualizarInfosCronometro();
-  }
-  if (typeof buscarEPopularTempoIdeal === "function") {
+  if (typeof buscarEPopularTempoIdeal === "function")
     buscarEPopularTempoIdeal(romaneio);
-  }
 
   await carregarCronometroNoModal();
+
+  // ✅ Registrar início da sessão no Supabase
+  if (operador1) await iniciarSessaoRomaneio(romaneio, operador1);
+  if (operador2) await iniciarSessaoRomaneio(romaneio, operador2);
 });
 
 function atualizarCamposDoCronometroModal() {
@@ -2168,7 +2198,6 @@ document.getElementById("btnFinalizar").addEventListener("click", async () => {
   const confirmacao = confirm("Finalizar e atualizar o banco de dados?");
   if (!confirmacao) return;
 
-  // Atualiza o status e boxes no Supabase
   for (const pedido in caixas) {
     const { box, pesado } = caixas[pedido];
 
@@ -2185,13 +2214,23 @@ document.getElementById("btnFinalizar").addEventListener("click", async () => {
     }
   }
 
-  // 🧾 Gera o PDF de resumo
+  // 🧾 PDF resumo
   await gerarPdfResumo();
 
-  // 🔓 Libera o romaneio
+  // ⏱️ Atualiza hora de finalização do romaneio
+  await supabase
+    .from("romaneios")
+    .update({ ended_at: new Date().toISOString() })
+    .eq("romaneio", romaneio);
+
+  // ✅ fecha as sessões antes de limpar
+  if (operador1) await finalizarSessaoRomaneio(romaneio, operador1);
+  if (operador2) await finalizarSessaoRomaneio(romaneio, operador2);
+
+  // 🔓 só depois libera o romaneio_em_uso
   await supabase.from("romaneios_em_uso").delete().eq("romaneio", romaneio);
 
-  // 🧹 Limpa estado local
+  // 🧹 Limpa estado
   localStorage.removeItem(`historico-${romaneio}`);
   localStorage.removeItem(`caixas-${romaneio}`);
   localStorage.removeItem(`pendentes-${romaneio}`);
@@ -2201,7 +2240,6 @@ document.getElementById("btnFinalizar").addEventListener("click", async () => {
   pendentes = [];
   romaneio = "";
 
-  // 🧼 Reset UI
   document.getElementById("romaneioInput").value = "";
   document.getElementById("romaneioInput").disabled = false;
   document.getElementById("btnIniciar").disabled = false;
@@ -2277,6 +2315,7 @@ document
   });
 
 document.getElementById("btnPrintPendentes")?.addEventListener("click", () => {
+  window.__permitirImpressao = true; // ✅ permite impressão
   const operadorLogado =
     operador2 && operador2.length
       ? `${operador1} e ${operador2}`
@@ -2288,7 +2327,6 @@ document.getElementById("btnPrintPendentes")?.addEventListener("click", () => {
     return alert("Nenhum pendente encontrado.");
   }
 
-  // Filtra os pendentes com endereço válido
   const comEndereco = pendentes.filter((p) => {
     if (!p.endereco || typeof p.endereco !== "string") return false;
     const primeiro = p.endereco.split("•")[0]?.trim();
@@ -2299,44 +2337,29 @@ document.getElementById("btnPrintPendentes")?.addEventListener("click", () => {
     return alert("Nenhum pendente com endereço válido encontrado.");
   }
 
-  // Agrupar por SKU somando a quantidade e guardando o primeiro endereço
   const agrupado = {};
   comEndereco.forEach(({ sku, qtd, endereco }) => {
     const partesEndereco = (endereco || "").split("•").map((p) => p.trim());
     const doisEnderecos = partesEndereco.slice(0, 2).join(" • ");
 
-    if (!agrupado[sku]) {
-      agrupado[sku] = { qtd: 0, endereco: doisEnderecos };
-    }
+    if (!agrupado[sku]) agrupado[sku] = { qtd: 0, endereco: doisEnderecos };
     agrupado[sku].qtd += qtd;
   });
-  // Gera e ordena os dados agrupados por endereço
+
   const linhas = Object.entries(agrupado)
-    .sort((a, b) => {
-      const enderecoA = a[1].endereco?.toUpperCase() || "";
-      const enderecoB = b[1].endereco?.toUpperCase() || "";
-      return enderecoA.localeCompare(enderecoB);
-    })
+    .sort((a, b) => a[1].endereco.localeCompare(b[1].endereco))
     .map(
-      ([sku, { qtd, endereco }]) => `
-      <tr>
-        <td>${sku}</td>
-        <td>${qtd}</td>
-        <td>${endereco}</td>
-      </tr>
-    `
+      ([sku, { qtd, endereco }]) =>
+        `<tr><td>${sku}</td><td>${qtd}</td><td>${endereco}</td></tr>`
     )
     .join("");
 
-  // Gera o HTML para impressão
   const htmlImpressao = `
     <html>
       <head>
         <title>Pendentes com Endereço</title>
         <style>
           body { font-family: sans-serif; padding: 20px; }
-          h2 { margin-bottom: 10px; }
-          .info { margin-bottom: 16px; }
           table { width: 100%; border-collapse: collapse; margin-top: 12px; }
           th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
           th { background-color: #f0f0f0; }
@@ -2344,26 +2367,14 @@ document.getElementById("btnPrintPendentes")?.addEventListener("click", () => {
       </head>
       <body>
         <h2>Lista de Pendentes com Endereço</h2>
-        <div class="info">
-          <strong>Operador:</strong> ${operadorLogado}<br/>
-          <strong>Romaneio:</strong> ${romaneioAtivo}<br/>
-          <strong>Data:</strong> ${dataHoraAtual}
-        </div>
+        <div><strong>Operador:</strong> ${operadorLogado}<br/>
+        <strong>Romaneio:</strong> ${romaneioAtivo}<br/>
+        <strong>Data:</strong> ${dataHoraAtual}</div>
         <table>
-          <thead>
-            <tr>
-              <th>SKU</th>
-              <th>Quantidade</th>
-              <th>Endereço</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${linhas}
-          </tbody>
+          <thead><tr><th>SKU</th><th>Quantidade</th><th>Endereço</th></tr></thead>
+          <tbody>${linhas}</tbody>
         </table>
-        <script>
-          window.onload = () => { window.print(); window.close(); }
-        </script>
+        <script>window.onload = () => { window.print(); window.close(); }</script>
       </body>
     </html>
   `;
@@ -2491,7 +2502,7 @@ function renderProductMap() {
     card.className = "card card-produto p-2";
     card.style.width = "120px";
     card.innerHTML = `
-      <img
+      <img loading="lazy" decoding="async"
         src="${urlImg}"
         alt="SKU ${sku}"
         class="img-produto mb-1"
@@ -2972,9 +2983,15 @@ function configurarListenersCronometro() {
   });
 
   // Botão "Finalizar Romaneio"
-  btnFinalizarRomaneio?.addEventListener("click", () => {
-    registrarProdutividadeOperadores();
-    finalizarEtapas(); // ou outro comportamento
+  // Botão "Finalizar Romaneio" no cronômetro
+  btnFinalizarRomaneio?.addEventListener("click", async () => {
+    await registrarProdutividadeOperadores();
+    await finalizarEtapas();
+
+    // ✅ Finalizar sessões no Supabase
+    if (operador1) await finalizarSessaoRomaneio(romaneio, operador1);
+    if (operador2) await finalizarSessaoRomaneio(romaneio, operador2);
+
     localStorage.removeItem(`etiquetasNL-${romaneio}`);
   });
 
@@ -3271,7 +3288,7 @@ async function gerarResumoVisualRomaneio() {
       ${remessa}
       <br />
       <button
-        class="btn btn-sm btn-outline-secondary mt-1"
+        class="btn btn-sm btn-outline-light mt-1"
         onclick="exibirRastreiosPorMetodo('${metodo}')"
         title="Ver códigos de rastreio para ${metodo}"
       >
@@ -3283,7 +3300,7 @@ async function gerarResumoVisualRomaneio() {
 
     const btnRemessa = document.createElement("button");
     btnRemessa.textContent = "📋 Ver Códigos";
-    btnRemessa.className = "btn btn-sm btn-outline-secondary";
+    btnRemessa.className = "btn btn-sm btn-outline-light";
     btnRemessa.addEventListener("click", () =>
       exibirRastreiosPorMetodo(metodo.toUpperCase())
     );
@@ -3433,31 +3450,31 @@ function mostrarModalDeTextoCopiavel(texto, metodo) {
     SEDEX:
       "https://ge.kaisan.com.br/?page=nfe_arquivo_remessa/inicia_confere_remessa_transportadora&cod_bandeira=1&cod_loja=-1&cod_transportadora=2",
     PAC: "https://ge.kaisan.com.br/?page=nfe_arquivo_remessa/inicia_confere_remessa_transportadora&cod_bandeira=1&cod_loja=-1&cod_transportadora=1",
-    "RETIRADA LOCAL":
+    "RETIRAR LOCAL":
       "https://ge.kaisan.com.br/?page=nfe_arquivo_remessa/inicia_confere_remessa_transportadora&cod_bandeira=1&cod_loja=-1&cod_transportadora=4",
+    "LOGGI EXPRESS CROSS DOCK":
+      "https://ge.kaisan.com.br/?page=nfe_arquivo_remessa/inicia_confere_remessa_transportadora&cod_bandeira=1&cod_loja=-1&cod_transportadora=36",
   };
-
-  const metodoNormalizado = metodo.toUpperCase();
+  const metodoNormalizado = (metodo || "").toUpperCase();
   const urlRemessa = linksRemessa[metodoNormalizado] || null;
 
+  // Backdrop
+  const backdrop = document.createElement("div");
+  backdrop.className = "modal-backdrop-custom";
+
+  // Modal
   const modal = document.createElement("div");
-  modal.style.position = "fixed";
-  modal.style.top = "10%";
-  modal.style.left = "50%";
-  modal.style.transform = "translateX(-50%)";
-  modal.style.background = "var(--color-white)";
-  modal.style.border = "1px solid var(--color-info-border)";
-  modal.style.padding = "20px";
-  modal.style.zIndex = "9999";
-  modal.style.width = "90%";
-  modal.style.maxWidth = "600px";
-  modal.style.boxShadow = "0 0 10px rgb(0 0 0 / 30%)";
-  modal.style.borderRadius = "8px";
+  modal.className = "modal-elevated";
+  modal.setAttribute("role", "dialog");
+  modal.setAttribute("aria-modal", "true");
+  modal.setAttribute("aria-labelledby", "tituloModalRastreio");
 
   modal.innerHTML = `
-    <div style="margin-bottom:10px;font-weight:bold;">Lista de Códigos de Rastreio – ${metodo}</div>
-    <textarea id="textoRastreios" style="width:100%;height:300px;" readonly>${texto}</textarea>
-    <div style="margin-top:10px;text-align:right; gap: 0.5rem;">
+    <div class="modal-heading" id="tituloModalRastreio">Lista de Códigos de Rastreio – ${metodo}</div>
+    <div class="modal-body">
+      <textarea id="textoRastreios" readonly>${texto}</textarea>
+    </div>
+    <div class="modal-actions">
       <button id="btnCopiarTexto" class="btn btn-sm btn-primary">📋 Copiar</button>
       ${
         urlRemessa
@@ -3468,18 +3485,37 @@ function mostrarModalDeTextoCopiavel(texto, metodo) {
     </div>
   `;
 
-  document.body.appendChild(modal);
+  function onKey(ev) {
+    if (ev.key === "Escape") close();
+  }
+  function close() {
+    document.removeEventListener("keydown", onKey);
+    try {
+      modal.remove();
+    } catch (e) {}
+    try {
+      backdrop.remove();
+    } catch (e) {}
+    document.body.style.overflow = "";
+  }
 
-  document.getElementById("btnCopiarTexto").addEventListener("click", () => {
-    const textarea = document.getElementById("textoRastreios");
+  // expose for legacy calls
+  window.closeModal = close;
+  window.closemodal = close;
+
+  document.body.appendChild(backdrop);
+  document.body.appendChild(modal);
+  document.body.style.overflow = "hidden";
+
+  // actions
+  modal.querySelector("#btnCopiarTexto")?.addEventListener("click", () => {
+    const textarea = modal.querySelector("#textoRastreios");
     textarea.select();
     document.execCommand("copy");
-    alert("✅ Códigos copiados para a área de transferência!");
   });
-
-  document.getElementById("btnFecharModal").addEventListener("click", () => {
-    modal.remove();
-  });
+  modal.querySelector("#btnFecharModal")?.addEventListener("click", close);
+  backdrop.addEventListener("click", close);
+  document.addEventListener("keydown", onKey);
 }
 
 window.exibirRastreiosPorMetodo = exibirRastreiosPorMetodo;
@@ -3654,6 +3690,14 @@ async function pesarPedidoManual() {
   const url = `https://ge.kaisan.com.br/index2.php?page=nfe_pedido/pesa_automatico_pedido&cod_nfe_pedido=${codNfe}`;
   window.open(url, "_blank");
 
+  setTimeout(() => {
+    const input = document.getElementById("inputPedidoManual");
+    if (input) {
+      input.focus();
+      input.select(); // simula o Ctrl+A
+    }
+  }, 400);
+
   // 4. Busca rastreios
   const { data: rastreios } = await supabase
     .from("pedidos_rastreio")
@@ -3792,14 +3836,22 @@ window.mostrarRastreiosManuaisAgrupados = function () {
 
   transps.forEach((transp) => {
     const lista = mapa[transp] || [];
+    const qtd = lista.length; // ✅ contador
 
     const card = document.createElement("div");
     card.className = "mb-4 p-3 border rounded shadow-sm bg-light";
 
     card.innerHTML = `
-      <div class="d-flex justify-content-between align-items-center mb-2">
-        <h6 class="mb-0">📦 ${transp}</h6>
-        <button class="btn btn-sm btn-outline-primary" onclick="copiarRastreiosTransp('${transp}')">📋 Copiar</button>
+      <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+        <h6 class="mb-0">
+          📦 ${transp} 
+          <span class="badge bg-dark ms-2">${qtd} rastreio${
+      qtd !== 1 ? "s" : ""
+    }</span>
+        </h6>
+        <button class="btn btn-sm btn-outline-primary" onclick="copiarRastreiosTransp('${transp}')">
+          📋 Copiar
+        </button>
       </div>
       <textarea class="form-control" rows="6" readonly style="font-family: monospace;">${lista.join(
         "\n"
@@ -3986,87 +4038,104 @@ async function carregarProdutividadeDoOperador() {
   const hoje = new Date().toISOString().slice(0, 10);
   const op = operador1;
 
-  // 1. Busca produtividade (romaneios finalizados)
-  const { data: prodData, error: errProd } = await supabase
-    .from("produtividade_operadores")
-    .select("*")
-    .eq("data", hoje)
-    .eq("operador", op);
+  // ---- Romaneios finalizados hoje ----
+  const { data: sessoesHoje } = await supabase
+    .from("romaneios_sessoes")
+    .select("id, duration_sec")
+    .eq("operador", op)
+    .gte("ended_at", `${hoje}T00:00:00-03:00`)
+    .lte("ended_at", `${hoje}T23:59:59-03:00`);
 
-  if (errProd || !prodData) {
-    console.warn("Erro ao buscar produtividade:", errProd);
-    return;
-  }
-
-  const totalRomaneios = prodData.length;
-  const totalPecas = prodData.reduce((acc, r) => acc + (r.pecas || 0), 0);
-  const tempoTotalSegundos = prodData.reduce(
-    (acc, r) => acc + (r.tempo_total || 0),
-    0
-  );
-  const mediaTempoSeg = totalRomaneios
-    ? Math.round(tempoTotalSegundos / totalRomaneios)
+  const totalRomaneios = Array.isArray(sessoesHoje) ? sessoesHoje.length : 0;
+  const somaDuracao = Array.isArray(sessoesHoje)
+    ? sessoesHoje.reduce((acc, r) => acc + (r.duration_sec || 0), 0)
     : 0;
-  const mediaTempo = converterSegundosParaString(mediaTempoSeg);
+  const mediaSegundos = totalRomaneios
+    ? Math.round(somaDuracao / totalRomaneios)
+    : 0;
+  const mediaTempo = converterSegundosParaString(mediaSegundos);
 
-  // 2. Busca todos os pedidos pesados hoje pelo operador
-  const { data: pesagensOp, error: errPes } = await supabase
+  const { ini, fim } = rangeHojeSP();
+
+  // ---- Pesagens do dia ----
+  const { data: pesagensOp } = await supabase
     .from("pesagens")
     .select("pedido, qtde_pecas")
     .eq("operador", op)
-    .gte("data", `${hoje}T00:00:00`)
-    .lte("data", `${hoje}T23:59:59`);
+    .gte("data", ini)
+    .lte("data", fim);
 
-  if (errPes || !pesagensOp) {
-    console.warn("Erro ao buscar pesagens:", errPes);
-    return;
-  }
-
-  const pedidosPesadosUnicos = await contarPedidosPesadosPorOperador(op);
-  const pecasPesadas = pesagensOp.reduce(
+  const pedidosPesadosUnicos = new Set((pesagensOp || []).map((r) => r.pedido))
+    .size;
+  const pecasPesadas = (pesagensOp || []).reduce(
     (acc, r) => acc + (r.qtde_pecas || 0),
     0
   );
 
-  // 3. Busca todos os pedidos pesados hoje por todos
-  const { data: pesagensDia, error: errTodos } = await supabase
-    .from("pesagens")
-    .select("pedido")
-    .gte("data", `${hoje}T00:00:00`)
-    .lte("data", `${hoje}T23:59:59`);
-
-  const totalPedidosPesadosHoje = await contarPedidosPesadosHoje();
-
-  // 4. Busca total de pedidos do dia (meta global)
-  const { data: totalPedidosNaoPesados, error: errPedidos } =
-    await supabase.rpc("contar_pedidos_nao_pesados");
-
-  const metaDoDia = totalPedidosNaoPesados || 0;
-  const metaIndividual = Math.ceil(metaDoDia / 4);
-  const percIndividual = metaIndividual
-    ? Math.round((pedidosPesadosUnicos / metaIndividual) * 100)
-    : 0;
-  const percEquipe = metaDoDia
-    ? Math.round((totalPedidosPesadosHoje / metaDoDia) * 100)
-    : 0;
-
-  // 5. Atualiza DOM
+  // ---- Preenche UI ----
   document.getElementById("metaRomaneios").textContent = totalRomaneios;
   document.getElementById("metaPedidos").textContent = pedidosPesadosUnicos;
   document.getElementById("metaPecas").textContent = pecasPesadas;
   document.getElementById("metaTempo").textContent = mediaTempo;
 
+  // Mantém cálculo de metas individuais/equipe
+  const totalPedidosDoDia = await carregarTotalPedidosDoDia();
+
+  // busca operadores ativos hoje
+  const { data: ativosHoje, error } = await supabase
+    .from("romaneios_em_uso")
+    .select("operador1, operador2");
+
+  if (error) {
+    console.error("Erro ao buscar operadores ativos:", error);
+  }
+
+  const operadoresAtivos = new Set();
+  ativosHoje?.forEach((r) => {
+    if (r.operador1) operadoresAtivos.add(r.operador1);
+    if (r.operador2) operadoresAtivos.add(r.operador2);
+  });
+
+  const qtdOperadores = operadoresAtivos.size || 1; // fallback = 1 para evitar divisão por 0
+
+  const hojeDate = new Date();
+  const diaSemana = hojeDate.getDay(); // 0=Dom, 1=Seg, ..., 5=Sex, 6=Sáb
+
+  let metaIndividual = 0; // padrão sem meta
+
+  if (diaSemana >= 1 && diaSemana <= 4) {
+    // Segunda a quinta
+    metaIndividual = Math.min(
+      Math.ceil(totalPedidosDoDia / qtdOperadores),
+      450
+    );
+  } else if (diaSemana === 5) {
+    // Sexta
+    metaIndividual = Math.min(
+      Math.ceil(totalPedidosDoDia / qtdOperadores),
+      400
+    );
+  }
+  // Sábado (6) e domingo (0) mantêm meta = 0
+
+  const percIndividual = metaIndividual
+    ? Math.round((pedidosPesadosUnicos / metaIndividual) * 100)
+    : 0;
+
+  const percEquipe = totalPedidosDoDia
+    ? Math.round(((await contarPedidosPesadosHoje()) / totalPedidosDoDia) * 100)
+    : 0;
+
   const elResumo = document.getElementById("metaResumoGeral");
-  elResumo.textContent = `Pedidos hoje: ${metaDoDia} (meta ${Math.ceil(
-    metaDoDia * 0.8
-  )}) — Você: ${pedidosPesadosUnicos}/${metaIndividual} (${percIndividual}%) — Equipe: ${totalPedidosPesadosHoje}/${metaDoDia} (${percEquipe}%)`;
+  elResumo.textContent = `Pedidos hoje: ${totalPedidosDoDia} — Você: ${pedidosPesadosUnicos}/${
+    metaIndividual || "-"
+  } (${percIndividual}%) — Equipe: ${percEquipe}%`;
 
   elResumo.classList.remove("text-success", "text-warning", "text-danger");
   if (percIndividual >= 100) elResumo.classList.add("text-success");
   else if (percIndividual >= 70) elResumo.classList.add("text-warning");
   else elResumo.classList.add("text-danger");
 
-  // 6. Atualiza barras visuais
   await atualizarMetaIndividual();
 }
 
@@ -4125,25 +4194,37 @@ async function renderizarEAtualizarFoco() {
 }
 
 async function registrarPesagem(pedidoId, quantidade, romaneioAtual, operador) {
-  const { error } = await supabase.from("pesagens").insert([
-    {
-      pedido: pedidoId,
-      qtde_pecas: quantidade,
-      romaneio: romaneioAtual,
-      operador: operador,
-    },
-  ]);
+  const { error } = await supabase
+    .from("pesagens")
+    .insert([
+      {
+        pedido: pedidoId,
+        qtde_pecas: quantidade,
+        romaneio: romaneioAtual,
+        operador: operador,
+      },
+    ])
+    .select();
 
   if (error) {
-    console.error("❌ Erro ao registrar pesagem:", error);
+    // se for violação de unique por pedido, apenas loga e segue
+    if (
+      String(error.message || "")
+        .toLowerCase()
+        .includes("duplicate") ||
+      String(error.code || "") === "23505"
+    ) {
+      console.log(`ℹ️ Pesagem ignorada (duplicada) para pedido ${pedidoId}`);
+    } else {
+      console.error("❌ Erro ao registrar pesagem:", error);
+    }
   } else {
-    console.log(
-      `✅ Pesagem registrada: Pedido ${pedidoId}, ${quantidade} peça(s), operador ${operador}`
-    );
-    await obterTotalPedidosPesadosHoje();
-    await carregarProdutividadeDoOperador();
-    await atualizarMetaIndividual();
+    console.log(`✅ Pesagem registrada: Pedido ${pedidoId} (${quantidade})`);
   }
+
+  await obterTotalPedidosPesadosHoje();
+  await carregarProdutividadeDoOperador();
+  await atualizarMetaIndividual();
 }
 
 async function obterTotalPedidosPesadosHoje() {
@@ -4187,11 +4268,12 @@ async function carregarTotalPedidosDoDia() {
 
 async function contarPedidosPesadosHoje() {
   const hoje = new Date().toISOString().slice(0, 10);
+  const { ini, fim } = rangeHojeSP();
   const { count, error } = await supabase
     .from("pesagens")
     .select("pedido", { count: "exact", head: true })
-    .gte("data", `${hoje}T00:00:00`)
-    .lte("data", `${hoje}T23:59:59`);
+    .gte("data", ini)
+    .lte("data", fim);
 
   if (error) {
     console.error("Erro ao contar pedidos pesados hoje:", error);
@@ -4203,12 +4285,13 @@ async function contarPedidosPesadosHoje() {
 
 async function contarPedidosPesadosPorOperador(operador) {
   const hoje = new Date().toISOString().slice(0, 10);
+  const { ini, fim } = rangeHojeSP();
   const { count, error } = await supabase
     .from("pesagens")
     .select("pedido", { count: "exact", head: true })
     .eq("operador", operador)
-    .gte("data", `${hoje}T00:00:00`)
-    .lte("data", `${hoje}T23:59:59`);
+    .gte("data", ini)
+    .lte("data", fim);
 
   if (error) {
     console.error("Erro ao contar pedidos do operador:", error);
@@ -4312,3 +4395,494 @@ function setEnderecoFinal(pedido, sku, endereco) {
     el.classList.add(endereco === "SEM LOCAL" ? "bg-danger" : "bg-success");
   }
 }
+
+async function iniciarSessaoRomaneio(rom, op) {
+  // tenta criar sessão aberta; se já existir aberta para (romaneio, operador), ignora
+  const payload = {
+    romaneio: rom,
+    operador: op,
+    started_at: new Date().toISOString(),
+  };
+
+  // como o unique é parcial (WHERE ended_at IS NULL), não dá pra usar onConflict direto.
+  // então primeiro checamos sessão aberta:
+  const { data: aberta } = await supabase
+    .from("romaneios_sessoes")
+    .select("id")
+    .eq("romaneio", rom)
+    .eq("operador", op)
+    .is("ended_at", null)
+    .maybeSingle();
+
+  if (aberta?.id) return aberta.id;
+
+  const { data, error } = await supabase
+    .from("romaneios_sessoes")
+    .insert([payload])
+    .select("id")
+    .single();
+
+  if (error) {
+    console.error("Erro ao iniciar sessão:", error);
+    mostrarToast("❌ Não foi possível iniciar a sessão do romaneio.", "error");
+    return null;
+  }
+  return data.id;
+}
+
+async function finalizarSessaoRomaneio(rom, op) {
+  const { data: aberta, error: errSel } = await supabase
+    .from("romaneios_sessoes")
+    .select("id, romaneio, operador, started_at, ended_at")
+    .eq("romaneio", rom)
+    .eq("operador", op)
+    .is("ended_at", null)
+    .order("started_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  console.log("🔍 Sessão encontrada para finalizar:", aberta);
+
+  if (!aberta?.id) {
+    console.warn(`⚠️ Nenhuma sessão aberta para ${op} no romaneio ${rom}`);
+    return false;
+  }
+
+  const { error: errUpd } = await supabase
+    .from("romaneios_sessoes")
+    .update({ ended_at: new Date().toISOString() })
+    .eq("id", aberta.id);
+
+  if (errUpd) {
+    console.error("❌ Erro ao finalizar sessão:", errUpd);
+    return false;
+  }
+
+  console.log(`✅ Sessão finalizada para ${op} em ${rom}`);
+  return true;
+}
+
+async function fetchLeaderboardDia() {
+  const { data: lb, error } = await supabase
+    .from("view_leaderboard_dia") // ✅ VIEW criada no Supabase
+    .select("*")
+    .order("pedidos", { ascending: false });
+
+  if (error) {
+    console.error("Erro leaderboard dia:", error);
+    mostrarToast("❌ Erro ao carregar leaderboard do dia.", "error");
+    return [];
+  }
+  return lb || [];
+}
+
+function renderLeaderboard(rows, erros = []) {
+  const box = document.getElementById("leaderboardContainer");
+  const tbody = document.getElementById("leaderboardBody");
+  if (!box || !tbody) return;
+
+  // cria map de erros por operador
+  const errosMap = {};
+  let somaErros = 0;
+  erros.forEach((e) => {
+    errosMap[e.operador] = e.erros;
+    somaErros += e.erros;
+  });
+
+  tbody.innerHTML = (rows || [])
+    .map((r) => {
+      const tempo = converterSegundosParaString(r.media_seg || 0);
+      const isTotal = r.operador === "TOTAL";
+      const qtdErros = isTotal ? somaErros : errosMap[r.operador] ?? 0;
+
+      return `
+        <tr class="${isTotal ? "fw-bold table-secondary" : ""}">
+          <td>${r.operador}</td>
+          <td class="text-center">${r.pedidos}</td>
+          <td class="text-center">${r.pecas}</td>
+          <td class="text-center">${r.romaneios}</td>
+          <td class="text-center">${tempo}</td>
+          <td class="text-center">${r.media_pedidos_hora ?? "-"}</td>
+          <td class="text-center">${r.media_pedidos_dia ?? "-"}</td>
+          <td class="text-center">${r.media_pecas_pedido ?? "-"}</td>
+          <td class="text-center">
+            <span class="badge bg-danger">${qtdErros}</span>
+          </td>
+        </tr>
+      `;
+    })
+    .join("");
+
+  box.style.display = "block";
+}
+
+// Se quiser também o do mês:
+async function fetchLeaderboardMes() {
+  const { data: lb, error } = await supabase
+    .from("view_leaderboard_mes")
+    .select("*")
+    .order("pedidos", { ascending: false });
+
+  if (error) {
+    console.error("Erro leaderboard mês:", error);
+    mostrarToast("❌ Erro ao carregar leaderboard do mês.", "error");
+    return [];
+  }
+  return lb || [];
+}
+
+// Listeners dos botões
+document
+  .getElementById("btnLeaderboardDia")
+  ?.addEventListener("click", async () => {
+    const rows = await fetchLeaderboardDia();
+    const erros = await fetchErrosDia();
+    renderLeaderboard(rows, erros);
+  });
+
+document
+  .getElementById("btnLeaderboardMes")
+  ?.addEventListener("click", async () => {
+    const rows = await fetchLeaderboardMes();
+    const erros = await fetchErrosMes();
+    renderLeaderboard(rows, erros);
+  });
+
+// Opcional: ao expandir PRODUTIVIDADE já carrega do dia
+document.getElementById("painelToggle")?.addEventListener("click", async () => {
+  const wrapper = document.getElementById("produtividadeWrapper");
+  const vaiExpandir = !wrapper.classList.contains("expandido");
+  if (vaiExpandir) {
+    const rows = await fetchLeaderboardDia();
+    renderLeaderboard(rows);
+  }
+});
+
+function hojeISO_SP() {
+  const fmt = new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  const [{ value: y }, , { value: m }, , { value: d }] = fmt.formatToParts(
+    new Date()
+  );
+  return `${y}-${m}-${d}`;
+}
+function rangeHojeSP() {
+  const d = hojeISO_SP();
+  return {
+    ini: `${d}T00:00:00-03:00`,
+    fim: `${d}T23:59:59-03:00`,
+  };
+}
+
+async function fetchErrosDia() {
+  const { data, error } = await supabase
+    .from("view_erros_operadores_dia")
+    .select("*");
+  if (error) {
+    console.error("Erro ao carregar erros do dia:", error);
+    return [];
+  }
+  return data || [];
+}
+
+async function fetchErrosMes() {
+  const { data, error } = await supabase
+    .from("view_erros_operadores_mes")
+    .select("*");
+  if (error) {
+    console.error("Erro ao carregar erros do mês:", error);
+    return [];
+  }
+  return data || [];
+} // Force eager loading for images inside Bootstrap tooltips
+document.addEventListener("shown.bs.tooltip", (ev) => {
+  const trigger = ev.target;
+  const tipId = trigger && trigger.getAttribute("aria-describedby");
+  if (!tipId) return;
+  const tipEl = document.getElementById(tipId);
+  if (!tipEl) return;
+  tipEl.querySelectorAll("img").forEach((img) => {
+    img.setAttribute("loading", "eager");
+    img.setAttribute("decoding", "sync");
+    const src = img.getAttribute("src");
+    if (src) img.src = src; // poke reload if needed
+  });
+});
+
+// ============ BLOQUEAR IMPRESSÃO NÃO AUTORIZADA ============
+
+// Flag global: só libera quando um botão autorizado define true
+window.__permitirImpressao = false;
+
+// Função auxiliar para bloquear impressão
+function bloquearImpressao() {
+  // Intercepta Ctrl+P e Cmd+P
+  window.addEventListener(
+    "keydown",
+    (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "p") {
+        if (!window.__permitirImpressao) {
+          e.preventDefault();
+          alert(
+            "🛑 Impressão bloqueada. Use os botões específicos da aplicação."
+          );
+          return false;
+        } else {
+          // volta a bloquear logo depois
+          setTimeout(() => (window.__permitirImpressao = false), 1000);
+        }
+      }
+    },
+    true
+  );
+
+  // Intercepta chamadas diretas a window.print()
+  const originalPrint = window.print;
+  window.print = function (...args) {
+    if (window.__permitirImpressao) {
+      const permitirAgora = window.__permitirImpressao;
+      // reseta logo depois da chamada
+      window.__permitirImpressao = false;
+      return originalPrint.apply(window, args);
+    } else {
+      alert("🛑 Impressão bloqueada. Utilize os botões oficiais da aplicação.");
+      return;
+    }
+  };
+
+  // Bloqueia tentativas pelo menu do navegador (Arquivo > Imprimir)
+  window.addEventListener("beforeprint", (e) => {
+    if (!window.__permitirImpressao) {
+      e.preventDefault?.();
+      alert("🛑 Impressão bloqueada. Use os botões da aplicação.");
+      // oculta conteúdo durante tentativa manual
+      document.body.style.display = "none";
+      setTimeout(() => (document.body.style.display = ""), 1000);
+    } else {
+      // restaura flag após uso autorizado
+      setTimeout(() => (window.__permitirImpressao = false), 1000);
+    }
+  });
+}
+
+// Reaplica o bloqueio sempre que o usuário volta pra aba
+window.addEventListener("focus", bloquearImpressao);
+bloquearImpressao();
+
+async function atualizarStatusPedidosRomaneio(romaneio) {
+  try {
+    const { data: pedidos, error } = await supabase
+      .from("pedidos")
+      .select("id, status")
+      .eq("romaneio", romaneio);
+
+    if (error) throw error;
+
+    // Limpa o mapa e atualiza os status atuais
+    pedidoStatusMap = {};
+    pedidos.forEach((p) => {
+      pedidoStatusMap[p.id] = (p.status || "").toUpperCase();
+
+      // Se o pedido estiver cancelado, garante que a caixa fique desativada
+      if (pedidoStatusMap[p.id] === "CANCELADO" && caixas[p.id]) {
+        caixas[p.id].pesado = false;
+        caixas[p.id].cancelado = true;
+      }
+    });
+
+    console.log("🔁 Status de pedidos atualizados:", pedidoStatusMap);
+  } catch (err) {
+    console.error("❌ Erro ao atualizar status dos pedidos:", err);
+  }
+}
+
+// Imprimir etiquetas 100×150 mm (uma por pedido) com QRCode de pesagem
+document
+  .getElementById("btnPrintEtiquetasBox")
+  ?.addEventListener("click", async () => {
+    if (!romaneio) {
+      return alert("Nenhum romaneio ativo.");
+    }
+
+    // 1) Coletar pedidos com box visível no estado 'caixas'
+    const entradas = Object.entries(caixas)
+      .filter(([_, info]) => info?.box != null && info.total > 0)
+      .map(([pedido, info]) => ({
+        pedido: Number(pedido),
+        box: Number(info.box),
+      }));
+
+    if (!entradas.length) {
+      return alert("Nenhum pedido com box encontrado para impressão.");
+    }
+
+    // 2) Obter clientes dos pedidos
+    const pedidoIds = entradas.map((e) => e.pedido);
+    const { data: pedidosInfo, error: errPed } = await supabase
+      .from("pedidos")
+      .select("id, cliente")
+      .in("id", pedidoIds);
+
+    if (errPed) {
+      console.error("Erro ao buscar clientes:", errPed);
+    }
+
+    const clienteMap = {};
+    (pedidosInfo || []).forEach((p) => (clienteMap[p.id] = p.cliente || "—"));
+
+    // 3) Montar itens com codNfe + URL pesagem
+    const itens = entradas.map(({ pedido, box }) => {
+      const codNfe = codNfeMap[pedido];
+      const url = codNfe
+        ? `https://ge.kaisan.com.br/index2.php?page=nfe_pedido/pesa_automatico_pedido&cod_nfe_pedido=${codNfe}`
+        : null;
+      return {
+        pedido,
+        box,
+        cliente: clienteMap[pedido] || "—",
+        codNfe: codNfe || "",
+        url,
+      };
+    });
+
+    // Ordenar por box, depois pedido
+    itens.sort((a, b) => a.box - b.box || a.pedido - b.pedido);
+
+    // 4) HTML das etiquetas (100×150 mm por etiqueta)
+    const etiquetasHtml = itens
+      .map(
+        (item) => `
+    <div class="etq" data-pedido="${item.pedido}">
+      <div class="header">
+        <div class="romaneio">ROM: <strong>${romaneio}</strong></div>
+        <div class="box">BOX <strong>${item.box}</strong></div>
+      </div>
+      <div class="pedido">PEDIDO <strong>${item.pedido}</strong></div>
+      <div class="cliente">${(item.cliente || "").toString().slice(0, 42)}</div>
+      <div class="qr">
+        <div id="qrcode-${item.pedido}" class="qrc"></div>
+        <div class="qrlink">${
+          item.codNfe ? "Abrir Pesagem" : "NF-e não encontrada"
+        }</div>
+      </div>
+      <div class="rodape">
+        <span>Picking by Box</span>
+        <span>${new Date().toLocaleString("pt-BR")}</span>
+      </div>
+    </div>
+  `
+      )
+      .join("");
+
+    // 5) Abre janela e injeta conteúdo + QRCode
+    const win = window.open("", "_blank");
+    if (!win) {
+      alert("Não foi possível abrir a janela de impressão.");
+      return;
+    }
+
+    win.document.write(`
+      <html>
+        <head>
+          <meta charset="UTF-8" />
+          <title>Etiquetas Box 100×150</title>
+          <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+          <style>
+            @page { size: 100mm 150mm; margin: 0; }
+            * { box-sizing: border-box; }
+            body {
+              margin: 0;
+              padding: 0;
+              font-family: 'Segoe UI', Arial, sans-serif;
+              -webkit-print-color-adjust: exact;
+            }
+            .etq {
+              width: 100mm;
+              height: 150mm;
+              page-break-after: always;
+              padding: 6mm 8mm;
+              display: flex;
+              flex-direction: column;
+              justify-content: space-between;
+            }
+            .header {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+            }
+            .box {
+              font-size: 28pt;
+              font-weight: 800;
+            }
+            .romaneio {
+              font-size: 11pt;
+            }
+            .pedido {
+              font-size: 16pt;
+              margin-top: 3mm;
+            }
+            .cliente {
+              font-size: 11pt;
+              color: #111;
+              margin-top: 2mm;
+              line-height: 1.1;
+              min-height: 15pt;
+            }
+            .qr {
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              margin: 4mm 0;
+            }
+            .qrc canvas, .qrc img {
+              width: 30mm;     /* 🔧 tamanho reduzido */
+              height: 30mm;
+            }
+            .qrlink {
+              margin-top: 1mm;
+              font-size: 9pt;
+            }
+            .rodape {
+              display: flex;
+              justify-content: space-between;
+              font-size: 8pt;
+              color: #444;
+            }
+          </style>
+        </head>
+        <body>
+          ${etiquetasHtml}
+          <script>
+            (function(){
+              const itens = ${JSON.stringify(itens)};
+              itens.forEach(it => {
+                const cont = document.getElementById("qrcode-" + it.pedido);
+                if (!cont) return;
+                if (!it.url) {
+                  cont.innerHTML = "<div style='font-size:10pt;color:#b00;text-align:center'>Sem QRCode</div>";
+                  return;
+                }
+                // Gera QRCode menor (250 px = ~30mm)
+                QRCode.toCanvas(it.url, { width: 250, margin: 0 }, function(err, canvas){
+                  if (err) {
+                    cont.innerHTML = "<div style='font-size:10pt;color:#b00;text-align:center'>Erro QR</div>";
+                  } else {
+                    cont.innerHTML = "";
+                    cont.appendChild(canvas);
+                  }
+                });
+              });
+              setTimeout(() => { window.print(); window.close(); }, 700);
+            })();
+          </script>
+        </body>
+      </html>
+      `);
+
+    win.document.close();
+  });

@@ -1,0 +1,278 @@
+/* ===== Fonte e base ===== */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap");
+
+body {
+  font-family: var(--font-default);
+  background-color: var(--surface-bg);
+  color: var(--text-strong);
+  line-height: 1.5;
+}
+
+/* ===== Títulos ===== */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+/* ===== Cards ===== */
+.card {
+  border: none;
+  border-radius: 0.75rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  background-color: var(--surface-1);
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0.75rem 1.25rem rgba(0, 0, 0, 0.08);
+}
+
+.card .card-header {
+  font-weight: 600;
+  font-size: 0.95rem;
+  background: #fff;
+  border-bottom: 1px solid var(--info-border);
+  border-radius: 0.75rem 0.75rem 0 0;
+}
+
+/* ===== Cards de métricas ===== */
+.card-body h6 {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: inherit;
+  margin-bottom: 0.25rem;
+}
+
+.card-body h2,
+.card-body h3,
+.card-body h4 {
+  margin: 0;
+  font-weight: 700;
+}
+
+.card-body i {
+  opacity: 0.9;
+}
+
+/* ===== Gradientes customizados ===== */
+.bg-primary {
+  background: linear-gradient(135deg, #007bff, #0056d2) !important;
+}
+
+.bg-success {
+  background: linear-gradient(135deg, #28a745, #1d7c32) !important;
+}
+
+.bg-info {
+  background: linear-gradient(135deg, #17a2b8, #11707f) !important;
+}
+
+.bg-warning {
+  background: linear-gradient(135deg, #ffc107, #cc9a06) !important;
+}
+
+.bg-danger {
+  background: linear-gradient(135deg, #dc3545, #a71d2a) !important;
+}
+
+.bg-dark {
+  background: linear-gradient(135deg, #343a40, #1d2124) !important;
+}
+
+/* ===== Accordion ===== */
+.accordion-button {
+  font-weight: 600;
+  font-size: 1rem;
+  border-radius: 0.5rem;
+}
+
+.accordion-button:not(.collapsed) {
+  background-color: #0d6efd;
+  color: #fff;
+  box-shadow: none;
+}
+
+.accordion-item {
+  border: none;
+  margin-bottom: 0.75rem;
+  border-radius: 0.75rem;
+  overflow: hidden;
+}
+
+.accordion-body {
+  background: #fff;
+  border-radius: 0 0 0.75rem 0.75rem;
+  padding: 1.25rem;
+}
+
+/* ===== Tabelas ===== */
+.table {
+  font-size: 0.9rem;
+  border-radius: 0.75rem;
+  background-color: var(--surface-1);
+  margin-bottom: 0;
+}
+
+.table thead th {
+  background: var(--surface-2);
+  color: var(--text-strong);
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  border: none;
+  padding: 0.75rem;
+}
+
+.table tbody td {
+  vertical-align: middle;
+  border-top: 1px solid var(--info-border);
+  padding: 0.65rem;
+}
+
+.table-hover tbody tr:hover {
+  background-color: var(--surface-2);
+  transition: background-color 0.2s ease-in-out;
+}
+
+.table-striped tbody tr:nth-of-type(odd) {
+  background-color: #fcfcfc;
+}
+
+.table-sm td,
+.table-sm th {
+  padding: 0.5rem;
+}
+
+/* ===== Tabelas interativas ===== */
+.table tbody tr {
+  transition: transform 0.15s ease;
+}
+
+.table tbody tr:hover {
+  cursor: pointer;
+
+  background-color: #f8f9fa;
+}
+
+/* ===== Badges ===== */
+.badge-status {
+  font-size: 0.75rem;
+  padding: 0.4em 0.6em;
+  border-radius: 0.5rem;
+  font-weight: 500;
+}
+
+.badge-status.success {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.badge-status.warning {
+  background-color: #fff3cd;
+  color: #856404;
+}
+
+.badge-status.danger {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+.badge-status.info {
+  background-color: #d1ecf1;
+  color: #0c5460;
+}
+
+/* ===== Progress bar ===== */
+.progress {
+  height: 0.8rem;
+  background-color: #e9ecef;
+  border-radius: 0.5rem;
+}
+
+.progress-bar {
+  font-size: 0.7rem;
+  font-weight: 600;
+  transition: width 0.6s ease;
+}
+
+/* ===== Loader ===== */
+.spinner-border {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+/* ===== Responsividade ===== */
+@media (max-width: 768px) {
+  h2 {
+    font-size: 1.25rem;
+  }
+
+  .card .card-body h2,
+  .card .card-body h3,
+  .card .card-body h4 {
+    font-size: 1.2rem;
+  }
+
+  .table {
+    font-size: 0.8rem;
+  }
+
+  .accordion-button {
+    font-size: 0.9rem;
+  }
+}
+
+/* ===== Centralizar dados nas tabelas ===== */
+.table thead th {
+  text-align: center;
+  vertical-align: middle;
+}
+
+.table tbody td {
+  text-align: center;
+  vertical-align: middle;
+}
+
+/* Se quiser exceções para colunas numéricas, 
+   use a classe .text-end no HTML */
+.table td.text-end,
+.table th.text-end {
+  text-align: right !important;
+}
+
+.card .card-body h6 {
+  color: inherit;
+  opacity: .8;
+  letter-spacing: .02em;
+}
+
+#pivotTitulo {
+  font-size: 1.25rem;
+  color: #0d6efd;
+}
+
+#pivotSubtitulo {
+  font-size: 0.9rem;
+}
+
+.table thead th {
+  position: sticky;
+  top: 0;
+  background: #f8f9fa;
+  z-index: 2;
+}
+
+.table td,
+.table th {
+  vertical-align: middle;
+}
+
+#pivotBody tr:last-child td {
+  border-top: 2px solid #0d6efd;
+}

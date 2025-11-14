@@ -113,6 +113,7 @@
           <div
             id="painelProdutividade"
             class="shadow rounded bg-light p-3 border mt-2"
+            style="max-height: 70vh; overflow-y: auto"
           >
             <!-- Métricas Individuais -->
             <div class="d-flex flex-wrap gap-4 align-items-center">
@@ -159,6 +160,47 @@
                   <!-- será preenchido dinamicamente -->
                 </div>
               </div>
+            </div>
+            <hr class="my-3" />
+            <div class="d-flex gap-2">
+              <button
+                id="btnLeaderboardDia"
+                class="btn btn-sm btn-outline-dark"
+              >
+                Leaderboard (Dia)
+              </button>
+              <button
+                id="btnLeaderboardMes"
+                class="btn btn-sm btn-outline-secondary"
+              >
+                Leaderboard (Mês)
+              </button>
+            </div>
+            <div
+              id="leaderboardContainer"
+              class="table-responsive"
+              style="display: none; max-height: 400px; overflow-y: auto"
+            >
+              <table
+                class="table table-sm table-striped table-bordered align-middle mb-0"
+              >
+                <thead class="table-dark text-center">
+                  <tr>
+                    <th>Operador</th>
+                    <th>Pedidos</th>
+                    <th>Peças</th>
+                    <th>Romaneios</th>
+                    <th>Tempo Médio</th>
+                    <th>Média Pedidos/Hora</th>
+                    <!-- usado no dia -->
+                    <th>Média Pedidos/Dia</th>
+                    <!-- usado no mês -->
+                    <th>Média Peças/Pedido</th>
+                    <th>Erros</th>
+                  </tr>
+                </thead>
+                <tbody id="leaderboardBody"></tbody>
+              </table>
             </div>
           </div>
         </div>
@@ -388,6 +430,14 @@
           <!-- Coluna 2: Boxes -->
           <div id="colBoxes" class="col-md-8 d-none">
             <div class="d-flex justify-content-between align-items-center mb-3">
+              <button
+                id="btnPrintEtiquetasBox"
+                class="btn btn-sm btn-outline-primary"
+                title="Imprimir etiquetas 100×150 por pedido (com QRCode para pesagem)"
+                style="padding: 0.25rem 0.5rem"
+              >
+                100×150
+              </button>
               <h4 class="mb-0">Boxes Atuais</h4>
               <button
                 id="btnPrintBoxes"
@@ -635,9 +685,9 @@
 
     <!-- fim de #mainApp -->
     <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
-    <script src="http://localhost:9100/BrowserPrint-3.0.216.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script type="module" src="/main.js"></script>
+    <!-- admin.js será carregado dinamicamente só se for Yohann -->
 
     <footer class="text-center text-muted mt-5 small">
       <hr />
@@ -657,6 +707,10 @@
           <strong>CodeSaturn™</strong></span
         >
       </div>
+      <!-- botão escondido por padrão -->
+      <button id="btnAdmin">
+        <i class="bi bi-speedometer2"></i> Painel Admin
+      </button>
     </footer>
   </body>
 </html>

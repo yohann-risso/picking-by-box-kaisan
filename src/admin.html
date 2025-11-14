@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard Administrativo - Picking by Box</title>
+    <link
+      rel="icon"
+      type="image/png"
+      href="./public/img/logo_picking_by_box.png"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./css/style.css" />
+    <link rel="stylesheet" href="./css/admin.css" />
+  </head>
+  <body class="bg-light">
+    <!-- Header fixo -->
+    <header class="bg-dark text-white shadow-sm py-3 mb-4 sticky-top">
+      <div
+        class="container-fluid d-flex justify-content-between align-items-center"
+      >
+        <h2 class="h4 fw-bold m-0">
+          <i class="bi bi-truck"></i> Dashboard Expedição
+        </h2>
+        <button
+          class="btn btn-outline-light"
+          data-bs-toggle="modal"
+          data-bs-target="#erroModal"
+        >
+          <i class="bi bi-bug"></i> Registrar Erro de Expedição
+        </button>
+      </div>
+    </header>
+
+    <main class="container-fluid py-4">
+      <!-- Métricas principais -->
+      <div class="row g-3 text-center mb-4">
+        <div class="col-6 col-md-2">
+          <div class="card bg-primary text-white shadow h-100">
+            <div class="card-body">
+              <h6>Usuários Ativos</h6>
+              <h2 id="usuariosAtivosCount">-</h2>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-md-2">
+          <div class="card bg-success text-white shadow h-100">
+            <div class="card-body">
+              <h6>Pedidos Hoje</h6>
+              <h2 id="pedidosHojeCount">-</h2>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-md-2">
+          <div class="card bg-info text-white shadow h-100">
+            <div class="card-body">
+              <h6>Pendentes</h6>
+              <h2 id="pedidosPendentesCount">-</h2>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-md-2">
+          <div class="card bg-warning text-dark shadow h-100">
+            <div class="card-body">
+              <h6>Peças do Dia</h6>
+              <h2 id="pecasHojeCount">-</h2>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-md-2">
+          <div class="card bg-danger text-white shadow h-100">
+            <div class="card-body">
+              <h6>Romaneios Abertos</h6>
+              <h2 id="romaneiosAbertosCount">-</h2>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Métricas expedição -->
+      <div class="row g-3 mb-4 text-center">
+        <div class="col-md-3">
+          <div class="card bg-dark text-white shadow h-100">
+            <div class="card-body">
+              <h6>Total Pendentes</h6>
+              <h4 id="totalPendentes">-</h4>
+              <small id="totalPendentesPecas">-</small>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card bg-success text-white shadow h-100">
+            <div class="card-body">
+              <h6>Pesados Hoje</h6>
+              <h4 id="totalPesadosHoje">-</h4>
+              <small id="totalPesadosHojePecas">-</small>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-2">
+          <div class="card bg-primary text-white shadow h-100">
+            <div class="card-body">
+              <h6>Meta Geral</h6>
+              <h4 id="metaGeral">-</h4>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-2">
+          <div class="card bg-info text-white shadow h-100">
+            <div class="card-body">
+              <h6>Meta 80%</h6>
+              <h4 id="meta80">-</h4>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-2">
+          <div class="card bg-warning text-dark shadow h-100">
+            <div class="card-body">
+              <h6>% Meta Batida</h6>
+              <div class="progress">
+                <div
+                  id="percMetaBar"
+                  class="progress-bar bg-success"
+                  role="progressbar"
+                  style="width: 0%"
+                ></div>
+              </div>
+              <h5 id="percMeta">-</h5>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Accordion -->
+      <div class="accordion mb-4" id="accordionAdmin">
+        <!-- Erros de Expedição -->
+        <div class="accordion-item">
+          <h2 class="accordion-header">
+            <button
+              class="accordion-button"
+              type="button"
+              data-bs-toggle="collapse"
+              data-bs-target="#collapseErros"
+            >
+              ⚠️ Erros de Expedição
+            </button>
+          </h2>
+          <div
+            id="collapseErros"
+            class="accordion-collapse collapse show"
+            data-bs-parent="#accordionAdmin"
+          >
+            <div class="accordion-body">
+              <div class="row g-3 mb-4">
+                <div class="col-md-3">
+                  <div class="card bg-danger text-white shadow h-100">
+                    <div class="card-body text-center">
+                      <h6>Erros no Mês</h6>
+                      <h2 id="totalErrosMes">-</h2>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-5">
+                  <div class="card shadow h-100">
+                    <div class="card-header">📊 Erros por Operador</div>
+                    <div class="table-responsive">
+                      <table
+                        class="table table-sm table-striped mb-0 text-center"
+                      >
+                        <thead class="table-light">
+                          <tr>
+                            <th>Operador</th>
+                            <th>Qtd Erros</th>
+                          </tr>
+                        </thead>
+                        <tbody id="errosLeaderboardBody"></tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="card shadow h-100">
+                    <div class="card-header">📊 Motivos</div>
+                    <div class="card-body">
+                      <canvas id="chartMotivosErro"></canvas>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Gráficos -->
+        <div class="accordion-item">
+          <h2 class="accordion-header">
+            <button
+              class="accordion-button collapsed"
+              type="button"
+              data-bs-toggle="collapse"
+              data-bs-target="#collapseGraficos"
+            >
+              📈 Gráficos
+            </button>
+          </h2>
+          <div
+            id="collapseGraficos"
+            class="accordion-collapse collapse"
+            data-bs-parent="#accordionAdmin"
+          >
+            <div class="accordion-body">
+              <div class="row g-3 mb-4">
+                <div class="col-md-7">
+                  <div class="card shadow">
+                    <div class="card-header">Pedidos por Hora</div>
+                    <div class="card-body">
+                      <canvas id="chartPedidosHora"></canvas>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-5">
+                  <div class="card shadow">
+                    <div class="card-header">🏆 Ranking Operadores</div>
+                    <div class="card-body">
+                      <canvas id="chartRanking"></canvas>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Resumo Operadores -->
+        <div class="accordion-item">
+          <h2 class="accordion-header">
+            <button
+              class="accordion-button collapsed"
+              type="button"
+              data-bs-toggle="collapse"
+              data-bs-target="#collapseResumo"
+            >
+              👥 Resumo de Operadores
+            </button>
+          </h2>
+          <div
+            id="collapseResumo"
+            class="accordion-collapse collapse"
+            data-bs-parent="#accordionAdmin"
+          >
+            <div class="accordion-body">
+              <div class="card shadow mb-4">
+                <div class="card-header">Resumo (Hoje)</div>
+                <div class="table-responsive">
+                  <table
+                    class="table table-hover table-striped align-middle mb-0 text-center"
+                  >
+                    <thead class="table-light">
+                      <tr>
+                        <th>Operador</th>
+                        <th class="text-end">Pedidos</th>
+                        <th class="text-end">Peças</th>
+                        <th class="text-end">Romaneios</th>
+                        <th>Média</th>
+                      </tr>
+                    </thead>
+                    <tbody id="resumoOperadoresBody"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 📊 PIVOT DE PEDIDOS POR HORA -->
+        <div class="accordion-item">
+          <h2 class="accordion-header">
+            <button
+              class="accordion-button collapsed"
+              type="button"
+              data-bs-toggle="collapse"
+              data-bs-target="#collapsePivot"
+            >
+              📊 Pedidos por Hora (Pivot)
+            </button>
+          </h2>
+          <div
+            id="collapsePivot"
+            class="accordion-collapse collapse"
+            data-bs-parent="#accordionAdmin"
+          >
+            <div class="accordion-body">
+              <!-- Filtro e Ações -->
+              <div
+                class="d-flex flex-wrap justify-content-between align-items-center mb-4 p-3 bg-white shadow-sm rounded border"
+              >
+                <div>
+                  <h5 id="pivotTitulo" class="fw-bold text-primary mb-1">
+                    Pedidos por Hora
+                  </h5>
+                  <small class="text-muted" id="pivotSubtitulo"
+                    >Selecione o período para visualizar o desempenho por
+                    hora.</small
+                  >
+                </div>
+
+                <div class="d-flex flex-wrap align-items-center gap-2">
+                  <input
+                    type="date"
+                    id="pivotDataInicio"
+                    class="form-control form-control-sm"
+                  />
+                  <span>até</span>
+                  <input
+                    type="date"
+                    id="pivotDataFim"
+                    class="form-control form-control-sm"
+                  />
+                  <button class="btn btn-sm btn-primary" id="btnFiltrarPeriodo">
+                    Filtrar
+                  </button>
+                  <button
+                    id="btnPrintPivot"
+                    class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1"
+                  >
+                    <i class="bi bi-printer"></i> Imprimir
+                  </button>
+                </div>
+              </div>
+
+              <!-- Tabela responsiva -->
+              <div class="table-responsive shadow-sm rounded border">
+                <table
+                  class="table table-sm table-bordered table-striped mb-0 text-center align-middle"
+                >
+                  <thead
+                    class="table-primary sticky-top"
+                    id="pivotHeader"
+                  ></thead>
+                  <tbody id="pivotBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Romaneios -->
+        <div class="accordion-item">
+          <h2 class="accordion-header">
+            <button
+              class="accordion-button collapsed"
+              type="button"
+              data-bs-toggle="collapse"
+              data-bs-target="#collapseRomaneios"
+            >
+              📦 Romaneios em Uso
+            </button>
+          </h2>
+          <div
+            id="collapseRomaneios"
+            class="accordion-collapse collapse"
+            data-bs-parent="#accordionAdmin"
+          >
+            <div class="accordion-body">
+              <div class="table-responsive">
+                <table class="table table-sm table-striped mb-0 text-center">
+                  <thead class="table-light">
+                    <tr>
+                      <th>Romaneio</th>
+                      <th>Operador 1</th>
+                      <th>Operador 2</th>
+                      <th>Início</th>
+                    </tr>
+                  </thead>
+                  <tbody id="romaneiosEmUsoBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- SLAs Transportadora -->
+        <div class="accordion-item">
+          <h2 class="accordion-header">
+            <button
+              class="accordion-button collapsed"
+              type="button"
+              data-bs-toggle="collapse"
+              data-bs-target="#collapseSLA"
+            >
+              📦 SLAs Transportadora
+            </button>
+          </h2>
+          <div
+            id="collapseSLA"
+            class="accordion-collapse collapse"
+            data-bs-parent="#accordionAdmin"
+          >
+            <div class="accordion-body">
+              <div id="slaLoader" class="my-2" style="display: none">
+                <div class="progress">
+                  <div
+                    id="slaLoaderBar"
+                    class="progress-bar progress-bar-striped progress-bar-animated"
+                    role="progressbar"
+                    style="width: 0%"
+                  >
+                    0%
+                  </div>
+                </div>
+              </div>
+              <div
+                class="d-flex justify-content-between align-items-center mb-3"
+              >
+                <div class="d-flex gap-2">
+                  <button
+                    class="btn btn-sm btn-outline-primary"
+                    onclick="atualizarTodosSLAs()"
+                  >
+                    🔄 Atualizar Todos
+                  </button>
+
+                  <button
+                    class="btn btn-sm btn-outline-warning"
+                    onclick="atualizarPorStatus('coletado')"
+                  >
+                    📦 Atualizar Coletados
+                  </button>
+
+                  <button
+                    class="btn btn-sm btn-outline-secondary"
+                    onclick="atualizarPorStatus('etiqueta')"
+                  >
+                    🏷️ Atualizar Etiqueta Emitida
+                  </button>
+
+                  <button
+                    class="btn btn-sm btn-outline-info"
+                    onclick="atualizarPorStatus('postado')"
+                  >
+                    📨 Atualizar Postados
+                  </button>
+
+                  <button
+                    class="btn btn-sm btn-outline-dark"
+                    onclick="atualizarPorStatus('transito')"
+                  >
+                    🚚 Atualizar Em Trânsito
+                  </button>
+
+                  <button
+                    class="btn btn-sm btn-success"
+                    data-bs-toggle="modal"
+                    data-bs-target="#slaModal"
+                  >
+                    ➕ Adicionar em Lote
+                  </button>
+                </div>
+              </div>
+              <div
+                class="d-flex justify-content-between align-items-center mb-2"
+              >
+                <div>
+                  <label for="filtroStatus">Filtro:</label>
+                  <select
+                    id="filtroStatus"
+                    class="form-select form-select-sm d-inline-block"
+                    style="width: auto"
+                  >
+                    <option value="">Todos</option>
+                    <option value="FC">Etiqueta Emitida</option>
+                    <option value="CO">Coletado</option>
+                    <option value="PO">Postado</option>
+                    <option value="RO">Em Trânsito</option>
+                    <option value="OEC">Saiu p/ Entrega</option>
+                    <option value="BDE">Entregue</option>
+                    <option value="EX">Extraviado</option>
+                    <option value="LDI">Aguardando Retirada</option>
+                    <option value="LDE">Devolvido</option>
+                  </select>
+                </div>
+              </div>
+              <div class="table-responsive">
+                <table
+                  class="table table-striped table-hover align-middle mb-0 text-center"
+                >
+                  <thead class="table-light">
+                    <tr>
+                      <th>Pedido</th>
+                      <th>Código de Rastreio</th>
+                      <th>Status Atual</th>
+                      <th>Data Coleta</th>
+                      <th>Última Atualização</th>
+                      <th>Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody id="slaList"></tbody>
+                </table>
+              </div>
+              <div
+                class="d-flex justify-content-between align-items-center mt-2"
+              >
+                <button class="btn btn-sm btn-outline-secondary" id="prevPage">
+                  ⬅️ Anterior
+                </button>
+                <span id="paginaAtual">Página 1</span>
+                <button class="btn btn-sm btn-outline-secondary" id="nextPage">
+                  Próxima ➡️
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="accordion-item">
+          <h2 class="accordion-header">
+            <button
+              class="accordion-button collapsed"
+              type="button"
+              data-bs-toggle="collapse"
+              data-bs-target="#collapseFila"
+            >
+              📋 Fila de Atualização
+            </button>
+          </h2>
+          <div
+            id="collapseFila"
+            class="accordion-collapse collapse"
+            data-bs-parent="#accordionAdmin"
+          >
+            <div class="accordion-body">
+              <div class="table-responsive">
+                <table class="table table-sm table-bordered text-center">
+                  <thead class="table-light">
+                    <tr>
+                      <th>Código</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="slaQueueList"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Cards de status SLA -->
+        <div class="row g-3 mt-3 text-center" id="slaResumo">
+          <div class="col-md-2">
+            <div class="card shadow-sm bg-light h-100">
+              <div class="card-body">
+                <h6>🏷️ Etiqueta Emitida</h6>
+                <h4 id="countEtiqueta">0</h4>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-2">
+            <div class="card shadow-sm bg-light h-100">
+              <div class="card-body">
+                <h6>📦 Coletado</h6>
+                <h4 id="countColetado">0</h4>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-2">
+            <div class="card shadow-sm bg-light h-100">
+              <div class="card-body">
+                <h6>📨 Postado</h6>
+                <h4 id="countPostado">0</h4>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-2">
+            <div class="card shadow-sm bg-light h-100">
+              <div class="card-body">
+                <h6>🚚 Em Trânsito</h6>
+                <h4 id="countTransito">0</h4>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-2">
+            <div class="card shadow-sm bg-light h-100">
+              <div class="card-body">
+                <h6>🛵 Saiu p/ Entrega</h6>
+                <h4 id="countSaiuEntrega">0</h4>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-2">
+            <div class="card shadow-sm bg-light h-100">
+              <div class="card-body">
+                <h6>✅ Entregue</h6>
+                <h4 id="countEntregue">0</h4>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-2">
+            <div class="card shadow-sm bg-light h-100">
+              <div class="card-body">
+                <h6>❌ Extraviado</h6>
+                <h4 id="countExtraviado">0</h4>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-2">
+            <div class="card shadow-sm bg-light h-100">
+              <div class="card-body">
+                <h6>📍 Aguardando Retirada</h6>
+                <h4 id="countAguardando">0</h4>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-2">
+            <div class="card shadow-sm bg-light h-100">
+              <div class="card-body">
+                <h6>↩️ Devolvido</h6>
+                <h4 id="countDevolvido">0</h4>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div
+              class="card shadow-sm bg-light h-100 clickable"
+              onclick="filtrarSLA('fluxo')"
+            >
+              <div class="card-body">
+                <h6>🔄 Em Fluxo</h6>
+                <h4 id="countFluxo">0</h4>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row g-3 mt-3 text-center">
+          <div class="col-md-3">
+            <div class="card shadow-sm bg-light h-100">
+              <div class="card-body">
+                <h6>📦 Tempo Médio Expedição</h6>
+                <h4 id="tempoMedioExpedicao"></h4>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card shadow-sm bg-light h-100">
+              <div class="card-body">
+                <h6>⏱️ Tempo Médio Postagem</h6>
+                <h4 id="tempoMedioPostagem"></h4>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card shadow-sm bg-light h-100">
+              <div class="card-body">
+                <h6>🚚 Tempo Médio Entrega</h6>
+                <h4 id="tempoMedioEntrega"></h4>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card shadow-sm bg-light h-100">
+              <div class="card-body">
+                <h6>⏳ Tempo Médio Em Trânsito</h6>
+                <h4 id="tempoMedioTransito"></h4>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card shadow-sm bg-light h-100">
+              <div class="card-body">
+                <h6>📦 Entregas no Prazo</h6>
+                <h4 id="pctNoPrazo"></h4>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card shadow-sm bg-light h-100">
+              <div class="card-body">
+                <h6>⏳ Atrasos</h6>
+                <h4 id="pctAtraso"></h4>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card shadow-sm bg-light h-100">
+              <div class="card-body">
+                <h6>❌ Extraviado</h6>
+                <h4 id="pctExtraviado"></h4>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Modal de SLA -->
+    <div class="modal fade" id="slaModal" tabindex="-1">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header bg-success text-white">
+            <h5 class="modal-title">Adicionar SLA em lote</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <form id="slaFormLote">
+              <div class="mb-3">
+                <label for="slaData" class="form-label">Data da Coleta</label>
+                <input
+                  type="date"
+                  class="form-control"
+                  id="slaData"
+                  name="data_coleta"
+                  required
+                />
+              </div>
+              <div class="mb-3">
+                <label for="slaLote" class="form-label"
+                  >Pedidos e Rastreios</label
+                >
+                <textarea
+                  class="form-control"
+                  id="slaLote"
+                  name="lote"
+                  rows="6"
+                  placeholder="Cole aqui Pedido e Rastreio separados por TAB ou ; 
+Exemplo:
+12345<TAB>LX123456789BR
+67890;LX987654321BR"
+                  required
+                ></textarea>
+                <small class="text-muted">
+                  Cada linha deve conter: <b>Pedido</b> + separador (<code
+                    >TAB</code
+                  >
+                  ou <code>;</code>) + <b>Código de rastreio</b>
+                </small>
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              Cancelar
+            </button>
+            <button type="submit" class="btn btn-success" form="slaFormLote">
+              Salvar em Lote
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal de erro -->
+    <div class="modal fade" id="erroModal" tabindex="-1">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header bg-danger text-white">
+            <h5 class="modal-title"><i class="bi bi-bug"></i> Reportar Erro</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <form id="formErroExpedicao" class="row g-3">
+              <div class="col-md-4">
+                <label class="form-label">Data</label>
+                <input
+                  type="date"
+                  class="form-control"
+                  id="erroData"
+                  required
+                />
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Nº Pedido</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="erroPedido"
+                  required
+                />
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Romaneio</label>
+                <input type="text" class="form-control" id="erroRomaneio" />
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Operador</label>
+                <select class="form-select" id="erroOperador" required>
+                  <option value="">Selecione...</option>
+                </select>
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label">Motivo</label>
+                <select class="form-select" id="erroMotivo" required>
+                  <option value="">Selecione...</option>
+                  <option value="Pedido incompleto">Pedido incompleto</option>
+                  <option value="Peça trocada">Peça trocada</option>
+                  <option value="Endereço incorreto">Endereço incorreto</option>
+                  <option value="Etiqueta errada">Etiqueta errada</option>
+                  <option value="Outro">Outro</option>
+                </select>
+              </div>
+              <div class="col-12">
+                <label class="form-label">Observações</label>
+                <textarea class="form-control" id="erroObs" rows="3"></textarea>
+              </div>
+            </form>
+            <div class="modal-footer">
+              <button
+                type="button"
+                class="btn btn-secondary"
+                data-bs-dismiss="modal"
+              >
+                Cancelar
+              </button>
+              <button type="button" class="btn btn-danger" id="btnSalvarErro">
+                Salvar Erro
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer class="text-center text-muted mt-5 small">
+      <hr />
+      <div
+        class="d-flex flex-column flex-md-row justify-content-center align-items-center gap-2 py-2"
+      >
+        <img
+          src="./public/img/logo_picking_by_box.png"
+          alt="Logo"
+          width="32"
+          height="32"
+        />
+        <span>Picking by Box v1.0.0</span><span>|</span>
+        <span
+          >Desenvolvido por <strong>Yohann Risso</strong> |
+          <strong>CodeSaturn™</strong></span
+        >
+      </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script type="module" src="./modules/admin.js"></script>
+  </body>
+</html>
