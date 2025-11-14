@@ -1082,7 +1082,8 @@ function renderPendentes() {
       const tooltipHtml = `
       <div style='display:flex; gap:8px; align-items:flex-start;'>
         <img src='${
-          imagensRef[skuNorm] || "https://via.placeholder.com/154x231?text=Sem+Imagem"
+          imagensRef[skuNorm] ||
+          "https://via.placeholder.com/154x231?text=Sem+Imagem"
         }'
           style='width:154px;height:231px;object-fit:cover;border:1px solid var(--color-info-border);border-radius:4px;background:var(--color-white);' />
         <div style='max-width:240px;'>
@@ -3555,37 +3556,43 @@ window.imprimirEtiquetaIndividual = function (pedido) {
 document
   .getElementById("btnAtualizarEnderecos")
   ?.addEventListener("click", async () => {
-    const confirmacao = confirm(
-      "Deseja forçar a atualização dos endereços agora?"
-    );
-    if (!confirmacao) return;
+    if (!pendentes.length) return alert("Nenhum pendente para atualizar.");
+
+    const confirmar = confirm("Deseja atualizar TODOS os endereços agora?");
+    if (!confirmar) return;
 
     try {
-      // 1) coloca loader em todos de uma vez
-      pendentes.forEach((p) => {
-        const skuNorm = p.sku?.trim().toUpperCase();
-        if (skuNorm) setLoaderOnEndereco(p.pedido, skuNorm);
+      // 1) lista única de SKUs
+      const listaSkus = Array.from(
+        new Set(pendentes.map((p) => p.sku.trim().toUpperCase()))
+      );
+
+      // 2) mostra loaders
+      listaSkus.forEach((sku) => {
+        pendentes
+          .filter((p) => p.sku.trim().toUpperCase() === sku)
+          .forEach((p) => setLoaderOnEndereco(p.pedido, sku));
       });
 
-      // 2) dispara todas as buscas em paralelo
-      const promises = pendentes.map(async (p) => {
-        const skuNorm = p.sku?.trim().toUpperCase();
-        if (!skuNorm) return;
-        const novoEndereco = await buscarEnderecosPorSku(skuNorm);
+      // 3) chamada única ao GAS
+      const mapa = await buscarEnderecosPorSkus(listaSkus);
+
+      // 4) aplica nos pendentes
+      pendentes.forEach((p) => {
+        const skuNorm = p.sku.trim().toUpperCase();
+        const novoEndereco = mapa[skuNorm] || "SEM LOCAL";
+
         p.endereco = novoEndereco;
         setEnderecoFinal(p.pedido, skuNorm, novoEndereco);
       });
 
-      // 3) aguarda todas finalizarem
-      await Promise.all(promises);
-
-      // 4) salva no localStorage
+      // 5) salva localmente
       localStorage.setItem(`pendentes-${romaneio}`, JSON.stringify(pendentes));
 
       alert("✅ Endereços atualizados com sucesso!");
     } catch (err) {
-      console.error("Erro ao atualizar endereços:", err);
-      alert("❌ Erro ao atualizar endereços.");
+      console.error("Erro geral:", err);
+      alert("❌ Falha ao atualizar endereços.");
     }
   });
 
@@ -4262,17 +4269,27 @@ document.getElementById("painelToggle").addEventListener("click", () => {
   }
 });
 
-async function buscarEnderecosPorSku(sku) {
-  const url = `https://script.google.com/macros/s/AKfycbzEYYSWfRKYGxAkNFBBV9C6qlMDXlDkEQIBNwKOtcvGEdbl4nfaHD5usa89ZoV2gMcEgA/exec?sku=${encodeURIComponent(
-    sku
+async function buscarEnderecosPorSkus(listaSkus = []) {
+  if (!Array.isArray(listaSkus) || listaSkus.length === 0) return {};
+
+  const param = listaSkus.join(",");
+  const url = `https://script.google.com/macros/s/AKfycbzEYYSWfRKYGxAkNFBBV9C6qlMDXlDkEQIBNwKOtcvGEdbl4nfaHD5usa89ZoV2gMcEgA/exec?skus=${encodeURIComponent(
+    param
   )}`;
+
   try {
     const resp = await fetch(url);
     if (!resp.ok) throw new Error(`Erro HTTP ${resp.status}`);
-    return await resp.text(); // exemplo: "A1-01 • A1-02"
+
+    const json = await resp.json();
+    return json; // { SKU: "ENDERECO", ... }
   } catch (err) {
     console.error("❌ Erro no GAS:", err);
-    return "SEM LOCAL";
+
+    // fallback para SEM LOCAL
+    const fallback = {};
+    listaSkus.forEach((s) => (fallback[s] = "SEM LOCAL"));
+    return fallback;
   }
 }
 
