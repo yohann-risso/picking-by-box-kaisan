@@ -1,22 +1,41 @@
 export default async function handler(req, res) {
+  if (req.method !== "POST") {
+    return res
+      .status(405)
+      .json({ status: "error", message: "Método não permitido" });
+  }
+
+  const GAS_WEB_APP_URL =
+    "https://script.google.com/macros/s/AKfycbymQwy2XDKVGYQF0Cc1QNqVSdfLQ1ThC5mtogO3v_Ayde1d-Eb-ObvizSarMMWQlFCP/exec";
+  const GAS_TOKEN =
+    "mFa7kVRyLpT4xZq32uEXWJgHoMb58nPCvtKhALNfY9IQcrszdeUG0jBwmSl6TO1D"; // mesmo token do GAS
+
   try {
-    const skus = req.query.skus;
-    if (!skus) {
-      return res.status(400).json({ error: "Nenhum SKU enviado." });
+    const { pedidos, romaneio } = req.body;
+
+    if (!Array.isArray(pedidos) || pedidos.length === 0) {
+      return res
+        .status(400)
+        .json({
+          status: "error",
+          message: "Lista de pedidos ausente ou inválida.",
+        });
     }
 
-    const GAS_URL =
-      "https://script.google.com/macros/s/AKfycbzEYYSWfRKYGxAkNFBBV9C6qlMDXlDkEQIBNwKOtcvGEdbl4nfaHD5usa89ZoV2gMcEgA/exec" +
-      "?skus=" +
-      encodeURIComponent(skus);
+    const response = await fetch(GAS_WEB_APP_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        token: GAS_TOKEN,
+        pedidos,
+        romaneio,
+      }),
+    });
 
-    const r = await fetch(GAS_URL);
-    const json = await r.json();
-
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    return res.status(200).json(json);
+    const json = await response.json();
+    res.status(200).json(json);
   } catch (err) {
-    console.error("Erro proxy GAS:", err);
-    return res.status(500).json({ error: "Erro interno ao chamar o GAS." });
+    console.error("❌ Erro no fetch para o GAS:", err);
+    res.status(500).json({ status: "error", message: err.message });
   }
 }

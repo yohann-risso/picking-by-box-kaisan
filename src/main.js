@@ -4357,7 +4357,7 @@ async function buscarEnderecosPorSkus(listaSkus = []) {
 
   const param = listaSkus.join(",");
   const resp = await fetch(
-    `/api/atualizar-enderecos?skus=${encodeURIComponent(param)}`
+    `/api/consulta-enderecos?skus=${encodeURIComponent(param)}`
   );
 
   try {
