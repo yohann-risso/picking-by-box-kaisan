@@ -4356,20 +4356,15 @@ async function buscarEnderecosPorSkus(listaSkus = []) {
   if (!Array.isArray(listaSkus) || listaSkus.length === 0) return {};
 
   const param = listaSkus.join(",");
-  const url = `https://script.google.com/macros/s/AKfycbzEYYSWfRKYGxAkNFBBV9C6qlMDXlDkEQIBNwKOtcvGEdbl4nfaHD5usa89ZoV2gMcEgA/exec?skus=${encodeURIComponent(
-    param
-  )}`;
+  const resp = await fetch(
+    `/api/atualizar-enderecos?skus=${encodeURIComponent(param)}`
+  );
 
   try {
-    const resp = await fetch(url);
-    if (!resp.ok) throw new Error(`Erro HTTP ${resp.status}`);
-
     const json = await resp.json();
-    return json; // { SKU: "ENDERECO", ... }
+    return json;
   } catch (err) {
-    console.error("❌ Erro no GAS:", err);
-
-    // fallback para SEM LOCAL
+    console.error("❌ Erro ao consultar proxy GAS:", err);
     const fallback = {};
     listaSkus.forEach((s) => (fallback[s] = "SEM LOCAL"));
     return fallback;
