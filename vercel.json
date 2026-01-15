@@ -6,6 +6,10 @@
       "destination": "/admin.html"
     },
     {
+      "source": "/consulta",
+      "destination": "/consulta.html"
+    },
+    {
       "source": "/((?!admin).*)",
       "destination": "/index.html"
     }
