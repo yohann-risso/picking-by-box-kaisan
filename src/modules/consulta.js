@@ -243,54 +243,70 @@ function filtrarLocal(rows) {
   });
 }
 
-async function buscarNoSupabase({ pedidoIni, pedidoFim, dataIni, dataFim }) {
-  let q = supabase
-    .from("view_consulta_panorama_pedidos")
-    .select(
-      [
-        "pedido",
-        "pedido_id",
-        "data_pedido",
-        "romaneio",
-        "status_pedido",
-        "metodo_envio",
-        "cliente",
-        "qtd_total",
-        "qtd_bipada",
-        "separacao_iniciada",
-        "separacao_finalizada",
-        "tem_nl",
-        "nl_itens",
-        "nl_ultimo_em",
-        "pesado",
-        "pesado_em",
-        "romaneio_iniciado",
-        "rom_started_at",
-        "rom_ended_at",
-        "coletado",
-        "coletado_em",
-        "status_atual",
-        "status_consulta",
-      ].join(",")
-    )
-    .order("pedido_id", { ascending: true });
+async function buscarNoSupabasePaginado(
+  { pedidoIni, pedidoFim, dataIni, dataFim },
+  { pageSize = 1000, maxRows = 20000 } = {}
+) {
+  const cols = [
+    "pedido",
+    "pedido_id",
+    "data_pedido",
+    "romaneio",
+    "status_pedido",
+    "metodo_envio",
+    "cliente",
+    "qtd_total",
+    "qtd_bipada",
+    "separacao_iniciada",
+    "separacao_finalizada",
+    "tem_nl",
+    "nl_itens",
+    "nl_ultimo_em",
+    "pesado",
+    "pesado_em",
+    "romaneio_iniciado",
+    "rom_started_at",
+    "rom_ended_at",
+    "coletado",
+    "coletado_em",
+    "status_atual",
+    "status_consulta",
+  ].join(",");
 
-  q = q.limit(1000);
-
-  // 🔎 Filtra por data (se vier)
-  if (dataIni) q = q.gte("data_pedido", dataIni);
-  if (dataFim) q = q.lte("data_pedido", dataFim);
-
-  // 🔎 Filtra por pedido_num (pedido_id bigint já está na view)
+  // filtros
   const iniNum = String(pedidoIni || "").replace(/\D/g, "");
   const fimNum = String(pedidoFim || "").replace(/\D/g, "");
 
-  if (iniNum) q = q.gte("pedido_id", Number(iniNum));
-  if (fimNum) q = q.lte("pedido_id", Number(fimNum));
+  let all = [];
+  let from = 0;
 
-  const { data, error } = await q;
-  if (error) throw error;
-  return data || [];
+  while (true) {
+    let q = supabase
+      .from("view_consulta_panorama_pedidos")
+      .select(cols)
+      .order("pedido_id", { ascending: true })
+      .range(from, from + pageSize - 1);
+
+    if (dataIni) q = q.gte("data_pedido", dataIni);
+    if (dataFim) q = q.lte("data_pedido", dataFim);
+
+    if (iniNum) q = q.gte("pedido_id", Number(iniNum));
+    if (fimNum) q = q.lte("pedido_id", Number(fimNum));
+
+    const { data, error } = await q;
+    if (error) throw error;
+
+    const batch = data || [];
+    all = all.concat(batch);
+
+    // paradas
+    if (batch.length < pageSize) break; // acabou
+    if (all.length >= maxRows) break; // trava de segurança
+
+    from += pageSize;
+  }
+
+  return all;
 }
 
 async function carregarBaseAtiva() {
@@ -340,12 +356,10 @@ async function runBusca() {
   hint.textContent = "Consultando Supabase...";
 
   try {
-    cacheRows = await buscarNoSupabase({
-      pedidoIni,
-      pedidoFim,
-      dataIni,
-      dataFim,
-    });
+    cacheRows = await buscarNoSupabasePaginado(
+      { pedidoIni, pedidoFim, dataIni, dataFim },
+      { pageSize: 1000, maxRows: 20000 } // ajuste o maxRows
+    );
 
     const filtrados = filtrarLocal(cacheRows);
     renderCardsResumo(filtrados);
@@ -438,7 +452,9 @@ function attach() {
   attachRowClick();
 }
 
-attach(async function initBase() {
+attach();
+
+(async function initBase() {
   const base = await carregarBaseAtiva();
   if (!base) return;
 
@@ -454,6 +470,5 @@ attach(async function initBase() {
     }→${base.pedido_fim} — ${base.data_ini}→${base.data_fim}`;
   }
 
-  // dispara busca automaticamente usando essa base
   runBusca();
 })();
