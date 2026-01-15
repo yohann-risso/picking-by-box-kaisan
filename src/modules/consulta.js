@@ -275,6 +275,8 @@ async function buscarNoSupabase({ pedidoIni, pedidoFim, dataIni, dataFim }) {
     )
     .order("pedido_id", { ascending: true });
 
+  q = q.limit(1000);
+
   // 🔎 Filtra por data (se vier)
   if (dataIni) q = q.gte("data_pedido", dataIni);
   if (dataFim) q = q.lte("data_pedido", dataFim);
