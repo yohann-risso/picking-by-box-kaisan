@@ -51,7 +51,8 @@ function separacaoLabel(r) {
 }
 
 function boolBadge(ok, labelTrue, labelFalse = "—") {
-  if (ok === true) return `<span class="text-success fw-bold">${labelTrue}</span>`;
+  if (ok === true)
+    return `<span class="text-success fw-bold">${labelTrue}</span>`;
   if (ok === false) return `<span class="text-muted">${labelFalse}</span>`;
   return `<span class="text-muted">—</span>`;
 }
@@ -62,12 +63,16 @@ function normalizeText(s) {
 
 function matchLike(hay, needle) {
   if (!needle) return true;
-  return normalizeText(hay).toLowerCase().includes(normalizeText(needle).toLowerCase());
+  return normalizeText(hay)
+    .toLowerCase()
+    .includes(normalizeText(needle).toLowerCase());
 }
 
 function matchEquals(hay, needle) {
   if (!needle) return true;
-  return normalizeText(hay).toUpperCase() === normalizeText(needle).toUpperCase();
+  return (
+    normalizeText(hay).toUpperCase() === normalizeText(needle).toUpperCase()
+  );
 }
 
 function renderCardsResumo(rows) {
@@ -112,9 +117,15 @@ function renderTabela(rows) {
       const rom = r.romaneio || "-";
 
       const sep = separacaoLabel(r);
-      const nl = r.tem_nl ? `<span class="text-warning fw-bold">📦 Sim</span>` : `<span class="text-muted">—</span>`;
-      const pes = r.pesado ? `<span class="text-danger fw-bold">🧾 Pesado</span>` : `<span class="text-muted">—</span>`;
-      const col = r.coletado ? `<span class="text-success fw-bold">📬 Coletado</span>` : `<span class="text-muted">—</span>`;
+      const nl = r.tem_nl
+        ? `<span class="text-warning fw-bold">📦 Sim</span>`
+        : `<span class="text-muted">—</span>`;
+      const pes = r.pesado
+        ? `<span class="text-danger fw-bold">🧾 Pesado</span>`
+        : `<span class="text-muted">—</span>`;
+      const col = r.coletado
+        ? `<span class="text-success fw-bold">📬 Coletado</span>`
+        : `<span class="text-muted">—</span>`;
 
       const metodo = r.metodo_envio || "-";
       const cliente = r.cliente || "-";
@@ -153,8 +164,12 @@ function renderDetalhe(r) {
         <div class="card">
           <div class="card-body">
             <div class="fw-bold mb-2">Separação</div>
-            <div>Qtd total: <span class="mono fw-bold">${r.qtd_total ?? "-"}</span></div>
-            <div>Qtd bipada: <span class="mono fw-bold">${r.qtd_bipada ?? "-"}</span></div>
+            <div>Qtd total: <span class="mono fw-bold">${
+              r.qtd_total ?? "-"
+            }</span></div>
+            <div>Qtd bipada: <span class="mono fw-bold">${
+              r.qtd_bipada ?? "-"
+            }</span></div>
             <div>Iniciada: ${boolBadge(!!r.separacao_iniciada, "Sim")}</div>
             <div>Finalizada: ${boolBadge(!!r.separacao_finalizada, "Sim")}</div>
           </div>
@@ -165,9 +180,13 @@ function renderDetalhe(r) {
         <div class="card">
           <div class="card-body">
             <div class="fw-bold mb-2">Romaneio</div>
-            <div>Romaneio: <span class="mono fw-bold">${r.romaneio ?? "-"}</span></div>
+            <div>Romaneio: <span class="mono fw-bold">${
+              r.romaneio ?? "-"
+            }</span></div>
             <div>Iniciado: ${boolBadge(!!r.romaneio_iniciado, "Sim")}</div>
-            <div>Started: <span class="mono">${r.rom_started_at ?? "-"}</span></div>
+            <div>Started: <span class="mono">${
+              r.rom_started_at ?? "-"
+            }</span></div>
             <div>Ended: <span class="mono">${r.rom_ended_at ?? "-"}</span></div>
           </div>
         </div>
@@ -178,8 +197,12 @@ function renderDetalhe(r) {
           <div class="card-body">
             <div class="fw-bold mb-2">NL</div>
             <div>Tem NL: ${boolBadge(!!r.tem_nl, "Sim")}</div>
-            <div>Itens NL: <span class="mono fw-bold">${r.nl_itens ?? 0}</span></div>
-            <div>Último: <span class="mono">${r.nl_ultimo_em ?? "-"}</span></div>
+            <div>Itens NL: <span class="mono fw-bold">${
+              r.nl_itens ?? 0
+            }</span></div>
+            <div>Último: <span class="mono">${
+              r.nl_ultimo_em ?? "-"
+            }</span></div>
           </div>
         </div>
       </div>
@@ -189,11 +212,17 @@ function renderDetalhe(r) {
           <div class="card-body">
             <div class="fw-bold mb-2">Pesagem & Coleta</div>
             <div>Pesado: ${boolBadge(!!r.pesado, "Sim")}</div>
-            <div>Pesado em: <span class="mono">${r.pesado_em ?? "-"}</span></div>
+            <div>Pesado em: <span class="mono">${
+              r.pesado_em ?? "-"
+            }</span></div>
             <hr class="my-2"/>
             <div>Coletado: ${boolBadge(!!r.coletado, "Sim")}</div>
-            <div>Coletado em: <span class="mono">${r.coletado_em ?? "-"}</span></div>
-            <div>Status: <span class="mono">${r.status_atual ?? "-"}</span></div>
+            <div>Coletado em: <span class="mono">${
+              r.coletado_em ?? "-"
+            }</span></div>
+            <div>Status: <span class="mono">${
+              r.status_atual ?? "-"
+            }</span></div>
           </div>
         </div>
       </div>
@@ -217,7 +246,33 @@ function filtrarLocal(rows) {
 async function buscarNoSupabase({ pedidoIni, pedidoFim, dataIni, dataFim }) {
   let q = supabase
     .from("view_consulta_panorama_pedidos")
-    .select("*")
+    .select(
+      [
+        "pedido",
+        "pedido_id",
+        "data_pedido",
+        "romaneio",
+        "status_pedido",
+        "metodo_envio",
+        "cliente",
+        "qtd_total",
+        "qtd_bipada",
+        "separacao_iniciada",
+        "separacao_finalizada",
+        "tem_nl",
+        "nl_itens",
+        "nl_ultimo_em",
+        "pesado",
+        "pesado_em",
+        "romaneio_iniciado",
+        "rom_started_at",
+        "rom_ended_at",
+        "coletado",
+        "coletado_em",
+        "status_atual",
+        "status_consulta",
+      ].join(",")
+    )
     .order("pedido_id", { ascending: true });
 
   // 🔎 Filtra por data (se vier)
@@ -238,7 +293,12 @@ async function buscarNoSupabase({ pedidoIni, pedidoFim, dataIni, dataFim }) {
 
 function copiarLista(rows) {
   const texto = (rows || [])
-    .map((r) => `${r.pedido || r.pedido_id_text || r.pedido_id}\t${r.status_consulta || ""}`)
+    .map(
+      (r) =>
+        `${r.pedido || r.pedido_id_text || r.pedido_id}\t${
+          r.status_consulta || ""
+        }`
+    )
     .join("\n");
 
   navigator.clipboard
@@ -263,13 +323,20 @@ async function runBusca() {
   hint.textContent = "Consultando Supabase...";
 
   try {
-    cacheRows = await buscarNoSupabase({ pedidoIni, pedidoFim, dataIni, dataFim });
+    cacheRows = await buscarNoSupabase({
+      pedidoIni,
+      pedidoFim,
+      dataIni,
+      dataFim,
+    });
 
     const filtrados = filtrarLocal(cacheRows);
     renderCardsResumo(filtrados);
     renderTabela(filtrados);
 
-    hint.textContent = `Última atualização: ${new Date().toLocaleString("pt-BR")}`;
+    hint.textContent = `Última atualização: ${new Date().toLocaleString(
+      "pt-BR"
+    )}`;
   } catch (e) {
     console.error(e);
     alert("❌ Erro ao buscar consulta. Veja o console.");
@@ -325,11 +392,19 @@ function attach() {
   document.getElementById("btnBuscar")?.addEventListener("click", runBusca);
   document.getElementById("btnRecarregar")?.addEventListener("click", runBusca);
 
-  document.getElementById("btnLimpar")?.addEventListener("click", limparFiltros);
+  document
+    .getElementById("btnLimpar")
+    ?.addEventListener("click", limparFiltros);
 
-  document.getElementById("filtroStatus")?.addEventListener("change", aplicarFiltrosLocais);
-  document.getElementById("filtroMetodo")?.addEventListener("input", aplicarFiltrosLocais);
-  document.getElementById("filtroCliente")?.addEventListener("input", aplicarFiltrosLocais);
+  document
+    .getElementById("filtroStatus")
+    ?.addEventListener("change", aplicarFiltrosLocais);
+  document
+    .getElementById("filtroMetodo")
+    ?.addEventListener("input", aplicarFiltrosLocais);
+  document
+    .getElementById("filtroCliente")
+    ?.addEventListener("input", aplicarFiltrosLocais);
 
   document.getElementById("btnCopiarLista")?.addEventListener("click", () => {
     const filtrados = filtrarLocal(cacheRows);
