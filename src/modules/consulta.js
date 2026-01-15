@@ -293,6 +293,21 @@ async function buscarNoSupabase({ pedidoIni, pedidoFim, dataIni, dataFim }) {
   return data || [];
 }
 
+async function carregarBaseAtiva() {
+  const { data, error } = await supabase
+    .from("consulta_base")
+    .select("*")
+    .eq("is_active", true)
+    .order("created_at", { ascending: false })
+    .limit(1);
+
+  if (error) {
+    console.warn("Erro ao carregar base:", error);
+    return null;
+  }
+  return data?.[0] || null;
+}
+
 function copiarLista(rows) {
   const texto = (rows || [])
     .map(
@@ -423,4 +438,22 @@ function attach() {
   attachRowClick();
 }
 
-attach();
+attach(async function initBase() {
+  const base = await carregarBaseAtiva();
+  if (!base) return;
+
+  document.getElementById("pedidoIni").value = base.pedido_ini ?? "";
+  document.getElementById("pedidoFim").value = base.pedido_fim ?? "";
+  document.getElementById("dataIni").value = base.data_ini ?? "";
+  document.getElementById("dataFim").value = base.data_fim ?? "";
+
+  const hint = document.getElementById("hint");
+  if (hint) {
+    hint.textContent = `Base ativa: ${base.label || "Sem label"} — Pedidos ${
+      base.pedido_ini
+    }→${base.pedido_fim} — ${base.data_ini}→${base.data_fim}`;
+  }
+
+  // dispara busca automaticamente usando essa base
+  runBusca();
+})();

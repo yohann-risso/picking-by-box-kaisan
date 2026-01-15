@@ -1165,6 +1165,102 @@ async function atualizarFilaIndividual(codigos) {
   }
 }
 
+function renderAdminConsultaBase() {
+  const wrap = document.getElementById("adminArea"); // ajuste o id do container
+  if (!wrap) return;
+
+  const el = document.createElement("div");
+  el.className = "card mt-3";
+  el.innerHTML = `
+    <div class="card-body">
+      <h5 class="mb-2">🔎 Base da Consulta</h5>
+      <div class="row g-2">
+        <div class="col-md-4">
+          <label class="form-label">Label</label>
+          <input id="cb_label" class="form-control" placeholder="Ex: Semana 1 Jan" />
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Pedido início</label>
+          <input id="cb_ini" class="form-control" type="number" />
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Pedido fim</label>
+          <input id="cb_fim" class="form-control" type="number" />
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Data início</label>
+          <input id="cb_data_ini" class="form-control" type="date" />
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Data fim</label>
+          <input id="cb_data_fim" class="form-control" type="date" />
+        </div>
+        <div class="col-12 d-flex gap-2 mt-2">
+          <button id="btnSalvarBaseConsulta" class="btn btn-primary btn-sm">
+            💾 Salvar Base
+          </button>
+          <button id="btnAbrirConsulta" class="btn btn-outline-dark btn-sm">
+            Abrir Consulta
+          </button>
+          <span id="cb_status" class="ms-2 small text-muted"></span>
+        </div>
+      </div>
+    </div>
+  `;
+  wrap.appendChild(el);
+}
+
+async function salvarBaseConsulta() {
+  const label = document.getElementById("cb_label").value.trim() || null;
+  const pedido_ini = Number(document.getElementById("cb_ini").value);
+  const pedido_fim = Number(document.getElementById("cb_fim").value);
+  const data_ini = document.getElementById("cb_data_ini").value;
+  const data_fim = document.getElementById("cb_data_fim").value;
+
+  if (!pedido_ini || !pedido_fim || !data_ini || !data_fim) {
+    alert("Preencha pedido_ini, pedido_fim, data_ini e data_fim.");
+    return;
+  }
+
+  // desativa bases antigas (opcional)
+  await supabase
+    .from("consulta_base")
+    .update({ is_active: false })
+    .eq("is_active", true);
+
+  const { error } = await supabase.from("consulta_base").insert([
+    {
+      created_by: window.operador || null,
+      label,
+      pedido_ini,
+      pedido_fim,
+      data_ini,
+      data_fim,
+      is_active: true,
+    },
+  ]);
+
+  if (error) {
+    console.error(error);
+    alert("❌ Erro ao salvar base.");
+    return;
+  }
+
+  document.getElementById("cb_status").textContent = "✅ Base salva e ativada.";
+}
+
+function bindAdminConsultaBase() {
+  document
+    .getElementById("btnSalvarBaseConsulta")
+    ?.addEventListener("click", salvarBaseConsulta);
+  document
+    .getElementById("btnAbrirConsulta")
+    ?.addEventListener("click", () => window.open("/consulta.html", "_blank"));
+}
+
+renderAdminConsultaBase();
+setTimeout(bindAdminConsultaBase, 0);
+
 window.carregarSLAs = carregarSLAs;
 window.atualizarRastro = atualizarRastro;
 window.atualizarTodosSLAs = atualizarTodosSLAs;
