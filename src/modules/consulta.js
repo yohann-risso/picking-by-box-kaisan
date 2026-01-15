@@ -1,4 +1,4 @@
-import { supabase } from "./services/supabase.js";
+import { supabase } from "../services/supabase.js";
 
 const STATUS_ORDER = [
   "AGUARDANDO SEPARAÇÃO",
