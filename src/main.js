@@ -82,7 +82,7 @@ window.addEventListener("DOMContentLoaded", () => {
   } else {
     // Exibe o modal para novos login(s)
     const loginModal = new bootstrap.Modal(
-      document.getElementById("loginModal")
+      document.getElementById("loginModal"),
     );
     loginModal.show();
     document.getElementById("inputLoginModal").focus();
@@ -350,8 +350,8 @@ async function gerarPdfResumo() {
           ? "Pesado Incompleto"
           : "Pesado"
         : info.bipado >= info.total
-        ? "Completo"
-        : "Incompleto",
+          ? "Completo"
+          : "Incompleto",
     }));
 
   const ordenados = boxList
@@ -785,10 +785,10 @@ function renderBoxCards(pedidosEsperados = []) {
       const shadowColor = solid.includes("primary")
         ? "rgba(13, 110, 253, 0.3)"
         : solid.includes("success")
-        ? "rgba(25, 135, 84, 0.3)"
-        : solid.includes("warning")
-        ? "rgba(255, 193, 7, 0.3)"
-        : "rgba(220, 53, 69, 0.3)";
+          ? "rgba(25, 135, 84, 0.3)"
+          : solid.includes("warning")
+            ? "rgba(255, 193, 7, 0.3)"
+            : "rgba(220, 53, 69, 0.3)";
 
       const wrapper = document.createElement("div");
       wrapper.className = "card-produto";
@@ -819,7 +819,7 @@ function renderBoxCards(pedidosEsperados = []) {
   const pedidosComBox = new Set(
     Object.entries(caixas)
       .filter(([_, info]) => info.box != null)
-      .map(([pedido]) => pedido)
+      .map(([pedido]) => pedido),
   );
 
   pedidosEsperados
@@ -867,7 +867,7 @@ function renderBoxCards(pedidosEsperados = []) {
       const pedidos = JSON.parse(btn.dataset.pedidos || "[]");
 
       const incompleta = pedidos.some(
-        (pid) => caixas[pid]?.bipado < caixas[pid]?.total
+        (pid) => caixas[pid]?.bipado < caixas[pid]?.total,
       );
       if (
         incompleta &&
@@ -878,7 +878,7 @@ function renderBoxCards(pedidosEsperados = []) {
       window.open(
         `https://ge.kaisan.com.br/index2.php?page=nfe_pedido/pesa_automatico_pedido&cod_nfe_pedido=${codNfe}`,
         "pesagem",
-        "toolbar=no,location=no,directories=no,status=no,menubar=no,scrollbars=yes,resizable=yes,menubar=no,width=800,height=600"
+        "toolbar=no,location=no,directories=no,status=no,menubar=no,scrollbars=yes,resizable=yes,menubar=no,width=800,height=600",
       );
 
       for (const pid of pedidos) {
@@ -940,7 +940,7 @@ function atualizarBoxIndividual(boxNum) {
 
   const cards = boxContainer.querySelectorAll(".card-produto");
   const totalPedidosNaBox = Object.values(caixas).filter(
-    (info) => String(info.box) === String(boxNum)
+    (info) => String(info.box) === String(boxNum),
   ).length;
 
   if (totalPedidosNaBox === 0) {
@@ -953,7 +953,7 @@ function atualizarBoxIndividual(boxNum) {
   }
 
   const entradas = Object.entries(caixas).filter(
-    ([_, info]) => String(info.box) === String(boxNum)
+    ([_, info]) => String(info.box) === String(boxNum),
   );
   if (!entradas.length) return;
 
@@ -982,10 +982,10 @@ function atualizarBoxIndividual(boxNum) {
     const shadowColor = solid.includes("primary")
       ? "rgba(13,110,253,.3)"
       : solid.includes("success")
-      ? "rgba(25,135,84,.3)"
-      : solid.includes("warning")
-      ? "rgba(255,193,7,.3)"
-      : "rgba(220,53,69,.3)";
+        ? "rgba(25,135,84,.3)"
+        : solid.includes("warning")
+          ? "rgba(255,193,7,.3)"
+          : "rgba(220,53,69,.3)";
 
     let botaoHtml = "";
     if (isPesado) {
@@ -1147,14 +1147,14 @@ function renderPendentes() {
         </td>
       `;
       tbody.appendChild(row);
-    }
+    },
   );
 
   lista.appendChild(table);
 
   // Ativa os tooltips Bootstrap
   const tooltipTriggerList = document.querySelectorAll(
-    '[data-bs-toggle="tooltip"]'
+    '[data-bs-toggle="tooltip"]',
   );
   tooltipTriggerList.forEach((el) => new bootstrap.Tooltip(el));
 }
@@ -1251,7 +1251,7 @@ async function registrarTodosPendentesNL() {
           produtosPorPedido: agrupadoPorPedido,
         }),
       },
-      10000
+      10000,
     ); // timeout de 10s
 
     const json = await res.json();
@@ -1407,7 +1407,7 @@ function abrirEtiquetaNL({
           <tbody>
             ${tabela}
             ${"<tr><td>&nbsp;</td><td>&nbsp;</td></tr>".repeat(
-              9 - produtosNL.length
+              9 - produtosNL.length,
             )}
           </tbody>
         </table>
@@ -1486,7 +1486,7 @@ function abrirMultiplasEtiquetasNL(lista) {
         .map(({ sku, qtd }) => `<tr><td>${sku}</td><td>${qtd}</td></tr>`)
         .join("") +
       "<tr><td>&nbsp;</td><td>&nbsp;</td></tr>".repeat(
-        Math.max(0, 8 - produtosNL.length)
+        Math.max(0, 8 - produtosNL.length),
       );
 
     etiquetasHtml += `
@@ -2064,7 +2064,7 @@ document.getElementById("btnIniciar").addEventListener("click", async () => {
     .in("pedido_id", pedidoIds);
 
   const skus = Array.from(
-    new Set(produtos.map((p) => p.sku?.trim().toUpperCase()).filter(Boolean))
+    new Set(produtos.map((p) => p.sku?.trim().toUpperCase()).filter(Boolean)),
   );
 
   await carregarRefs(skus);
@@ -2162,7 +2162,7 @@ document.getElementById("btnBipar").addEventListener("click", async () => {
 
     // 7) atualiza “pendentes”
     const idx = pendentes.findIndex(
-      (p) => p.sku === currentProduto.sku && p.pedido === currentProduto.pedido
+      (p) => p.sku === currentProduto.sku && p.pedido === currentProduto.pedido,
     );
     if (idx > -1) {
       pendentes[idx].qtd -= 1;
@@ -2260,7 +2260,7 @@ document
   .addEventListener("click", async () => {
     if (!romaneio) return;
     const confirmar = confirm(
-      "Apagar TODAS as bipagens deste romaneio?\nIsso limpará banco de dados e histórico local."
+      "Apagar TODAS as bipagens deste romaneio?\nIsso limpará banco de dados e histórico local.",
     );
     if (!confirmar) return;
 
@@ -2350,7 +2350,7 @@ document.getElementById("btnPrintPendentes")?.addEventListener("click", () => {
     .sort((a, b) => a[1].endereco.localeCompare(b[1].endereco))
     .map(
       ([sku, { qtd, endereco }]) =>
-        `<tr><td>${sku}</td><td>${qtd}</td><td>${endereco}</td></tr>`
+        `<tr><td>${sku}</td><td>${qtd}</td><td>${endereco}</td></tr>`,
     )
     .join("");
 
@@ -2405,8 +2405,8 @@ document.getElementById("btnPrintBoxes")?.addEventListener("click", () => {
           ? "Pesado Incompleto"
           : "Pesado"
         : info.bipado >= info.total
-        ? "Completo"
-        : "Incompleto",
+          ? "Completo"
+          : "Incompleto",
     }))
     .sort((a, b) => a.box - b.box)
     .slice(0, 50);
@@ -2492,7 +2492,7 @@ function renderProductMap() {
   const gallery = document.getElementById("productGallery");
   if (!gallery) {
     console.warn(
-      "⚠️ renderProductMap: elemento #productGallery não encontrado"
+      "⚠️ renderProductMap: elemento #productGallery não encontrado",
     );
     return;
   }
@@ -2557,7 +2557,7 @@ function calcularETrocarTempos(pecas, pedidos, resumo) {
   const tpEtapa005 = (tempoPadrao["005"] || 0) * pedidos;
   const tpEtapa006 = (tempoPadrao["006"] || 0) * pedidos;
   const tempoIdealTotalSegundos = Math.round(
-    tpEtapa003 + tpEtapa005 + tpEtapa006
+    tpEtapa003 + tpEtapa005 + tpEtapa006,
   );
 
   // 3.3) Calcular tempo real total (segundos)
@@ -2686,7 +2686,7 @@ function avancarParaProximaEtapa() {
 
   // Captura a linha correspondente na tabela
   const linha = document.querySelector(
-    `#tbodyTempoIdeal tr:nth-child(${etapaAtualIndex + 1})`
+    `#tbodyTempoIdeal tr:nth-child(${etapaAtualIndex + 1})`,
   );
   if (linha) {
     const celulas = linha.querySelectorAll("td");
@@ -2707,7 +2707,7 @@ function avancarParaProximaEtapa() {
       celulas[5].classList.remove(
         "text-success",
         "text-warning",
-        "text-danger"
+        "text-danger",
       );
 
       if (eficiencia >= 100) {
@@ -2763,7 +2763,7 @@ async function finalizarEtapas() {
 
     // Atualiza a linha da tabela
     const linha = document.querySelector(
-      `#tbodyTempoIdeal tr:nth-child(${etapaAtualIndex + 1})`
+      `#tbodyTempoIdeal tr:nth-child(${etapaAtualIndex + 1})`,
     );
     if (linha) {
       const celulas = linha.querySelectorAll("td");
@@ -2784,7 +2784,7 @@ async function finalizarEtapas() {
         celulas[5].classList.remove(
           "text-success",
           "text-warning",
-          "text-danger"
+          "text-danger",
         );
 
         if (eficiencia >= 100) {
@@ -2804,7 +2804,7 @@ async function finalizarEtapas() {
     const dadosParaPlanilha = resumo
       .map((linha, i) => {
         const tr = document.querySelector(
-          `#tbodyTempoIdeal tr:nth-child(${i + 1})`
+          `#tbodyTempoIdeal tr:nth-child(${i + 1})`,
         );
         if (!tr) return null;
 
@@ -2845,7 +2845,7 @@ async function finalizarEtapas() {
 async function salvarEtapasNaPlanilha() {
   const etapasParaSalvar = resumo.map((etapaObj, index) => {
     const linha = document.querySelector(
-      `#tbodyTempoIdeal tr:nth-child(${index + 1})`
+      `#tbodyTempoIdeal tr:nth-child(${index + 1})`,
     );
     const tds = linha?.querySelectorAll("td") || [];
 
@@ -2868,7 +2868,7 @@ async function salvarEtapasNaPlanilha() {
   });
 
   const etapasEnviadas = JSON.parse(
-    localStorage.getItem("etapasEnviadas") || "[]"
+    localStorage.getItem("etapasEnviadas") || "[]",
   );
 
   for (const etapa of etapasParaSalvar) {
@@ -3302,7 +3302,7 @@ async function gerarResumoVisualRomaneio() {
     btnRemessa.textContent = "📋 Ver Códigos";
     btnRemessa.className = "btn btn-sm btn-outline-light";
     btnRemessa.addEventListener("click", () =>
-      exibirRastreiosPorMetodo(metodo.toUpperCase())
+      exibirRastreiosPorMetodo(metodo.toUpperCase()),
     );
   }
 
@@ -3346,7 +3346,7 @@ document
   .addEventListener("click", () => {
     window.open(
       "https://ge.kaisan.com.br/?page=meta/view&id_view=nfe_arquivo_remessa_conferencia&_menu_acessado=610",
-      "_blank"
+      "_blank",
     );
   });
 
@@ -3550,7 +3550,7 @@ function solicitarCestoNL() {
 
 window.imprimirEtiquetaIndividual = function (pedido) {
   const etiqueta = document.querySelector(
-    `.etiqueta-nl-print[data-pedido="${pedido}"]`
+    `.etiqueta-nl-print[data-pedido="${pedido}"]`,
   );
   if (!etiqueta) return;
 
@@ -3600,7 +3600,7 @@ document
     try {
       // 1) lista única de SKUs
       const listaSkus = Array.from(
-        new Set(pendentes.map((p) => p.sku.trim().toUpperCase()))
+        new Set(pendentes.map((p) => p.sku.trim().toUpperCase())),
       );
 
       // 2) mostra loaders
@@ -3636,7 +3636,7 @@ window.abrirModalPesagemIndividual = function () {
   document.getElementById("inputPedidoManual").value = "";
   document.getElementById("infoPedidoManual").textContent = "";
   const modal = new bootstrap.Modal(
-    document.getElementById("modalPesagemIndividual")
+    document.getElementById("modalPesagemIndividual"),
   );
   modal.show();
 };
@@ -3706,7 +3706,7 @@ async function pesarPedidoManual() {
 
   if (!rastreios || rastreios.length === 0) {
     alert(
-      `ℹ️ Pedido ${pedidoId} marcado como PESADO, mas nenhum rastreio foi encontrado.`
+      `ℹ️ Pedido ${pedidoId} marcado como PESADO, mas nenhum rastreio foi encontrado.`,
     );
     return;
   }
@@ -3736,7 +3736,7 @@ async function pesarPedidoManual() {
   });
 
   toast(
-    `✅ Pedido ${pedidoId} marcado como PESADO.\n${rastreios.length} rastreio(s) armazenado(s) para ${transportadora}.`
+    `✅ Pedido ${pedidoId} marcado como PESADO.\n${rastreios.length} rastreio(s) armazenado(s) para ${transportadora}.`,
   );
   await atualizarMetaIndividual();
 }
@@ -3796,7 +3796,7 @@ window.abrirModalRastreiosManuais = async function () {
 
   // Abre o modal
   const modal = new bootstrap.Modal(
-    document.getElementById("modalRastreiosManuais")
+    document.getElementById("modalRastreiosManuais"),
   );
   modal.show();
 };
@@ -3828,7 +3828,7 @@ window.mostrarRastreiosManuaisAgrupados = function () {
   if (!transps.length) {
     container.innerHTML = `<div class="alert alert-warning">Nenhum rastreio manual armazenado ainda.</div>`;
     const modal = new bootstrap.Modal(
-      document.getElementById("modalRastreiosAgrupados")
+      document.getElementById("modalRastreiosAgrupados"),
     );
     modal.show();
     return;
@@ -3846,15 +3846,15 @@ window.mostrarRastreiosManuaisAgrupados = function () {
         <h6 class="mb-0">
           📦 ${transp} 
           <span class="badge bg-dark ms-2">${qtd} rastreio${
-      qtd !== 1 ? "s" : ""
-    }</span>
+            qtd !== 1 ? "s" : ""
+          }</span>
         </h6>
         <button class="btn btn-sm btn-outline-primary" onclick="copiarRastreiosTransp('${transp}')">
           📋 Copiar
         </button>
       </div>
       <textarea class="form-control" rows="6" readonly style="font-family: monospace;">${lista.join(
-        "\n"
+        "\n",
       )}</textarea>
     `;
 
@@ -3862,7 +3862,7 @@ window.mostrarRastreiosManuaisAgrupados = function () {
   });
 
   const modal = new bootstrap.Modal(
-    document.getElementById("modalRastreiosAgrupados")
+    document.getElementById("modalRastreiosAgrupados"),
   );
   modal.show();
 };
@@ -3887,7 +3887,7 @@ function reconstruirTabelaResumo() {
 
     // Calcula eficiência se possível
     const idealSegundos = converterStringParaSegundos(
-      item.tempoIdeal || "00:00:00"
+      item.tempoIdeal || "00:00:00",
     );
     const realSegundos = converterStringParaSegundos(item.tempo || "00:00:00");
 
@@ -3922,11 +3922,11 @@ function reconstruirTabelaResumo() {
   // Atualiza tempo total ideal e real
   const idealSegsTotal = window.resumo.reduce(
     (acc, e) => acc + converterStringParaSegundos(e.tempoIdeal || "00:00:00"),
-    0
+    0,
   );
   const realSegsTotal = window.resumo.reduce(
     (acc, e) => acc + converterStringParaSegundos(e.tempo || "00:00:00"),
-    0
+    0,
   );
 
   const elIdeal = document.getElementById("displayTempoIdealTotal");
@@ -4003,7 +4003,7 @@ async function registrarProdutividadeOperadores() {
 
     if (jaExiste) {
       console.log(
-        `⏭️ Registro já existe para ${op} em ${romaneio} (${dataHoje})`
+        `⏭️ Registro já existe para ${op} em ${romaneio} (${dataHoje})`,
       );
       continue;
     }
@@ -4069,7 +4069,7 @@ async function carregarProdutividadeDoOperador() {
     .size;
   const pecasPesadas = (pesagensOp || []).reduce(
     (acc, r) => acc + (r.qtde_pecas || 0),
-    0
+    0,
   );
 
   // ---- Preenche UI ----
@@ -4107,13 +4107,13 @@ async function carregarProdutividadeDoOperador() {
     // Segunda a quinta
     metaIndividual = Math.min(
       Math.ceil(totalPedidosDoDia / qtdOperadores),
-      450
+      450,
     );
   } else if (diaSemana === 5) {
     // Sexta
     metaIndividual = Math.min(
       Math.ceil(totalPedidosDoDia / qtdOperadores),
-      400
+      400,
     );
   }
   // Sábado (6) e domingo (0) mantêm meta = 0
@@ -4325,7 +4325,7 @@ async function atualizarMetaIndividual() {
   barra.style.width = `${Math.min(perc, 100)}%`;
   barra.className = "progress-bar";
   barra.classList.add(
-    perc < 60 ? "bg-danger" : perc < 90 ? "bg-warning" : "bg-success"
+    perc < 60 ? "bg-danger" : perc < 90 ? "bg-warning" : "bg-success",
   );
   barra.textContent = `${feitos}/${metaPorOperador} (${perc}%)`;
 }
@@ -4352,42 +4352,115 @@ document.getElementById("painelToggle").addEventListener("click", () => {
   }
 });
 
+function isSemLocal(v) {
+  const s = (v ?? "").toString().trim().toUpperCase();
+  return !s || s === "SEM LOCAL";
+}
+
 async function buscarEnderecosPorSkus(listaSkus = []) {
   if (!Array.isArray(listaSkus) || listaSkus.length === 0) return {};
 
   const param = listaSkus.join(",");
-  const resp = await fetch(
-    `/api/consulta-enderecos?skus=${encodeURIComponent(param)}`
-  );
 
+  // 1) chama o que já existe
+  let mapaEnd = {};
   try {
-    const json = await resp.json();
-    return json;
+    const resp = await fetch(
+      `/api/consulta-enderecos?skus=${encodeURIComponent(param)}`,
+    );
+    mapaEnd = await resp.json();
   } catch (err) {
-    console.error("❌ Erro ao consultar proxy GAS:", err);
-    const fallback = {};
-    listaSkus.forEach((s) => (fallback[s] = "SEM LOCAL"));
-    return fallback;
+    console.error("❌ Erro ao consultar /api/consulta-enderecos:", err);
+    mapaEnd = {};
   }
+
+  // normaliza keys
+  const mapa = {};
+  listaSkus.forEach((sku) => {
+    const k = sku.trim().toUpperCase();
+    mapa[k] = (mapaEnd?.[k] ?? mapaEnd?.[sku] ?? "").toString();
+  });
+
+  // 2) pega só os sem local
+  const semLocal = listaSkus
+    .map((s) => s.trim().toUpperCase())
+    .filter((sku) => isSemLocal(mapa[sku]));
+
+  if (!semLocal.length) return mapa; // já resolveu tudo
+
+  // 3) consulta variadas só pros sem local
+  try {
+    const param2 = semLocal.join(",");
+    const resp2 = await fetch(
+      `/api/consulta-variadas?skus=${encodeURIComponent(param2)}`,
+    );
+    const mapaVar = await resp2.json();
+
+    // 4) aplica fallback (se vier "A,B" etc)
+    semLocal.forEach((sku) => {
+      const v = (
+        mapaVar?.[sku] ??
+        mapaVar?.[sku.toLowerCase()] ??
+        ""
+      ).toString();
+      if (!isSemLocal(v)) {
+        mapa[sku] = v; // substitui SEM LOCAL pelo resultado do GAS variadas
+      } else {
+        mapa[sku] = "SEM LOCAL";
+      }
+    });
+  } catch (err) {
+    console.error("❌ Erro ao consultar /api/consulta-variadas:", err);
+    // mantém SEM LOCAL
+    semLocal.forEach((sku) => (mapa[sku] = "SEM LOCAL"));
+  }
+
+  return mapa;
 }
 
 function setLoaderOnEndereco(pedido, sku) {
   const el = document.getElementById(
-    `addr-${pedido}-${sku.trim().toUpperCase()}`
+    `addr-${pedido}-${sku.trim().toUpperCase()}`,
   );
   if (el) {
     el.innerHTML = `<div class="spinner-border spinner-border-sm text-secondary" role="status"></div>`;
   }
 }
 
+function isVariadas(endereco) {
+  // ex: "A,B" ou "A, B, C"
+  return /^[A-Z](\s*,\s*[A-Z])+$/.test((endereco || "").trim().toUpperCase());
+}
+
 function setEnderecoFinal(pedido, sku, endereco) {
   const el = document.getElementById(
-    `addr-${pedido}-${sku.trim().toUpperCase()}`
+    `addr-${pedido}-${sku.trim().toUpperCase()}`,
   );
-  if (el) {
-    el.textContent = endereco || "SEM LOCAL";
-    el.classList.remove("bg-secondary", "bg-warning", "bg-danger");
-    el.classList.add(endereco === "SEM LOCAL" ? "bg-danger" : "bg-success");
+  if (!el) return;
+
+  const val = (endereco || "SEM LOCAL").trim();
+  const up = val.toUpperCase();
+
+  el.textContent = val;
+
+  el.classList.remove(
+    "bg-secondary",
+    "bg-warning",
+    "bg-danger",
+    "bg-success",
+    "badge-endereco-localizado",
+    "badge-endereco-sem-local",
+    "badge-endereco-pre-venda",
+  );
+
+  if (!val || up === "SEM LOCAL") {
+    el.classList.add("bg-danger");
+  } else if (up === "PRÉ-VENDA" || up === "PRE-VENDA") {
+    el.classList.add("bg-warning");
+  } else if (isVariadas(val)) {
+    el.classList.add("bg-warning"); // 🟡 variadas/caixas
+  } else {
+    el.classList.add("bg-success"); // 🟢 endereço real
   }
 }
 
@@ -4488,7 +4561,7 @@ function renderLeaderboard(rows, erros = []) {
     .map((r) => {
       const tempo = converterSegundosParaString(r.media_seg || 0);
       const isTotal = r.operador === "TOTAL";
-      const qtdErros = isTotal ? somaErros : errosMap[r.operador] ?? 0;
+      const qtdErros = isTotal ? somaErros : (errosMap[r.operador] ?? 0);
 
       return `
         <tr class="${isTotal ? "fw-bold table-secondary" : ""}">
@@ -4561,7 +4634,7 @@ function hojeISO_SP() {
     day: "2-digit",
   });
   const [{ value: y }, , { value: m }, , { value: d }] = fmt.formatToParts(
-    new Date()
+    new Date(),
   );
   return `${y}-${m}-${d}`;
 }
@@ -4623,7 +4696,7 @@ function bloquearImpressao() {
         if (!window.__permitirImpressao) {
           e.preventDefault();
           alert(
-            "🛑 Impressão bloqueada. Use os botões específicos da aplicação."
+            "🛑 Impressão bloqueada. Use os botões específicos da aplicação.",
           );
           return false;
         } else {
@@ -4632,7 +4705,7 @@ function bloquearImpressao() {
         }
       }
     },
-    true
+    true,
   );
 
   // Intercepta chamadas diretas a window.print()
@@ -4769,7 +4842,7 @@ document
         <span>${new Date().toLocaleString("pt-BR")}</span>
       </div>
     </div>
-  `
+  `,
       )
       .join("");
 
