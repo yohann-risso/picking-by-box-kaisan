@@ -1063,15 +1063,10 @@ function renderPendentes() {
   lista.innerHTML = "";
 
   const listaOrdenada = [...pendentes].sort((a, b) => {
-    const ea = (a.endereco || "SEM LOCAL").match(/\d+/g)?.map(Number) || [];
-    const eb = (b.endereco || "SEM LOCAL").match(/\d+/g)?.map(Number) || [];
-    if (a.endereco?.includes("SEM LOCAL")) return 1;
-    if (b.endereco?.includes("SEM LOCAL")) return -1;
-    for (let i = 0; i < Math.max(ea.length, eb.length); i++) {
-      const diff = (ea[i] || 0) - (eb[i] || 0);
-      if (diff !== 0) return diff;
-    }
-    return (a.sku || "").localeCompare(b.sku || "");
+    const cmp = __compararEnderecos(a.endereco, b.endereco);
+    if (cmp !== 0) return cmp;
+    // fallback: SKU (natural)
+    return (a.sku || "").localeCompare(b.sku || "", "pt-BR", { numeric: true });
   });
 
   const table = document.createElement("table");
@@ -2347,7 +2342,12 @@ document.getElementById("btnPrintPendentes")?.addEventListener("click", () => {
   });
 
   const linhas = Object.entries(agrupado)
-    .sort((a, b) => a[1].endereco.localeCompare(b[1].endereco))
+    .sort((a, b) => {
+      const cmp = __compararEnderecos(a[1].endereco, b[1].endereco);
+      if (cmp !== 0) return cmp;
+      // fallback final: SKU
+      return (a[0] || "").localeCompare(b[0] || "", "pt-BR", { numeric: true });
+    })
     .map(
       ([sku, { qtd, endereco }]) =>
         `<tr><td>${sku}</td><td>${qtd}</td><td>${endereco}</td></tr>`,
@@ -2385,6 +2385,71 @@ document.getElementById("btnPrintPendentes")?.addEventListener("click", () => {
     win.document.close();
   }
 });
+
+// 🔢 Ordenação “natural” de endereços (B/R/C/N como número)
+const __collatorEndereco = new Intl.Collator("pt-BR", {
+  numeric: true,
+  sensitivity: "base",
+});
+
+function __primeiroEndereco(endereco) {
+  return String(endereco || "")
+    .split("•")[0]
+    .trim()
+    .toUpperCase();
+}
+
+function __extrairNumeroTag(endereco, tag) {
+  // aceita "B10", "B 10", "B-10", etc
+  const m = endereco.match(new RegExp(`${tag}\\s*[-:]?\\s*(\\d+)`, "i"));
+  return m ? Number(m[1]) : null;
+}
+
+function __chaveOrdenacaoEndereco(endereco) {
+  const e = __primeiroEndereco(endereco);
+
+  if (!e || e === "SEM LOCAL") {
+    return {
+      semLocal: true,
+      b: 999999,
+      r: 999999,
+      c: 999999,
+      n: 999999,
+      raw: e || "SEM LOCAL",
+    };
+  }
+
+  const b = __extrairNumeroTag(e, "B");
+  const r = __extrairNumeroTag(e, "R");
+  const c = __extrairNumeroTag(e, "C");
+  const n = __extrairNumeroTag(e, "N");
+
+  return {
+    semLocal: false,
+    b: b ?? 999999,
+    r: r ?? 999999,
+    c: c ?? 999999,
+    n: n ?? 999999,
+    raw: e,
+  };
+}
+
+function __compararEnderecos(aEnd, bEnd) {
+  const A = __chaveOrdenacaoEndereco(aEnd);
+  const B = __chaveOrdenacaoEndereco(bEnd);
+
+  // SEM LOCAL sempre por último
+  if (A.semLocal !== B.semLocal) return A.semLocal ? 1 : -1;
+
+  // Ordem por B → R → C → N (numérica)
+  if (A.b !== B.b) return A.b - B.b;
+  if (A.r !== B.r) return A.r - B.r;
+  if (A.c !== B.c) return A.c - B.c;
+  if (A.n !== B.n) return A.n - B.n;
+
+  // Desempate natural pelo texto completo
+  return __collatorEndereco.compare(A.raw, B.raw);
+}
 
 document.getElementById("btnPrintBoxes")?.addEventListener("click", () => {
   const operadorLogado =
