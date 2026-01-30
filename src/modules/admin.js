@@ -23,13 +23,13 @@ function formatarDataISO(dateStr) {
   const d = new Date(dateStr);
   // monta manualmente sem aplicar timezone local
   return `${String(d.getUTCDate()).padStart(2, "0")}/${String(
-    d.getUTCMonth() + 1
+    d.getUTCMonth() + 1,
   ).padStart(2, "0")}/${d.getUTCFullYear()}`;
 }
 // === Admin module gate: only run when the admin page is active ===
 const __ADMIN_MOUNTS__ = ["#accordionAdmin", "#adminApp", "#dashboardAdmin"];
 const __ADMIN_ACTIVE__ = __ADMIN_MOUNTS__.some((sel) =>
-  document.querySelector(sel)
+  document.querySelector(sel),
 );
 if (!__ADMIN_ACTIVE__) {
   console.info("[admin] page not active — skipping bootstrap.");
@@ -100,7 +100,7 @@ if (!__ADMIN_ACTIVE__) {
       .eq("status", "pendente");
     animarNumero(
       document.getElementById("pedidosPendentesCount"),
-      pendentes ?? 0
+      pendentes ?? 0,
     );
 
     const { data: pecas } = await supabase
@@ -109,7 +109,7 @@ if (!__ADMIN_ACTIVE__) {
       .gte("data", `${hoje}T00:00:00`);
     animarNumero(
       document.getElementById("pecasHojeCount"),
-      pecas?.reduce((a, p) => a + p.qtde_pecas, 0) ?? 0
+      pecas?.reduce((a, p) => a + p.qtde_pecas, 0) ?? 0,
     );
 
     const { count: romaneios } = await supabase
@@ -117,7 +117,7 @@ if (!__ADMIN_ACTIVE__) {
       .select("*", { count: "exact", head: true });
     animarNumero(
       document.getElementById("romaneiosAbertosCount"),
-      romaneios ?? 0
+      romaneios ?? 0,
     );
   }
 
@@ -126,36 +126,32 @@ if (!__ADMIN_ACTIVE__) {
     const hoje = new Date().toISOString().slice(0, 10);
 
     const { data: pendentesData } = await supabase.rpc(
-      "contar_pecas_pendentes"
+      "contar_pecas_pendentes",
     );
     const totalPendentes = pendentesData?.[0]?.total_pedidos ?? 0;
     const totalPecasPendentes = pendentesData?.[0]?.total_pecas ?? 0;
 
     const { data: pesadosHojeData } = await supabase.rpc(
       "contar_pedidos_pesados_hoje",
-      { data: hoje }
+      { data: hoje },
     );
     const totalPesadosHoje = pesadosHojeData?.[0]?.total_pedidos ?? 0;
     const totalPecasPesadasHoje = pesadosHojeData?.[0]?.total_pecas ?? 0;
 
     const { data: metaGeral } = await supabase.rpc(
-      "contar_pedidos_nao_pesados"
+      "contar_pedidos_nao_pesados",
     );
     const meta80 = Math.round((metaGeral ?? 0) * 0.8);
     const percMeta = meta80 ? Math.round((totalPesadosHoje / meta80) * 100) : 0;
 
-    document.getElementById(
-      "totalPendentes"
-    ).textContent = `${totalPendentes} pedidos`;
-    document.getElementById(
-      "totalPendentesPecas"
-    ).textContent = `${totalPecasPendentes} peças`;
-    document.getElementById(
-      "totalPesadosHoje"
-    ).textContent = `${totalPesadosHoje} pedidos`;
-    document.getElementById(
-      "totalPesadosHojePecas"
-    ).textContent = `${totalPecasPesadasHoje} peças`;
+    document.getElementById("totalPendentes").textContent =
+      `${totalPendentes} pedidos`;
+    document.getElementById("totalPendentesPecas").textContent =
+      `${totalPecasPendentes} peças`;
+    document.getElementById("totalPesadosHoje").textContent =
+      `${totalPesadosHoje} pedidos`;
+    document.getElementById("totalPesadosHojePecas").textContent =
+      `${totalPecasPesadasHoje} peças`;
     document.getElementById("metaGeral").textContent = metaGeral ?? 0;
     document.getElementById("meta80").textContent = meta80;
     document.getElementById("percMeta").textContent = `${percMeta}%`;
@@ -195,8 +191,8 @@ if (!__ADMIN_ACTIVE__) {
           row.media_seg_dia <= 300
             ? "success"
             : row.media_seg_dia <= 600
-            ? "warning"
-            : "danger"
+              ? "warning"
+              : "danger"
         }">
           ${formatarSegundos(row.media_seg_dia)}
         </span>
@@ -256,7 +252,7 @@ if (!__ADMIN_ACTIVE__) {
     const totaisGerais = data.filter((r) => r.operador === "TOTAL GERAL");
     if (totaisGerais.length > 1) {
       const colsHoras = Object.keys(totaisGerais[0]).filter(
-        (c) => c.includes("H") || c === "total"
+        (c) => c.includes("H") || c === "total",
       );
 
       const consolidado = { operador: "TOTAL GERAL (Período)" };
@@ -278,15 +274,15 @@ if (!__ADMIN_ACTIVE__) {
     // 🧠 Atualiza título e subtítulo dinâmico
     if (inicio && fim && inicio !== fim) {
       titulo.textContent = `Pedidos por Hora – ${formatarDataBR(
-        inicio
+        inicio,
       )} a ${formatarDataBR(fim)} (Consolidado)`;
       subtitulo.textContent = `Exibindo resultados consolidados entre ${formatarDataBR(
-        inicio
+        inicio,
       )} e ${formatarDataBR(fim)}.`;
     } else if (inicio) {
       titulo.textContent = `Pedidos por Hora – ${formatarDataBR(inicio)}`;
       subtitulo.textContent = `Exibindo resultados de ${formatarDataBR(
-        inicio
+        inicio,
       )}.`;
     } else {
       titulo.textContent = "Pedidos por Hora – Todos os dias";
@@ -295,7 +291,7 @@ if (!__ADMIN_ACTIVE__) {
 
     // 🧹 Remove colunas internas
     const cols = Object.keys(data[0]).filter(
-      (c) => c !== "data" && c !== "ordem"
+      (c) => c !== "data" && c !== "ordem",
     );
 
     // 🧩 Cabeçalho
@@ -317,8 +313,8 @@ if (!__ADMIN_ACTIVE__) {
             isPeriodo
               ? "fw-bold bg-primary text-white"
               : isTotal
-              ? "fw-bold bg-light text-dark"
-              : ""
+                ? "fw-bold bg-light text-dark"
+                : ""
           }">${val ?? 0}</td>`;
         })
         .join("");
@@ -356,7 +352,7 @@ if (!__ADMIN_ACTIVE__) {
             plugins: { legend: { display: false } },
             scales: { y: { beginAtZero: true } },
           },
-        }
+        },
       );
     }
   }
@@ -435,7 +431,7 @@ if (!__ADMIN_ACTIVE__) {
       <td>${r.operador1}</td>
       <td>${r.operador2 ?? "-"}</td>
       <td><span class="badge-status info">${formatarHoraSP(
-        r.iniciado_em
+        r.iniciado_em,
       )}</span></td>
     `;
       tbody.appendChild(tr);
@@ -560,7 +556,7 @@ if (!__ADMIN_ACTIVE__) {
         alert("✅ Erro registrado com sucesso!");
         document.getElementById("formErroExpedicao").reset();
         bootstrap.Modal.getInstance(
-          document.getElementById("erroModal")
+          document.getElementById("erroModal"),
         ).hide();
         carregarRelatorioErros();
       }
@@ -848,38 +844,53 @@ async function atualizarRastro(codigos) {
           continue;
         }
 
-        const eventos = resultado.data?.objetos?.[0]?.eventos || [];
+        const { transportadora, eventos } =
+          normalizarEventosDoRastro(resultado);
         const ultimo = eventos[0];
-        const objeto = resultado.data?.objetos?.[0];
+
+        // Correios tem "objeto" com dtPrevista; Loggi não.
+        const objetoCorreios = resultado.data?.objetos?.[0];
+        const pkgLoggi = resultado.data?.packages?.[0];
 
         // Atualiza apenas se não for status final
-        const isEntregaReal = ultimo?.codigo === "BDE" && ultimo?.tipo === "01";
+        const isEntregaReal =
+          (transportadora === "Correios" &&
+            ultimo?.codigo === "BDE" &&
+            ultimo?.tipo === "01") ||
+          (transportadora === "Loggi" && String(ultimo?.codigo) === "5");
 
         const payload = {
           codigo_rastreio: resultado.codigo.trim(),
           status_atual: ultimo?.descricao || "Sem atualização",
+          transportadora,
           status_codigo: ultimo?.codigo || null,
           status_tipo: ultimo?.tipo || null,
           historico: eventos,
           data_postagem: eventos.find((e) => e.codigo === "PO")
             ? new Date(
-                eventos.find((e) => e.codigo === "PO").dtHrCriado
+                eventos.find((e) => e.codigo === "PO").dtHrCriado,
               ).toISOString()
             : null,
-          data_entrega: isEntregaReal
-            ? new Date(ultimo.dtHrCriado).toISOString()
-            : null,
+          data_entrega:
+            isEntregaReal && ultimo?.dtHrCriado
+              ? new Date(ultimo.dtHrCriado).toISOString()
+              : null,
+
           entregue: isEntregaReal,
-          dt_prevista: objeto?.dtPrevista
-            ? new Date(objeto.dtPrevista).toISOString()
-            : null,
+          dt_prevista:
+            transportadora === "Correios" && objetoCorreios?.dtPrevista
+              ? new Date(objetoCorreios.dtPrevista).toISOString()
+              : // Loggi: se quiser, pode usar promisedDate
+                pkgLoggi?.promisedDate
+                ? new Date(pkgLoggi.promisedDate + "T00:00:00Z").toISOString()
+                : null,
         };
 
         const { error } = await supabase
           .from("slas_transportadora")
           .upsert(
             { codigo_rastreio: resultado.codigo.trim(), ...payload },
-            { onConflict: "codigo_rastreio" }
+            { onConflict: "codigo_rastreio" },
           );
         if (error) console.error("Erro no upsert:", error);
       }
@@ -933,7 +944,7 @@ document
     // Corrige para fuso horário de São Paulo
     const offsetSP = -3 * 60; // -03:00
     const localSP = new Date(
-      agora.getTime() - (agora.getTimezoneOffset() - offsetSP) * 60000
+      agora.getTime() - (agora.getTimezoneOffset() - offsetSP) * 60000,
     );
 
     const horaSP = localSP.toISOString().slice(11, 19); // HH:MM:SS
@@ -1133,12 +1144,12 @@ async function atualizarFilaIndividual(codigos) {
         historico: eventos,
         data_postagem: eventos.find((e) => e.codigo === "PO")
           ? new Date(
-              eventos.find((e) => e.codigo === "PO").dtHrCriado
+              eventos.find((e) => e.codigo === "PO").dtHrCriado,
             ).toISOString()
           : null,
         data_entrega: eventos.find((e) => e.codigo === "BDE" && e.tipo === "01")
           ? new Date(
-              eventos.find((e) => e.codigo === "BDE").dtHrCriado
+              eventos.find((e) => e.codigo === "BDE").dtHrCriado,
             ).toISOString()
           : null,
         entregue: !!eventos.find((e) => e.codigo === "BDE" && e.tipo === "01"),
@@ -1256,6 +1267,33 @@ function bindAdminConsultaBase() {
   document
     .getElementById("btnAbrirConsulta")
     ?.addEventListener("click", () => window.open("/consulta.html", "_blank"));
+}
+
+function normalizarEventosDoRastro(resultado) {
+  // Correios
+  const eventosCorreios = resultado?.data?.objetos?.[0]?.eventos;
+  if (Array.isArray(eventosCorreios)) {
+    return { transportadora: "Correios", eventos: eventosCorreios };
+  }
+
+  // Loggi
+  const hist = resultado?.data?.packages?.[0]?.trackingHistory;
+  if (Array.isArray(hist)) {
+    const eventosLoggi = hist
+      .map((h) => ({
+        codigo: h?.status?.code ?? null, // "13", "5", etc.
+        tipo: null, // Loggi não tem "tipo" estilo Correios
+        descricao: h?.status?.description ?? h?.status?.highLevelStatus ?? "",
+        dtHrCriado: h?.status?.updatedTime ?? null,
+      }))
+      .filter((e) => e.codigo && e.dtHrCriado)
+      // manter padrão do seu código (eventos[0] = último)
+      .sort((a, b) => new Date(b.dtHrCriado) - new Date(a.dtHrCriado));
+
+    return { transportadora: "Loggi", eventos: eventosLoggi };
+  }
+
+  return { transportadora: "Desconhecida", eventos: [] };
 }
 
 renderAdminConsultaBase();
