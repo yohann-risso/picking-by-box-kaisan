@@ -1005,14 +1005,16 @@ document
         : linha.split(";");
 
       pedido = pedido?.trim();
-      rastreio = rastreio?.trim();
+      rastreio = rastreio?.trim().replace(/\s+/g, "").toUpperCase();
 
       if (pedido && rastreio) {
         insertData.push({
           pedido_id: pedido,
           codigo_rastreio: rastreio,
           data_coleta,
-          transportadora: "Correios",
+          transportadora: /^[A-Z]{2}\d{9}[A-Z]{2}$/i.test(rastreio)
+            ? "Correios"
+            : "Loggi",
         });
       }
     });
