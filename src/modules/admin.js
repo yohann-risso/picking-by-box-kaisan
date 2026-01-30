@@ -686,7 +686,7 @@ async function carregarSLAs(filtro = "") {
   document.getElementById("paginaAtual").textContent = `Página ${pagina}`;
 
   // 🚀 Atualiza cards pelo RPC
-  carregarMetricasSLA();
+  //carregarMetricasSLA();
 }
 
 function badgeStatusByCodigo(eventos) {
@@ -1376,6 +1376,13 @@ function getHojeSPDateOnly() {
 function getPeriodoSP(tipo) {
   const hoje = getHojeSPDateOnly(); // YYYY-MM-DD
 
+  // helper local (não depende de nada externo)
+  const fmtBR = (dateStr) => {
+    if (!dateStr) return "";
+    const [y, m, d] = String(dateStr).split("-");
+    return `${d}/${m}/${y}`;
+  };
+
   if (tipo === "geral")
     return { tipo, label: "Geral", inicio: null, fim: null };
 
@@ -1411,14 +1418,15 @@ function getPeriodoSP(tipo) {
     timeZone: "America/Sao_Paulo",
   });
 
-  // label amigável (dom = fim-1)
   const fimInclusivo = new Date(
     fimDate.getTime() - 86400000,
-  ).toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" });
+  ).toLocaleDateString("sv-SE", {
+    timeZone: "America/Sao_Paulo",
+  });
 
   return {
     tipo,
-    label: `Semana atual (${formatarDataBR(inicio)} a ${formatarDataBR(fimInclusivo)})`,
+    label: `Semana atual (${fmtBR(inicio)} a ${fmtBR(fimInclusivo)})`,
     inicio,
     fim,
   };
