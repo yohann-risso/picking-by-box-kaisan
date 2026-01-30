@@ -911,6 +911,41 @@ async function atualizarRastro(codigos) {
   }
 }
 
+async function filtrarCodigosNaoEntregues(codigos) {
+  const lista = (codigos || [])
+    .map((c) => String(c || "").trim())
+    .filter(Boolean);
+  if (!lista.length) return { processar: [], entregues: [] };
+
+  // Busca status atual no banco (em lotes, pra não estourar URL/limites)
+  const chunkSize = 800;
+  const entregues = new Set();
+
+  for (let i = 0; i < lista.length; i += chunkSize) {
+    const chunk = lista.slice(i, i + chunkSize);
+
+    const { data, error } = await supabase
+      .from("slas_transportadora")
+      .select("codigo_rastreio, entregue")
+      .in("codigo_rastreio", chunk);
+
+    if (error) {
+      console.error("Erro ao filtrar entregues:", error);
+      // se falhar, não bloqueia a atualização — processa tudo
+      return { processar: lista, entregues: [] };
+    }
+
+    (data || []).forEach((r) => {
+      if (r?.entregue) entregues.add(String(r.codigo_rastreio || "").trim());
+    });
+  }
+
+  const jaEntregues = lista.filter((c) => entregues.has(c));
+  const processar = lista.filter((c) => !entregues.has(c));
+
+  return { processar, entregues: jaEntregues };
+}
+
 async function atualizarColetados() {
   const { data, error } = await supabase
     .from("slas_transportadora")
@@ -1096,8 +1131,29 @@ async function atualizarFilaIndividual(codigos) {
   const tbody = document.getElementById("slaQueueList");
   tbody.innerHTML = "";
 
-  // Inicializa a fila visual
-  codigos.forEach((cod) => {
+  // ✅ remove os já entregues ANTES de montar a fila
+  const { processar, entregues } = await filtrarCodigosNaoEntregues(codigos);
+
+  if (entregues.length) {
+    console.log(`✅ Ignorando ${entregues.length} já entregues:`, entregues);
+    // opcional: mostrar um aviso no UI se você quiser
+    const aviso = document.getElementById("slaQueueAviso");
+    if (aviso) {
+      aviso.textContent = `✅ ${entregues.length} rastreios já estavam entregues e foram ignorados.`;
+      aviso.style.display = "block";
+    }
+  }
+
+  if (!processar.length) {
+    alert(
+      "✅ Todos os rastreios selecionados já estão entregues. Nada para atualizar.",
+    );
+    carregarSLAs();
+    return;
+  }
+
+  // Inicializa a fila visual SOMENTE para os que vão processar
+  processar.forEach((cod) => {
     const tr = document.createElement("tr");
     tr.id = `fila-${cod}`;
     tr.innerHTML = `
@@ -1108,9 +1164,10 @@ async function atualizarFilaIndividual(codigos) {
   });
 
   // Processa item por item
-  for (const codigo of codigos) {
+  for (const codigo of processar) {
     const row = document.getElementById(`fila-${codigo}`);
-    const badge = row.querySelector("span");
+    const badge = row?.querySelector("span");
+    if (!badge) continue;
 
     try {
       badge.className = "badge bg-warning text-dark";
@@ -1128,17 +1185,27 @@ async function atualizarFilaIndividual(codigos) {
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const resultados = await resp.json();
       const resultado = resultados[0];
-
       if (resultado.error) throw new Error(resultado.error);
 
-      // Upsert no Supabase
-      const eventos = resultado.data?.objetos?.[0]?.eventos || [];
+      // ⚠️ aqui seu código continua igual (normalizar / montar payload / upsert)
+      const { transportadora, eventos } = normalizarEventosDoRastro(resultado);
       const ultimo = eventos[0];
-      const objeto = resultado.data?.objetos?.[0];
+
+      // Correios
+      const objetoCorreios = resultado.data?.objetos?.[0];
+      // Loggi
+      const pkgLoggi = resultado.data?.packages?.[0];
+
+      const isEntregaReal =
+        (transportadora === "Correios" &&
+          ultimo?.codigo === "BDE" &&
+          ultimo?.tipo === "01") ||
+        (transportadora === "Loggi" && String(ultimo?.codigo) === "5");
 
       const payload = {
         codigo_rastreio: codigo,
         status_atual: ultimo?.descricao || "Sem atualização",
+        transportadora,
         status_codigo: ultimo?.codigo || null,
         status_tipo: ultimo?.tipo || null,
         historico: eventos,
@@ -1147,25 +1214,25 @@ async function atualizarFilaIndividual(codigos) {
               eventos.find((e) => e.codigo === "PO").dtHrCriado,
             ).toISOString()
           : null,
-        data_entrega: eventos.find((e) => e.codigo === "BDE" && e.tipo === "01")
-          ? new Date(
-              eventos.find((e) => e.codigo === "BDE").dtHrCriado,
-            ).toISOString()
-          : null,
-        entregue: !!eventos.find((e) => e.codigo === "BDE" && e.tipo === "01"),
-        dt_prevista: objeto?.dtPrevista
-          ? new Date(objeto.dtPrevista).toISOString()
-          : null,
+        data_entrega:
+          isEntregaReal && ultimo?.dtHrCriado
+            ? new Date(ultimo.dtHrCriado).toISOString()
+            : null,
+        entregue: isEntregaReal,
+        dt_prevista:
+          transportadora === "Correios" && objetoCorreios?.dtPrevista
+            ? new Date(objetoCorreios.dtPrevista).toISOString()
+            : pkgLoggi?.promisedDate
+              ? new Date(pkgLoggi.promisedDate + "T00:00:00Z").toISOString()
+              : null,
       };
 
       const { error } = await supabase
         .from("slas_transportadora")
-        .upsert(payload, {
-          onConflict: "codigo_rastreio",
-        });
+        .upsert(payload, { onConflict: "codigo_rastreio" });
+
       if (error) throw error;
 
-      // ✅ Sucesso
       badge.className = "badge bg-success";
       badge.textContent = "✅ Atualizado";
     } catch (err) {
@@ -1174,6 +1241,8 @@ async function atualizarFilaIndividual(codigos) {
       badge.textContent = "❌ Erro";
     }
   }
+
+  carregarSLAs();
 }
 
 function renderAdminConsultaBase() {
