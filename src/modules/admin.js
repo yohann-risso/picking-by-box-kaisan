@@ -584,8 +584,8 @@ if (!__ADMIN_ACTIVE__) {
     carregarRelatorioErros();
     carregarOperadoresDropdown();
     carregarSLAs();
-    carregarMetricasSLA();
-    carregarMetricasDetalhadasSLA();
+    bindPeriodoSLA();
+    await carregarSLAResumoEAnalisePorPeriodo("mes");
     carregarTempoMedioExpedicao();
 
     // 👉 setar data de hoje (fuso SP) no input e carregar pivot só uma vez
@@ -604,8 +604,8 @@ if (!__ADMIN_ACTIVE__) {
       carregarRomaneios();
       carregarMetricaExpedicao();
       carregarRelatorioErros();
-      carregarMetricasSLA();
-      carregarMetricasDetalhadasSLA();
+      const tipo = document.getElementById("slaPeriodo")?.value || "mes";
+      carregarSLAResumoEAnalisePorPeriodo(tipo);
       carregarTempoMedioExpedicao();
     }, 30000);
   }
@@ -1365,6 +1365,261 @@ function normalizarEventosDoRastro(resultado) {
   }
 
   return { transportadora: "Desconhecida", eventos: [] };
+}
+
+function getHojeSPDateOnly() {
+  return new Date().toLocaleDateString("sv-SE", {
+    timeZone: "America/Sao_Paulo",
+  });
+}
+
+function getPeriodoSP(tipo) {
+  const hoje = getHojeSPDateOnly(); // YYYY-MM-DD
+
+  if (tipo === "geral")
+    return { tipo, label: "Geral", inicio: null, fim: null };
+
+  if (tipo === "mes") {
+    const [y, m] = hoje.split("-");
+    const inicio = `${y}-${m}-01`;
+
+    const d0 = new Date(`${inicio}T12:00:00-03:00`);
+    const proxMes = new Date(d0);
+    proxMes.setMonth(proxMes.getMonth() + 1);
+
+    const fim = proxMes.toLocaleDateString("sv-SE", {
+      timeZone: "America/Sao_Paulo",
+    });
+    return { tipo, label: `Mês atual (${m}/${y})`, inicio, fim };
+  }
+
+  // semana seg->dom, fim exclusivo
+  const base = new Date(`${hoje}T12:00:00-03:00`);
+  const day = base.getDay(); // 0 dom, 1 seg...
+  const diffToMon = day === 0 ? -6 : 1 - day;
+
+  const inicioDate = new Date(base);
+  inicioDate.setDate(base.getDate() + diffToMon);
+
+  const fimDate = new Date(inicioDate);
+  fimDate.setDate(inicioDate.getDate() + 7);
+
+  const inicio = inicioDate.toLocaleDateString("sv-SE", {
+    timeZone: "America/Sao_Paulo",
+  });
+  const fim = fimDate.toLocaleDateString("sv-SE", {
+    timeZone: "America/Sao_Paulo",
+  });
+
+  // label amigável (dom = fim-1)
+  const fimInclusivo = new Date(
+    fimDate.getTime() - 86400000,
+  ).toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" });
+
+  return {
+    tipo,
+    label: `Semana atual (${formatarDataBR(inicio)} a ${formatarDataBR(fimInclusivo)})`,
+    inicio,
+    fim,
+  };
+}
+
+async function fetchSLAsPeriodo(inicio, fimExclusivo) {
+  let all = [];
+  let from = 0;
+  const step = 1000;
+
+  while (true) {
+    let q = supabase
+      .from("slas_transportadora")
+      .select(
+        "status_codigo, status_tipo, status_atual, entregue, data_coleta, data_postagem, data_entrega, dt_prevista",
+        { count: "exact" },
+      )
+      .order("criado_em", { ascending: false })
+      .range(from, from + step - 1);
+
+    if (inicio && fimExclusivo) {
+      q = q
+        .gte("data_coleta", `${inicio}T00:00:00-03:00`)
+        .lt("data_coleta", `${fimExclusivo}T00:00:00-03:00`);
+    }
+
+    const { data, error } = await q;
+    if (error) throw error;
+
+    if (!data || data.length === 0) break;
+    all = all.concat(data);
+    if (data.length < step) break;
+
+    from += step;
+  }
+
+  return all;
+}
+
+function diffDias(aIso, bIso) {
+  // retorna diferença em dias (b - a)
+  if (!aIso || !bIso) return null;
+  const a = new Date(aIso).getTime();
+  const b = new Date(bIso).getTime();
+  if (!Number.isFinite(a) || !Number.isFinite(b)) return null;
+  const ms = b - a;
+  if (ms < 0) return null;
+  return ms / 86400000;
+}
+
+function mean(arr) {
+  const v = arr.filter((x) => Number.isFinite(x));
+  if (!v.length) return null;
+  return v.reduce((a, b) => a + b, 0) / v.length;
+}
+
+function renderMetricasSLAFront(m) {
+  document.getElementById("tempoMedioPostagem").textContent =
+    m.tempo_medio_postagem != null
+      ? `D+${m.tempo_medio_postagem.toFixed(1)}`
+      : "-";
+
+  document.getElementById("tempoMedioEntrega").textContent =
+    m.tempo_medio_entrega != null
+      ? `D+${m.tempo_medio_entrega.toFixed(1)}`
+      : "-";
+
+  document.getElementById("tempoMedioTransito").textContent =
+    m.tempo_medio_transito != null
+      ? `D+${m.tempo_medio_transito.toFixed(1)}`
+      : "-";
+
+  document.getElementById("pctNoPrazo").textContent =
+    m.pct_no_prazo != null ? `${m.pct_no_prazo.toFixed(1)}%` : "-";
+
+  document.getElementById("pctAtraso").textContent =
+    m.pct_atraso != null ? `${m.pct_atraso.toFixed(1)}%` : "-";
+
+  document.getElementById("pctExtraviado").textContent =
+    m.pct_extraviado != null ? `${m.pct_extraviado.toFixed(1)}%` : "-";
+}
+
+function contarStatusSLA(rows) {
+  const out = {
+    etiqueta: 0,
+    coletado: 0,
+    postado: 0,
+    transito: 0,
+    saiu_entrega: 0,
+    entregue: 0,
+    extraviado: 0,
+    aguardando: 0,
+    devolvido: 0,
+    fluxo: 0,
+  };
+
+  for (const r of rows) {
+    const codigo = r?.status_codigo ?? null;
+    const tipo = r?.status_tipo ?? null;
+    const statusAtual = String(r?.status_atual ?? "").toLowerCase();
+
+    if (codigo === "FC" && tipo === "82") out.etiqueta++;
+    else if (codigo === "CO" || statusAtual.includes("colet")) out.coletado++;
+    else if (codigo === "PO") out.postado++;
+    else if (["RO", "DO", "TR", "PAR"].includes(codigo)) out.transito++;
+    else if (codigo === "OEC") out.saiu_entrega++;
+    else if (codigo === "BDE") out.entregue++;
+    else if (codigo === "EX") out.extraviado++;
+    else if (codigo === "LDI") out.aguardando++;
+    else if (codigo === "LDE") out.devolvido++;
+  }
+
+  out.fluxo = rows.filter(
+    (r) => !["BDE", "EX", "LDI", "LDE"].includes(r?.status_codigo ?? ""),
+  ).length;
+  return out;
+}
+
+function renderCardsSLA(resumo) {
+  document.getElementById("countEtiqueta").textContent = resumo.etiqueta;
+  document.getElementById("countColetado").textContent = resumo.coletado;
+  document.getElementById("countPostado").textContent = resumo.postado;
+  document.getElementById("countTransito").textContent = resumo.transito;
+  document.getElementById("countSaiuEntrega").textContent = resumo.saiu_entrega;
+  document.getElementById("countEntregue").textContent = resumo.entregue;
+  document.getElementById("countExtraviado").textContent = resumo.extraviado;
+  document.getElementById("countAguardando").textContent = resumo.aguardando;
+  document.getElementById("countDevolvido").textContent = resumo.devolvido;
+
+  const fluxoEl = document.getElementById("countFluxo");
+  if (fluxoEl) fluxoEl.textContent = resumo.fluxo;
+}
+
+async function carregarSLAResumoEAnalisePorPeriodo(tipo) {
+  const p = getPeriodoSP(tipo);
+  const labelEl = document.getElementById("slaPeriodoLabel");
+  if (labelEl) labelEl.textContent = p.label;
+
+  const rows = await fetchSLAsPeriodo(p.inicio, p.fim);
+
+  // ✅ cards de status
+  const resumo = contarStatusSLA(rows);
+  renderCardsSLA(resumo);
+
+  // ✅ métricas analíticas (só faz sentido para entregues, etc.)
+  const difPostagem = [];
+  const difEntrega = [];
+  const difTransito = [];
+
+  let entreguesComPrev = 0;
+  let noPrazo = 0;
+  let atraso = 0;
+
+  const total = rows.length || 0;
+  const extraviados = rows.filter((r) => r.status_codigo === "EX").length;
+
+  for (const r of rows) {
+    // D+ postagem: coleta -> postagem
+    const dPost = diffDias(r.data_coleta, r.data_postagem);
+    if (dPost != null) difPostagem.push(dPost);
+
+    // D+ entrega: postagem -> entrega (se preferir "coleta->entrega", troque aqui)
+    const dEnt = diffDias(r.data_postagem, r.data_entrega);
+    if (dEnt != null) difEntrega.push(dEnt);
+
+    // trânsito: postagem -> entrega (mesmo cálculo acima; se quiser outro ponto, ajusta)
+    const dTran = diffDias(r.data_postagem, r.data_entrega);
+    if (dTran != null) difTransito.push(dTran);
+
+    // No prazo x atraso (precisa dt_prevista e data_entrega)
+    if (r.dt_prevista && r.data_entrega) {
+      entreguesComPrev++;
+      const entrega = new Date(r.data_entrega).getTime();
+      const prev = new Date(r.dt_prevista).getTime();
+      if (Number.isFinite(entrega) && Number.isFinite(prev)) {
+        if (entrega <= prev) noPrazo++;
+        else atraso++;
+      }
+    }
+  }
+
+  const m = {
+    tempo_medio_postagem: mean(difPostagem),
+    tempo_medio_entrega: mean(difEntrega),
+    tempo_medio_transito: mean(difTransito),
+    pct_no_prazo: entreguesComPrev ? (noPrazo / entreguesComPrev) * 100 : null,
+    pct_atraso: entreguesComPrev ? (atraso / entreguesComPrev) * 100 : null,
+    pct_extraviado: total ? (extraviados / total) * 100 : null,
+  };
+
+  renderMetricasSLAFront(m);
+}
+
+function bindPeriodoSLA() {
+  const sel = document.getElementById("slaPeriodo");
+  if (!sel) return;
+
+  sel.addEventListener("change", async () => {
+    const tipo = sel.value || "mes";
+    await carregarSLAResumoEAnalisePorPeriodo(tipo);
+  });
 }
 
 renderAdminConsultaBase();
