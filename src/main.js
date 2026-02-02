@@ -4161,26 +4161,12 @@ async function carregarProdutividadeDoOperador() {
     if (r.operador2) operadoresAtivos.add(r.operador2);
   });
 
-  const qtdOperadores = operadoresAtivos.size || 1; // fallback = 1 para evitar divisão por 0
+  const qtdOperadores = await contarOperadoresAtivos();
+  const metaIndividual = calcularMetaPorOperador(
+    totalPedidosDoDia,
+    qtdOperadores,
+  );
 
-  const hojeDate = new Date();
-  const diaSemana = hojeDate.getDay(); // 0=Dom, 1=Seg, ..., 5=Sex, 6=Sáb
-
-  let metaIndividual = 0; // padrão sem meta
-
-  if (diaSemana >= 1 && diaSemana <= 4) {
-    // Segunda a quinta
-    metaIndividual = Math.min(
-      Math.ceil(totalPedidosDoDia / qtdOperadores),
-      450,
-    );
-  } else if (diaSemana === 5) {
-    // Sexta
-    metaIndividual = Math.min(
-      Math.ceil(totalPedidosDoDia / qtdOperadores),
-      400,
-    );
-  }
   // Sábado (6) e domingo (0) mantêm meta = 0
 
   const percIndividual = metaIndividual
@@ -4366,33 +4352,83 @@ async function contarPedidosPesadosPorOperador(operador) {
   return count || 0;
 }
 
+async function contarOperadoresAtivos() {
+  const { data, error } = await supabase
+    .from("romaneios_em_uso")
+    .select("operador1, operador2");
+
+  if (error) {
+    console.error("Erro ao buscar operadores ativos:", error);
+    return 1; // fallback seguro
+  }
+
+  const set = new Set();
+  (data || []).forEach((r) => {
+    if (r.operador1) set.add(String(r.operador1).trim());
+    if (r.operador2) set.add(String(r.operador2).trim());
+  });
+
+  return Math.max(1, set.size);
+}
+
+function calcularMetaPorOperador(totalPedidosDoDia, qtdOperadoresAtivos) {
+  const hojeDate = new Date();
+  const diaSemana = hojeDate.getDay(); // 0=Dom, 1=Seg, ..., 6=Sáb
+
+  // sem meta no fim de semana
+  if (diaSemana === 0 || diaSemana === 6) return 0;
+
+  // teto por dia
+  const teto = diaSemana === 5 ? 400 : 450; // Sex=400, Seg-Qui=450
+
+  // 100% distribuído pelos ativos
+  return Math.min(
+    Math.ceil((totalPedidosDoDia || 0) / (qtdOperadoresAtivos || 1)),
+    teto,
+  );
+}
+
 async function atualizarMetaIndividual() {
   const totalDoDia = await carregarTotalPedidosDoDia();
-  const metaPorOperador = Math.ceil(totalDoDia / 4); // dividimos por 4
 
-  const hoje = new Date().toISOString().slice(0, 10);
+  const qtdOperadoresAtivos = await contarOperadoresAtivos();
+  const metaPorOperador = calcularMetaPorOperador(
+    totalDoDia,
+    qtdOperadoresAtivos,
+  );
+
+  const { ini, fim } = rangeHojeSP();
+
   const { data, error } = await supabase
     .from("pesagens")
     .select("pedido")
     .eq("operador", operador1)
-    .gte("data", `${hoje}T00:00:00`)
-    .lte("data", `${hoje}T23:59:59`);
+    .gte("data", ini)
+    .lte("data", fim);
 
-  if (!data || !Array.isArray(data)) {
-    console.warn("Nenhuma pesagem encontrada para o operador.");
+  if (error) {
+    console.error("Erro ao buscar pesagens do operador:", error);
     return;
   }
 
-  const feitos = new Set(data.map((r) => r.pedido)).size;
-  const perc = Math.round((feitos / metaPorOperador) * 100);
+  const feitos = new Set((data || []).map((r) => r.pedido)).size;
+
+  const perc = metaPorOperador
+    ? Math.round((feitos / metaPorOperador) * 100)
+    : 0;
 
   const barra = document.getElementById("metaProgressoBarra");
+  if (!barra) return;
+
   barra.style.width = `${Math.min(perc, 100)}%`;
   barra.className = "progress-bar";
   barra.classList.add(
     perc < 60 ? "bg-danger" : perc < 90 ? "bg-warning" : "bg-success",
   );
-  barra.textContent = `${feitos}/${metaPorOperador} (${perc}%)`;
+
+  barra.textContent = metaPorOperador
+    ? `${feitos}/${metaPorOperador} (${perc}%)`
+    : `${feitos}/- (sem meta)`;
 }
 
 document.getElementById("painelToggle").addEventListener("click", () => {
