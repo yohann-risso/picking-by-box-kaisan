@@ -142,7 +142,7 @@ if (!__ADMIN_ACTIVE__) {
       "contar_pedidos_nao_pesados",
     );
     const meta80 = Math.round((metaGeral ?? 0) * 0.8);
-    const percMeta = meta80 ? Math.round((totalPesadosHoje / meta80) * 100) : 0;
+    const percMeta = metaGeral ? Math.round((totalPesadosHoje / metaGeral) * 100) : 0;
 
     document.getElementById("totalPendentes").textContent =
       `${totalPendentes} pedidos`;
