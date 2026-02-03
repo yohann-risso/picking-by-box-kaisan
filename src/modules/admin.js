@@ -124,7 +124,7 @@ if (!__ADMIN_ACTIVE__) {
       const alertaPerc = cfg.sla_alerta_perc ?? null;
 
       document.getElementById("mw_slaTotal").textContent =
-        slaTotal != null ? `${slaTotal}` : "-";
+        slaTotal != null ? formatarSegundos(slaTotal) : "-";
       document.getElementById("mw_slaAlerta").textContent =
         alertaPerc != null ? `Alerta: ${alertaPerc}%` : "Alerta: -%";
 
@@ -259,8 +259,8 @@ if (!__ADMIN_ACTIVE__) {
           data: {
             labels,
             datasets: [
-              { label: "Picking (seg)", data: pickSeg },
-              { label: "Bipagem (seg)", data: bipSeg },
+              { label: "Retirada (seg)", data: pickSeg },
+              { label: "Picking by Box (seg)", data: bipSeg },
               { label: "Packing (seg)", data: packSeg },
             ],
           },
