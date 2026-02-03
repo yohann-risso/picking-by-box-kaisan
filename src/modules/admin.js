@@ -372,7 +372,7 @@ if (!__ADMIN_ACTIVE__) {
   async function carregarResumoOperadores() {
     const tbody = document.getElementById("resumoOperadoresBody");
     const { data, error } = await supabase
-      .from("view_resumo_operadores_dia")
+      .from("view_leaderboard_dia")
       .select("*");
 
     if (error) {
