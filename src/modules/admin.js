@@ -111,7 +111,7 @@ if (!__ADMIN_ACTIVE__) {
         timeZone: "America/Sao_Paulo",
       });
 
-      const { data, error } = await supabase.rpc("rpc_dashboard_expedicao_v2", {
+      const { data, error } = await supabase.rpc("rpc_dashboard_expedicao_v3", {
         p_dia: hojeSP,
       });
 
