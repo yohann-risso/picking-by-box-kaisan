@@ -35,6 +35,7 @@ if (!__ADMIN_ACTIVE__) {
   console.info("[admin] page not active — skipping bootstrap.");
 } else {
   let chartPedidosHora, chartRanking, chartMotivosErro;
+  let chartMwAlertas, chartMwTopTempos;
   let autoRefresh;
 
   // ===== Helpers =====
@@ -43,6 +44,31 @@ if (!__ADMIN_ACTIVE__) {
     const m = String(Math.floor((segundos % 3600) / 60)).padStart(2, "0");
     const s = String(segundos % 60).padStart(2, "0");
     return `${h}:${m}:${s}`;
+  }
+
+  function badgeSLA(status) {
+    if (status === "ESTOUROU")
+      return `<span class="badge bg-danger">ESTOUROU</span>`;
+    if (status === "EM_RISCO")
+      return `<span class="badge bg-warning text-dark">EM RISCO</span>`;
+    return `<span class="badge bg-success">OK</span>`;
+  }
+
+  function badgeEtapa(etapa) {
+    const map = {
+      PICKING: "bg-primary",
+      AGUARDANDO_BIPAGEM: "bg-secondary",
+      BIPAGEM: "bg-info text-dark",
+      PACKING: "bg-warning text-dark",
+      PESADO: "bg-success",
+    };
+    const cls = map[etapa] || "bg-secondary";
+    return `<span class="badge ${cls}">${etapa || "-"}</span>`;
+  }
+
+  function fmtPct(n) {
+    if (n == null) return "-";
+    return `${Number(n).toFixed(1)}%`;
   }
 
   function formatarParaBR(isoDate) {
@@ -76,6 +102,188 @@ if (!__ADMIN_ACTIVE__) {
       }
       el.textContent = Math.floor(valorAtual).toLocaleString("pt-BR");
     }, frameRate);
+  }
+
+  // ===== MINI WMS =====
+  async function carregarMiniWMSExpedicao() {
+    try {
+      const hojeSP = new Date().toLocaleDateString("sv-SE", {
+        timeZone: "America/Sao_Paulo",
+      });
+
+      const { data, error } = await supabase.rpc("rpc_dashboard_expedicao_v2", {
+        p_dia: hojeSP,
+      });
+
+      if (error) throw error;
+      if (!data) return;
+
+      // --- Cards SLA config ---
+      const cfg = data.sla_config || {};
+      const slaTotal = cfg.sla_total_expedicao_max ?? null;
+      const alertaPerc = cfg.sla_alerta_perc ?? null;
+
+      document.getElementById("mw_slaTotal").textContent =
+        slaTotal != null ? `${slaTotal}` : "-";
+      document.getElementById("mw_slaAlerta").textContent =
+        alertaPerc != null ? `Alerta: ${alertaPerc}%` : "Alerta: -%";
+
+      // --- WIP grupos ---
+      const wip = Array.isArray(data.wip_grupos) ? data.wip_grupos : [];
+      document.getElementById("mw_wipGruposCount").textContent = wip.length;
+
+      const wipBody = document.getElementById("mw_wipBody");
+      if (wipBody) {
+        wipBody.innerHTML = "";
+        if (!wip.length) {
+          wipBody.innerHTML = `<tr><td colspan="7" class="text-muted">Sem grupos em WIP</td></tr>`;
+        } else {
+          wip.forEach((g) => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+            <td><strong>${g.grupo ?? "-"}</strong></td>
+            <td>${g.bloco ?? "-"}</td>
+            <td>${g.operador ?? "-"}</td>
+            <td><span class="badge bg-dark">${g.wip_hhmmss ?? formatarSegundos(g.wip_segundos ?? 0)}</span></td>
+            <td class="text-end">${(g.pedidos_com_retirada ?? 0).toLocaleString("pt-BR")}</td>
+            <td class="text-end">${(g.romaneios_com_retirada ?? 0).toLocaleString("pt-BR")}</td>
+            <td>${formatarHoraSP(g.ultima_retirada_ts)}</td>
+          `;
+            wipBody.appendChild(tr);
+          });
+        }
+      }
+
+      // --- Alertas SLA ---
+      const alertas = Array.isArray(data.alertas_sla) ? data.alertas_sla : [];
+
+      let ok = 0,
+        risco = 0,
+        estourou = 0;
+
+      alertas.forEach((a) => {
+        if (a.status_sla === "ESTOUROU") estourou++;
+        else if (a.status_sla === "EM_RISCO") risco++;
+        else ok++;
+      });
+
+      document.getElementById("mw_okCount").textContent = ok;
+      document.getElementById("mw_riscoCount").textContent = risco;
+      document.getElementById("mw_estourouCount").textContent = estourou;
+
+      const alertasBody = document.getElementById("mw_alertasBody");
+      if (alertasBody) {
+        alertasBody.innerHTML = "";
+        if (!alertas.length) {
+          alertasBody.innerHTML = `<tr><td colspan="8" class="text-muted">Sem alertas (todos pesados / sem picking aberto)</td></tr>`;
+        } else {
+          alertas.forEach((a) => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+            <td>${badgeSLA(a.status_sla)}</td>
+            <td>${badgeEtapa(a.etapa_atual)}</td>
+            <td><strong>${a.pedido ?? "-"}</strong></td>
+            <td>${a.romaneio ?? "-"}</td>
+            <td>${a.grupo ?? "-"}</td>
+            <td><span class="badge bg-dark">${a.tempo_aberto_hhmmss ?? "-"}</span></td>
+            <td>${fmtPct(a.perc_sla_total)}</td>
+            <td>${formatarHoraSP(a.picking_inicio_ts)}</td>
+          `;
+            alertasBody.appendChild(tr);
+          });
+        }
+      }
+
+      // --- Pesados no dia ---
+      const pesados = Array.isArray(data.pedidos_pesados_dia)
+        ? data.pedidos_pesados_dia
+        : [];
+
+      const pesadosBody = document.getElementById("mw_pesadosBody");
+      if (pesadosBody) {
+        pesadosBody.innerHTML = "";
+        if (!pesados.length) {
+          pesadosBody.innerHTML = `<tr><td colspan="8" class="text-muted">Nenhum pedido pesado hoje</td></tr>`;
+        } else {
+          pesados.forEach((p) => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+            <td><strong>${p.pedido ?? "-"}</strong></td>
+            <td>${p.romaneio ?? "-"}</td>
+            <td>${p.grupo ?? "-"}</td>
+            <td class="text-end">${p.tempo_picking_seg ?? "-"}</td>
+            <td class="text-end">${p.tempo_bipagem_seg ?? "-"}</td>
+            <td class="text-end">${p.tempo_packing_seg ?? "-"}</td>
+            <td class="text-end"><span class="badge bg-dark">${p.tempo_total_expedicao_seg ?? "-"}</span></td>
+            <td>${formatarHoraSP(p.pesagem_ts)}</td>
+          `;
+            pesadosBody.appendChild(tr);
+          });
+        }
+      }
+
+      // --- Chart: Alertas (doughnut) ---
+      if (chartMwAlertas) chartMwAlertas.destroy();
+      chartMwAlertas = new Chart(document.getElementById("mw_chartAlertas"), {
+        type: "doughnut",
+        data: {
+          labels: ["OK", "EM_RISCO", "ESTOUROU"],
+          datasets: [{ data: [ok, risco, estourou] }],
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { position: "bottom" } },
+        },
+      });
+
+      // --- Chart: Top 10 maiores tempos (bar stacked simples por etapa) ---
+      const top = [...pesados]
+        .filter((x) => Number.isFinite(x.tempo_total_expedicao_seg))
+        .sort(
+          (a, b) =>
+            (b.tempo_total_expedicao_seg ?? 0) -
+            (a.tempo_total_expedicao_seg ?? 0),
+        )
+        .slice(0, 10);
+
+      const labels = top.map((x) => x.pedido);
+      const pickSeg = top.map((x) => x.tempo_picking_seg ?? 0);
+      const bipSeg = top.map((x) => x.tempo_bipagem_seg ?? 0);
+      const packSeg = top.map((x) => x.tempo_packing_seg ?? 0);
+
+      if (chartMwTopTempos) chartMwTopTempos.destroy();
+      chartMwTopTempos = new Chart(
+        document.getElementById("mw_chartTopTempos"),
+        {
+          type: "bar",
+          data: {
+            labels,
+            datasets: [
+              { label: "Picking (seg)", data: pickSeg },
+              { label: "Bipagem (seg)", data: bipSeg },
+              { label: "Packing (seg)", data: packSeg },
+            ],
+          },
+          options: {
+            responsive: true,
+            plugins: { legend: { position: "bottom" } },
+            scales: {
+              x: { stacked: true },
+              y: { stacked: true, beginAtZero: true },
+            },
+          },
+        },
+      );
+
+      // --- Last update ---
+      const last = new Date().toLocaleString("pt-BR", {
+        timeZone: "America/Sao_Paulo",
+      });
+      const lastEl = document.getElementById("mw_lastUpdate");
+      if (lastEl) lastEl.textContent = `Atualizado: ${last}`;
+    } catch (err) {
+      console.error("Erro MiniWMS:", err);
+    }
   }
 
   // ===== Métricas principais =====
@@ -142,7 +350,9 @@ if (!__ADMIN_ACTIVE__) {
       "contar_pedidos_nao_pesados",
     );
     const meta80 = Math.round((metaGeral ?? 0) * 0.8);
-    const percMeta = metaGeral ? Math.round((totalPesadosHoje / metaGeral) * 100) : 0;
+    const percMeta = metaGeral
+      ? Math.round((totalPesadosHoje / metaGeral) * 100)
+      : 0;
 
     document.getElementById("totalPendentes").textContent =
       `${totalPendentes} pedidos`;
@@ -587,6 +797,7 @@ if (!__ADMIN_ACTIVE__) {
     bindPeriodoSLA();
     await carregarSLAResumoEAnalisePorPeriodo("mes");
     carregarTempoMedioExpedicao();
+    carregarMiniWMSExpedicao();
 
     // 👉 setar data de hoje (fuso SP) no input e carregar pivot só uma vez
     const hojeSP = new Date().toLocaleDateString("sv-SE", {
@@ -607,6 +818,7 @@ if (!__ADMIN_ACTIVE__) {
       const tipo = document.getElementById("slaPeriodo")?.value || "mes";
       carregarSLAResumoEAnalisePorPeriodo(tipo);
       carregarTempoMedioExpedicao();
+      carregarMiniWMSExpedicao();
     }, 30000);
   }
 

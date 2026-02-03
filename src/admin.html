@@ -710,6 +710,182 @@
             </div>
           </div>
         </div>
+        <!-- ⏱️ MINI WMS - SLA EXPEDIÇÃO -->
+        <div class="accordion-item">
+          <h2 class="accordion-header">
+            <button
+              class="accordion-button collapsed"
+              type="button"
+              data-bs-toggle="collapse"
+              data-bs-target="#collapseMiniWMS"
+            >
+              ⏱️ Mini WMS – SLA Expedição (Picking → Bipagem → Pesagem)
+            </button>
+          </h2>
+
+          <div
+            id="collapseMiniWMS"
+            class="accordion-collapse collapse"
+            data-bs-parent="#accordionAdmin"
+          >
+            <div class="accordion-body">
+              <!-- Cards SLA -->
+              <div class="row g-3 mb-3 text-center">
+                <div class="col-md-2">
+                  <div class="card bg-dark text-white shadow h-100">
+                    <div class="card-body">
+                      <h6>🎯 SLA Total (seg)</h6>
+                      <h4 id="mw_slaTotal">-</h4>
+                      <small class="text-light" id="mw_slaAlerta"
+                        >Alerta: -%</small
+                      >
+                    </div>
+                  </div>
+                </div>
+
+                <div class="col-md-2">
+                  <div class="card bg-success text-white shadow h-100">
+                    <div class="card-body">
+                      <h6>✅ OK</h6>
+                      <h2 id="mw_okCount">-</h2>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="col-md-2">
+                  <div class="card bg-warning text-dark shadow h-100">
+                    <div class="card-body">
+                      <h6>⚠️ Em risco</h6>
+                      <h2 id="mw_riscoCount">-</h2>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="col-md-2">
+                  <div class="card bg-danger text-white shadow h-100">
+                    <div class="card-body">
+                      <h6>🚨 Estourou</h6>
+                      <h2 id="mw_estourouCount">-</h2>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="col-md-4">
+                  <div class="card bg-primary text-white shadow h-100">
+                    <div class="card-body">
+                      <h6>📦 Grupos em WIP</h6>
+                      <h2 id="mw_wipGruposCount">-</h2>
+                      <small class="text-light">locks ativos</small>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Gráficos -->
+              <div class="row g-3 mb-3">
+                <div class="col-md-4">
+                  <div class="card shadow h-100">
+                    <div class="card-header">Distribuição Alertas (SLA)</div>
+                    <div class="card-body">
+                      <canvas id="mw_chartAlertas"></canvas>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="col-md-8">
+                  <div class="card shadow h-100">
+                    <div class="card-header">Top 10 – maiores tempos (seg)</div>
+                    <div class="card-body">
+                      <canvas id="mw_chartTopTempos"></canvas>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- WIP Grupos -->
+              <div class="card shadow mb-3">
+                <div
+                  class="card-header d-flex justify-content-between align-items-center"
+                >
+                  <span>🧩 WIP – Grupos em execução</span>
+                  <small class="text-muted" id="mw_lastUpdate"
+                    >Atualizado: -</small
+                  >
+                </div>
+                <div class="table-responsive">
+                  <table
+                    class="table table-sm table-striped mb-0 text-center align-middle"
+                  >
+                    <thead class="table-light">
+                      <tr>
+                        <th>Grupo</th>
+                        <th>Bloco</th>
+                        <th>Operador</th>
+                        <th>WIP</th>
+                        <th>Pedidos</th>
+                        <th>Romaneios</th>
+                        <th>Última retirada</th>
+                      </tr>
+                    </thead>
+                    <tbody id="mw_wipBody"></tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Alertas SLA -->
+              <div class="card shadow mb-3">
+                <div class="card-header">
+                  🚦 Alertas SLA (Pedidos sem pesagem)
+                </div>
+                <div class="table-responsive">
+                  <table
+                    class="table table-sm table-striped mb-0 text-center align-middle"
+                  >
+                    <thead class="table-light">
+                      <tr>
+                        <th>Status</th>
+                        <th>Etapa</th>
+                        <th>Pedido</th>
+                        <th>Romaneio</th>
+                        <th>Grupo</th>
+                        <th>Aberto</th>
+                        <th>% SLA</th>
+                        <th>Início</th>
+                      </tr>
+                    </thead>
+                    <tbody id="mw_alertasBody"></tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Pesados no dia -->
+              <div class="card shadow">
+                <div class="card-header">
+                  ✅ Pedidos pesados hoje (com tempos por etapa)
+                </div>
+                <div class="table-responsive">
+                  <table
+                    class="table table-sm table-striped mb-0 text-center align-middle"
+                  >
+                    <thead class="table-light">
+                      <tr>
+                        <th>Pedido</th>
+                        <th>Romaneio</th>
+                        <th>Grupo</th>
+                        <th>Picking</th>
+                        <th>Bipagem</th>
+                        <th>Packing</th>
+                        <th>Total</th>
+                        <th>Pesagem</th>
+                      </tr>
+                    </thead>
+                    <tbody id="mw_pesadosBody"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </main>
 
