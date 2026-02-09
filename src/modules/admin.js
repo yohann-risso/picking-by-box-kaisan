@@ -46,6 +46,210 @@ if (!__ADMIN_ACTIVE__) {
     return `${h}:${m}:${s}`;
   }
 
+  function hojeSP() {
+    return new Date().toLocaleDateString("sv-SE", {
+      timeZone: "America/Sao_Paulo",
+    });
+  }
+
+  function addDiasISO(iso, dias) {
+    const d = new Date(`${iso}T12:00:00-03:00`);
+    d.setDate(d.getDate() + dias);
+    return d.toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" });
+  }
+
+  function fmtPct2(x) {
+    const n = Number(x);
+    if (!Number.isFinite(n)) return "-";
+    return `${(n * 100).toFixed(1)}%`;
+  }
+
+  async function carregarByboxEficienciaPeriodo(dtIni, dtFim) {
+    // fim exclusivo (dtFim + 1 dia)
+    const dtFimEx = addDiasISO(dtFim, 1);
+
+    const { data, error } = await supabase
+      .from("vw_bybox_eficiencia")
+      .select(
+        "operador,romaneio,n_pecas,tempo_real_seg,tempo_ideal_seg,eficiencia_meta,started_at",
+      )
+      .gte("started_at", `${dtIni}T00:00:00-03:00`)
+      .lt("started_at", `${dtFimEx}T00:00:00-03:00`);
+
+    if (error) throw error;
+    return Array.isArray(data) ? data : [];
+  }
+
+  function agruparPorOperador(rows) {
+    const map = new Map();
+
+    for (const r of rows) {
+      const op = r.operador || "—";
+      const pecas = Number(r.n_pecas || 0);
+      const real = Number(r.tempo_real_seg || 0);
+      const ideal = Number(r.tempo_ideal_seg || 0);
+      const ef = Number(r.eficiencia_meta);
+
+      if (!map.has(op)) {
+        map.set(op, {
+          operador: op,
+          romaneios: 0,
+          pecas: 0,
+          somaEf: 0,
+          nEf: 0,
+          somaReal: 0,
+          somaIdeal: 0,
+        });
+      }
+
+      const agg = map.get(op);
+      agg.romaneios += 1;
+      agg.pecas += pecas;
+
+      if (Number.isFinite(ef)) {
+        agg.somaEf += ef;
+        agg.nEf += 1;
+      }
+
+      agg.somaReal += real;
+      agg.somaIdeal += ideal;
+    }
+
+    const out = [...map.values()].map((x) => ({
+      operador: x.operador,
+      romaneios: x.romaneios,
+      pecas: x.pecas,
+      eficiencia_media_simples: x.nEf ? x.somaEf / x.nEf : null,
+      eficiencia_media_ponderada:
+        x.somaReal > 0 ? x.somaIdeal / x.somaReal : null,
+    }));
+
+    out.sort(
+      (a, b) =>
+        (b.eficiencia_media_ponderada ?? 0) -
+        (a.eficiencia_media_ponderada ?? 0),
+    );
+    return out;
+  }
+
+  function renderByboxOperadores(rows) {
+    const tbody = document.getElementById("byboxOperadoresBody");
+    if (!tbody) return;
+
+    tbody.innerHTML = "";
+    if (!rows.length) {
+      tbody.innerHTML = `<tr><td colspan="5" class="text-muted">Sem dados no período</td></tr>`;
+      return;
+    }
+
+    rows.forEach((r) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+      <td class="text-start"><strong>${r.operador}</strong></td>
+      <td class="text-end">${(r.romaneios ?? 0).toLocaleString("pt-BR")}</td>
+      <td class="text-end">${(r.pecas ?? 0).toLocaleString("pt-BR")}</td>
+      <td class="text-end">${fmtPct2(r.eficiencia_media_simples)}</td>
+      <td class="text-end"><span class="badge bg-dark">${fmtPct2(r.eficiencia_media_ponderada)}</span></td>
+    `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function renderByboxKPIs(rowsOps, rowsRaw) {
+    const kEfP = document.getElementById("byboxKpiEfPond");
+    const kEfS = document.getElementById("byboxKpiEfSimples");
+    const kP = document.getElementById("byboxKpiPecas");
+    const kR = document.getElementById("byboxKpiRoms");
+
+    const totalPecas = rowsOps.reduce((a, r) => a + Number(r.pecas || 0), 0);
+    const totalRoms = rowsOps.reduce((a, r) => a + Number(r.romaneios || 0), 0);
+
+    const somaIdeal = rowsRaw.reduce(
+      (a, r) => a + Number(r.tempo_ideal_seg || 0),
+      0,
+    );
+    const somaReal = rowsRaw.reduce(
+      (a, r) => a + Number(r.tempo_real_seg || 0),
+      0,
+    );
+    const efPond = somaReal > 0 ? somaIdeal / somaReal : null;
+
+    // simples geral (média das sessões)
+    const efs = rowsRaw
+      .map((r) => Number(r.eficiencia_meta))
+      .filter(Number.isFinite);
+    const efSimples = efs.length
+      ? efs.reduce((a, b) => a + b, 0) / efs.length
+      : null;
+
+    if (kEfP) kEfP.textContent = fmtPct2(efPond);
+    if (kEfS) kEfS.textContent = fmtPct2(efSimples);
+    if (kP)
+      kP.textContent = totalPecas ? totalPecas.toLocaleString("pt-BR") : "-";
+    if (kR)
+      kR.textContent = totalRoms ? totalRoms.toLocaleString("pt-BR") : "-";
+  }
+
+  function renderByboxTopRoms(rowsRaw, limit = 10) {
+    const tbody = document.getElementById("byboxTopRomsBody");
+    if (!tbody) return;
+
+    const sorted = [...rowsRaw]
+      .sort(
+        (a, b) =>
+          (Number(a.eficiencia_meta) || 0) - (Number(b.eficiencia_meta) || 0),
+      )
+      .slice(0, limit);
+
+    tbody.innerHTML = "";
+    if (!sorted.length) {
+      tbody.innerHTML = `<tr><td colspan="6" class="text-muted">Sem dados</td></tr>`;
+      return;
+    }
+
+    sorted.forEach((r) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+      <td class="text-start">${r.operador || "-"}</td>
+      <td><strong>${r.romaneio || "-"}</strong></td>
+      <td class="text-end">${Number(r.n_pecas || 0).toLocaleString("pt-BR")}</td>
+      <td class="text-end">${formatarSegundos(Number(r.tempo_real_seg || 0))}</td>
+      <td class="text-end">${formatarSegundos(Number(r.tempo_ideal_seg || 0))}</td>
+      <td class="text-end"><span class="badge bg-danger">${fmtPct2(r.eficiencia_meta)}</span></td>
+    `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  async function atualizarByboxEficiencia() {
+    const st = document.getElementById("byboxStatus");
+    const dtIniEl = document.getElementById("byboxDtIni");
+    const dtFimEl = document.getElementById("byboxDtFim");
+
+    const dtIni = dtIniEl?.value;
+    const dtFim = dtFimEl?.value;
+
+    if (!dtIni || !dtFim) {
+      if (st) st.textContent = "Selecione início e fim.";
+      return;
+    }
+
+    try {
+      if (st) st.textContent = "Carregando...";
+      const rowsRaw = await carregarByboxEficienciaPeriodo(dtIni, dtFim);
+      const rowsOps = agruparPorOperador(rowsRaw);
+
+      renderByboxOperadores(rowsOps);
+      renderByboxKPIs(rowsOps, rowsRaw);
+      renderByboxTopRoms(rowsRaw, 10);
+
+      if (st) st.textContent = `OK · ${rowsRaw.length} romaneios`;
+    } catch (err) {
+      console.error("Erro ByBox eficiência:", err);
+      if (st) st.textContent = "❌ Erro ao carregar";
+    }
+  }
+
   function badgeSLA(status) {
     if (status === "ESTOUROU")
       return `<span class="badge bg-danger">ESTOUROU</span>`;
@@ -786,6 +990,20 @@ if (!__ADMIN_ACTIVE__) {
       return;
     }
 
+    // defaults (hoje)
+    const h = hojeSP();
+    const dtIniEl = document.getElementById("byboxDtIni");
+    const dtFimEl = document.getElementById("byboxDtFim");
+    if (dtIniEl) dtIniEl.value = h;
+    if (dtFimEl) dtFimEl.value = h;
+
+    document
+      .getElementById("btnByboxFiltrar")
+      ?.addEventListener("click", atualizarByboxEficiencia);
+
+    // carrega 1x
+    atualizarByboxEficiencia();
+
     await ensureChart();
     carregarMetricas();
     carregarResumoOperadores();
@@ -819,6 +1037,7 @@ if (!__ADMIN_ACTIVE__) {
       carregarSLAResumoEAnalisePorPeriodo(tipo);
       carregarTempoMedioExpedicao();
       carregarMiniWMSExpedicao();
+      atualizarByboxEficiencia();
     }, 30000);
   }
 

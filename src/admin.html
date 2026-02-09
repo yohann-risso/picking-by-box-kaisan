@@ -279,6 +279,142 @@
           </div>
         </div>
 
+        <!-- 🎯 Eficiência By-Box -->
+        <div class="accordion-item">
+          <h2 class="accordion-header">
+            <button
+              class="accordion-button collapsed"
+              type="button"
+              data-bs-toggle="collapse"
+              data-bs-target="#collapseEficienciaByBox"
+            >
+              🎯 Eficiência By-Box (Ideal/Real)
+            </button>
+          </h2>
+
+          <div
+            id="collapseEficienciaByBox"
+            class="accordion-collapse collapse"
+            data-bs-parent="#accordionAdmin"
+          >
+            <div class="accordion-body">
+              <!-- Filtros -->
+              <div
+                class="d-flex flex-wrap gap-2 align-items-end mb-3 p-3 bg-white shadow-sm rounded border"
+              >
+                <div>
+                  <label class="form-label fw-bold mb-1">Início</label>
+                  <input
+                    id="byboxDtIni"
+                    type="date"
+                    class="form-control form-control-sm"
+                  />
+                </div>
+                <div>
+                  <label class="form-label fw-bold mb-1">Fim</label>
+                  <input
+                    id="byboxDtFim"
+                    type="date"
+                    class="form-control form-control-sm"
+                  />
+                </div>
+                <button id="btnByboxFiltrar" class="btn btn-sm btn-primary">
+                  Filtrar
+                </button>
+
+                <span id="byboxStatus" class="ms-auto small text-muted"></span>
+              </div>
+
+              <!-- KPIs rápidos -->
+              <div class="row g-3 mb-3 text-center">
+                <div class="col-6 col-lg-3">
+                  <div class="card shadow-sm h-100">
+                    <div class="card-body">
+                      <div class="text-muted small">
+                        Eficiência ponderada (período)
+                      </div>
+                      <div id="byboxKpiEfPond" class="fs-3 fw-bold">-</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-6 col-lg-3">
+                  <div class="card shadow-sm h-100">
+                    <div class="card-body">
+                      <div class="text-muted small">
+                        Eficiência média simples
+                      </div>
+                      <div id="byboxKpiEfSimples" class="fs-3 fw-bold">-</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-6 col-lg-3">
+                  <div class="card shadow-sm h-100">
+                    <div class="card-body">
+                      <div class="text-muted small">Peças no período</div>
+                      <div id="byboxKpiPecas" class="fs-3 fw-bold">-</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-6 col-lg-3">
+                  <div class="card shadow-sm h-100">
+                    <div class="card-body">
+                      <div class="text-muted small">Romaneios no período</div>
+                      <div id="byboxKpiRoms" class="fs-3 fw-bold">-</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Tabela por operador -->
+              <div class="card shadow-sm">
+                <div class="card-header">
+                  📌 Eficiência por Operador (período)
+                </div>
+                <div class="table-responsive">
+                  <table
+                    class="table table-sm table-striped mb-0 text-center align-middle"
+                  >
+                    <thead class="table-light">
+                      <tr>
+                        <th>Operador</th>
+                        <th class="text-end">Romaneios</th>
+                        <th class="text-end">Peças</th>
+                        <th class="text-end">Ef. Simples</th>
+                        <th class="text-end">Ef. Ponderada</th>
+                      </tr>
+                    </thead>
+                    <tbody id="byboxOperadoresBody"></tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- (Opcional) Top romaneios mais caros -->
+              <div class="card shadow-sm mt-3">
+                <div class="card-header">
+                  🔥 Top romaneios que mais derrubam eficiência
+                </div>
+                <div class="table-responsive">
+                  <table
+                    class="table table-sm table-hover mb-0 text-center align-middle"
+                  >
+                    <thead class="table-light">
+                      <tr>
+                        <th>Operador</th>
+                        <th>Romaneio</th>
+                        <th class="text-end">Peças</th>
+                        <th class="text-end">Real</th>
+                        <th class="text-end">Ideal</th>
+                        <th class="text-end">Eficiência</th>
+                      </tr>
+                    </thead>
+                    <tbody id="byboxTopRomsBody"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- 📊 PIVOT DE PEDIDOS POR HORA -->
         <div class="accordion-item">
           <h2 class="accordion-header">
