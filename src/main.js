@@ -4100,13 +4100,32 @@ async function registrarProdutividadeOperadores() {
 }
 
 async function carregarProdutividadeDoOperador() {
-  const hoje = new Date().toISOString().slice(0, 10);
   const op = operador1;
+  if (!op) return;
+
+  // ===== helpers locais =====
+  const hojeISO_SP = () =>
+    new Date().toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" });
+
+  const rangeHojeSP = () => {
+    const d = hojeISO_SP();
+    return {
+      ini: `${d}T00:00:00-03:00`,
+      fim: `${d}T23:59:59-03:00`,
+    };
+  };
+
+  function badgeEficienciaByBox(ef) {
+    const v = Number(ef);
+    if (!Number.isFinite(v)) return { txt: "–", cls: "text-muted" };
+    const pct = `${Math.round(v * 100)}%`;
+    if (v >= 1.0) return { txt: `🟢 ${pct}`, cls: "text-success fw-bold" };
+    if (v >= 0.85) return { txt: `🟡 ${pct}`, cls: "text-warning fw-bold" };
+    return { txt: `🔴 ${pct}`, cls: "text-danger fw-bold" };
+  }
 
   async function carregarEficienciaByBoxOperadorHoje(operador) {
-    const hojeSP = new Date().toLocaleDateString("sv-SE", {
-      timeZone: "America/Sao_Paulo",
-    });
+    const hojeSP = hojeISO_SP();
 
     const { data, error } = await supabase
       .from("vw_bybox_ef_operador_dia")
@@ -4122,74 +4141,84 @@ async function carregarProdutividadeDoOperador() {
     return data || null;
   }
 
-  function badgeEficienciaByBox(ef) {
-    const v = Number(ef);
-    if (!Number.isFinite(v)) return { txt: "–", cls: "text-muted" };
+  // ===== período do dia (SP) =====
+  const hoje = hojeISO_SP();
+  const { ini, fim } = rangeHojeSP();
 
-    const pct = (v * 100).toFixed(0) + "%";
-
-    // meta “agressiva” (80% do base) -> 100% é excelente
-    if (v >= 1.0) return { txt: `🟢 ${pct}`, cls: "text-success fw-bold" };
-    if (v >= 0.85) return { txt: `🟡 ${pct}`, cls: "text-warning fw-bold" };
-    return { txt: `🔴 ${pct}`, cls: "text-danger fw-bold" };
-  }
-
-  // ---- Romaneios finalizados hoje ----
-  const { data: sessoesHoje } = await supabase
+  // ===== 1) Romaneios finalizados hoje (pela tabela de sessões) =====
+  const { data: sessoesHoje, error: errSess } = await supabase
     .from("romaneios_sessoes")
-    .select("id, duration_sec")
+    .select("id, duration_sec, ended_at")
     .eq("operador", op)
-    .gte("ended_at", `${hoje}T00:00:00-03:00`)
-    .lte("ended_at", `${hoje}T23:59:59-03:00`);
+    // usa ended_at com faixa SP (timestamptz)
+    .gte("ended_at", ini)
+    .lte("ended_at", fim);
+
+  if (errSess) console.error("Erro ao buscar romaneios_sessoes:", errSess);
 
   const totalRomaneios = Array.isArray(sessoesHoje) ? sessoesHoje.length : 0;
   const somaDuracao = Array.isArray(sessoesHoje)
-    ? sessoesHoje.reduce((acc, r) => acc + (r.duration_sec || 0), 0)
+    ? sessoesHoje.reduce((acc, r) => acc + Number(r.duration_sec || 0), 0)
     : 0;
+
   const mediaSegundos = totalRomaneios
     ? Math.round(somaDuracao / totalRomaneios)
     : 0;
   const mediaTempo = converterSegundosParaString(mediaSegundos);
 
-  const { ini, fim } = rangeHojeSP();
-
-  // ---- Pesagens do dia ----
-  const { data: pesagensOp } = await supabase
+  // ===== 2) Pesagens do dia (pedidos e peças) =====
+  const { data: pesagensOp, error: errPes } = await supabase
     .from("pesagens")
     .select("pedido, qtde_pecas")
     .eq("operador", op)
     .gte("data", ini)
     .lte("data", fim);
 
+  if (errPes) console.error("Erro ao buscar pesagens:", errPes);
+
   const pedidosPesadosUnicos = new Set((pesagensOp || []).map((r) => r.pedido))
     .size;
+
   const pecasPesadas = (pesagensOp || []).reduce(
-    (acc, r) => acc + (r.qtde_pecas || 0),
+    (acc, r) => acc + Number(r.qtde_pecas || 0),
     0,
   );
 
-  // ---- Preenche UI ----
-  document.getElementById("metaRomaneios").textContent = totalRomaneios;
-  document.getElementById("metaPedidos").textContent = pedidosPesadosUnicos;
-  document.getElementById("metaPecas").textContent = pecasPesadas;
-  document.getElementById("metaTempo").textContent = mediaTempo;
+  // ===== 3) Atualiza cards individuais =====
+  const elRom = document.getElementById("metaRomaneios");
+  const elPed = document.getElementById("metaPedidos");
+  const elPec = document.getElementById("metaPecas");
+  const elTmp = document.getElementById("metaTempo");
 
-  // Mantém cálculo de metas individuais/equipe
+  if (elRom) elRom.textContent = totalRomaneios;
+  if (elPed) elPed.textContent = pedidosPesadosUnicos;
+  if (elPec) elPec.textContent = pecasPesadas;
+  if (elTmp) elTmp.textContent = mediaTempo;
+
+  // ===== 4) Eficiência By-Box (hoje) via VIEW =====
+  const efBybox = await carregarEficienciaByBoxOperadorHoje(op);
+  const elEf = document.getElementById("metaEficienciaByBox");
+
+  if (elEf) {
+    const badge = badgeEficienciaByBox(efBybox?.eficiencia_media_ponderada);
+    elEf.textContent = badge.txt;
+    elEf.className = `fw-bold fs-5 ${badge.cls}`;
+  }
+
+  // ===== 5) Metas (mantém seu fluxo atual) =====
   const totalPedidosDoDia = await carregarTotalPedidosDoDia();
 
-  // busca operadores ativos hoje
-  const { data: ativosHoje, error } = await supabase
+  // operadores ativos hoje (romaneios_em_uso)
+  const { data: ativosHoje, error: errAtivos } = await supabase
     .from("romaneios_em_uso")
     .select("operador1, operador2");
 
-  if (error) {
-    console.error("Erro ao buscar operadores ativos:", error);
-  }
+  if (errAtivos) console.error("Erro ao buscar operadores ativos:", errAtivos);
 
   const operadoresAtivos = new Set();
-  ativosHoje?.forEach((r) => {
-    if (r.operador1) operadoresAtivos.add(r.operador1);
-    if (r.operador2) operadoresAtivos.add(r.operador2);
+  (ativosHoje || []).forEach((r) => {
+    if (r.operador1) operadoresAtivos.add(String(r.operador1).trim());
+    if (r.operador2) operadoresAtivos.add(String(r.operador2).trim());
   });
 
   const qtdOperadores = await contarOperadoresAtivos();
@@ -4197,8 +4226,6 @@ async function carregarProdutividadeDoOperador() {
     totalPedidosDoDia,
     qtdOperadores,
   );
-
-  // Sábado (6) e domingo (0) mantêm meta = 0
 
   const percIndividual = metaIndividual
     ? Math.round((pedidosPesadosUnicos / metaIndividual) * 100)
@@ -4209,25 +4236,22 @@ async function carregarProdutividadeDoOperador() {
     : 0;
 
   const elResumo = document.getElementById("metaResumoGeral");
-  elResumo.textContent = `Pedidos hoje: ${totalPedidosDoDia} — Você: ${pedidosPesadosUnicos}/${
-    metaIndividual || "-"
-  } (${percIndividual}%) — Equipe: ${percEquipe}%`;
+  if (elResumo) {
+    const efTxt = Number.isFinite(Number(efBybox?.eficiencia_media_ponderada))
+      ? `${Math.round(Number(efBybox.eficiencia_media_ponderada) * 100)}%`
+      : "-";
 
-  elResumo.classList.remove("text-success", "text-warning", "text-danger");
-  if (percIndividual >= 100) elResumo.classList.add("text-success");
-  else if (percIndividual >= 70) elResumo.classList.add("text-warning");
-  else elResumo.classList.add("text-danger");
+    elResumo.textContent = `Pedidos hoje: ${totalPedidosDoDia} — Você: ${pedidosPesadosUnicos}/${
+      metaIndividual || "-"
+    } (${percIndividual}%) — Eficiência By-Box: ${efTxt} — Equipe: ${percEquipe}%`;
 
-  // --- Eficiência By-Box (hoje) ---
-  const efBybox = await carregarEficienciaByBoxOperadorHoje(op);
-  const elEf = document.getElementById("metaEficienciaByBox");
-
-  if (elEf) {
-    const badge = badgeEficienciaByBox(efBybox?.eficiencia_media_ponderada);
-    elEf.textContent = badge.txt;
-    elEf.className = `fw-bold fs-5 ${badge.cls}`;
+    elResumo.classList.remove("text-success", "text-warning", "text-danger");
+    if (percIndividual >= 100) elResumo.classList.add("text-success");
+    else if (percIndividual >= 70) elResumo.classList.add("text-warning");
+    else elResumo.classList.add("text-danger");
   }
 
+  // ===== 6) Atualiza barra de meta individual (sua função existente) =====
   await atualizarMetaIndividual();
 }
 
