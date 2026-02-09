@@ -4103,6 +4103,37 @@ async function carregarProdutividadeDoOperador() {
   const hoje = new Date().toISOString().slice(0, 10);
   const op = operador1;
 
+  async function carregarEficienciaByBoxOperadorHoje(operador) {
+    const hojeSP = new Date().toLocaleDateString("sv-SE", {
+      timeZone: "America/Sao_Paulo",
+    });
+
+    const { data, error } = await supabase
+      .from("vw_bybox_ef_operador_dia")
+      .select("eficiencia_media_ponderada, romaneios, pecas")
+      .eq("operador", operador)
+      .eq("dia_sp", hojeSP)
+      .maybeSingle();
+
+    if (error) {
+      console.error("Erro eficiência by-box (dia):", error);
+      return null;
+    }
+    return data || null;
+  }
+
+  function badgeEficienciaByBox(ef) {
+    const v = Number(ef);
+    if (!Number.isFinite(v)) return { txt: "–", cls: "text-muted" };
+
+    const pct = (v * 100).toFixed(0) + "%";
+
+    // meta “agressiva” (80% do base) -> 100% é excelente
+    if (v >= 1.0) return { txt: `🟢 ${pct}`, cls: "text-success fw-bold" };
+    if (v >= 0.85) return { txt: `🟡 ${pct}`, cls: "text-warning fw-bold" };
+    return { txt: `🔴 ${pct}`, cls: "text-danger fw-bold" };
+  }
+
   // ---- Romaneios finalizados hoje ----
   const { data: sessoesHoje } = await supabase
     .from("romaneios_sessoes")
@@ -4186,6 +4217,16 @@ async function carregarProdutividadeDoOperador() {
   if (percIndividual >= 100) elResumo.classList.add("text-success");
   else if (percIndividual >= 70) elResumo.classList.add("text-warning");
   else elResumo.classList.add("text-danger");
+
+  // --- Eficiência By-Box (hoje) ---
+  const efBybox = await carregarEficienciaByBoxOperadorHoje(op);
+  const elEf = document.getElementById("metaEficienciaByBox");
+
+  if (elEf) {
+    const badge = badgeEficienciaByBox(efBybox?.eficiencia_media_ponderada);
+    elEf.textContent = badge.txt;
+    elEf.className = `fw-bold fs-5 ${badge.cls}`;
+  }
 
   await atualizarMetaIndividual();
 }
