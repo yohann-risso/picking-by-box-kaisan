@@ -46,7 +46,7 @@ if (!__ADMIN_ACTIVE__) {
     return `${h}:${m}:${s}`;
   }
 
-  function hojeSP() {
+  function getHojeSPISO() {
     return new Date().toLocaleDateString("sv-SE", {
       timeZone: "America/Sao_Paulo",
     });
@@ -311,12 +311,10 @@ if (!__ADMIN_ACTIVE__) {
   // ===== MINI WMS =====
   async function carregarMiniWMSExpedicao() {
     try {
-      const hojeISO = new Date().toLocaleDateString("sv-SE", {
-        timeZone: "America/Sao_Paulo",
-      });
+      const hojeISO = getHojeSPISO();
 
       const { data, error } = await supabase.rpc("rpc_dashboard_expedicao_v3", {
-        p_dia: hojeSP,
+        p_dia: hojeISO,
       });
 
       if (error) throw error;
@@ -991,11 +989,12 @@ if (!__ADMIN_ACTIVE__) {
     }
 
     // defaults (hoje)
-    const h = hojeSP();
+    const hojeISO = getHojeSPISO();
+
     const dtIniEl = document.getElementById("byboxDtIni");
     const dtFimEl = document.getElementById("byboxDtFim");
-    if (dtIniEl) dtIniEl.value = h;
-    if (dtFimEl) dtFimEl.value = h;
+    if (dtIniEl) dtIniEl.value = hojeISO;
+    if (dtFimEl) dtFimEl.value = hojeISO;
 
     document
       .getElementById("btnByboxFiltrar")
@@ -1018,14 +1017,10 @@ if (!__ADMIN_ACTIVE__) {
     carregarMiniWMSExpedicao();
 
     // 👉 setar data de hoje (fuso SP) no input e carregar pivot só uma vez
-    const hojeSP = new Date().toLocaleDateString("sv-SE", {
-      timeZone: "America/Sao_Paulo",
-    });
     const pivotInput = document.getElementById("pivotData");
     if (pivotInput) {
       pivotInput.value = hojeISO; // formato YYYY-MM-DD
       carregarPivotHoras(hojeISO);
-
     }
 
     autoRefresh = setInterval(() => {
