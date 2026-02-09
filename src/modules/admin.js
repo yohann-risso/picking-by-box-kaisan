@@ -311,7 +311,7 @@ if (!__ADMIN_ACTIVE__) {
   // ===== MINI WMS =====
   async function carregarMiniWMSExpedicao() {
     try {
-      const hojeSP = new Date().toLocaleDateString("sv-SE", {
+      const hojeISO = new Date().toLocaleDateString("sv-SE", {
         timeZone: "America/Sao_Paulo",
       });
 
@@ -1023,8 +1023,9 @@ if (!__ADMIN_ACTIVE__) {
     });
     const pivotInput = document.getElementById("pivotData");
     if (pivotInput) {
-      pivotInput.value = hojeSP; // formato YYYY-MM-DD
-      carregarPivotHoras(hojeSP);
+      pivotInput.value = hojeISO; // formato YYYY-MM-DD
+      carregarPivotHoras(hojeISO);
+
     }
 
     autoRefresh = setInterval(() => {
