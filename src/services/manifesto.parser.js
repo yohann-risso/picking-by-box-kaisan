@@ -27,10 +27,12 @@ export function parseRemessaHtml(html) {
     (textAll.match(/Pedidos da remessa\s*\((\d+)\)/i) || [])[1] || "";
 
   const endereco = findAfter(textAll, "Endereço:");
-  const transportadoraDetalhe = findAfter(textAll, "Transportadora:"); // CorreiosPAC / CorreiosSEDEX / Loggi...
+  const usuario = getCabecalhoValue(doc, "Usuário");
   const dataColeta =
-    findAfter(textAll, "Dt coleta:") || findAfter(textAll, "Data da Coleta:");
-  const usuario = findAfter(textAll, "Usuário:");
+    getCabecalhoValue(doc, "Dt coleta") || findAfter(textAll, "Dt coleta:");
+  const transportadoraDetalhe =
+    getCabecalhoValue(doc, "Transportadora") ||
+    findAfter(textAll, "Transportadora:");
 
   // tenta inferir nome “macro” da transportadora (Correios/Loggi/etc)
   let transportadora = "";
@@ -190,6 +192,34 @@ export function normalizarTransportadora(transportadoraRaw, rows = []) {
 }
 
 /* ---------------- helpers ---------------- */
+
+function normalizeLabel(s) {
+  return String(s || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // remove acentos
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function getCabecalhoValue(doc, label) {
+  // label: "usuario", "dt coleta", "transportadora", "telefone", etc.
+  const want = normalizeLabel(label);
+
+  const table = doc.querySelector("table.tb_cabecalho");
+  if (!table) return "";
+
+  const tds = Array.from(table.querySelectorAll("td"));
+  for (let i = 0; i < tds.length; i++) {
+    const txt = normalizeLabel(tds[i].textContent);
+    // casa por "usuario:" ou "usuario"
+    if (txt.includes(want)) {
+      const next = tds[i + 1];
+      return (next?.textContent || "").replace(/\s+/g, " ").trim();
+    }
+  }
+  return "";
+}
 
 function findAfter(textAll, label) {
   const idx = textAll.indexOf(label);

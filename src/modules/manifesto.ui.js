@@ -273,7 +273,7 @@ function gerarPDFManifestoTransportadora({
   // Header
   doc.setFont("helvetica", "bold");
   doc.setFontSize(14);
-  doc.text("REMESSA DE COLETA", pageW / 2, 42, { align: "center" });
+  doc.text("MANIFESTO DE COLETA", pageW / 2, 42, { align: "center" });
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
