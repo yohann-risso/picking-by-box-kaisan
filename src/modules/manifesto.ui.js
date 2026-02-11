@@ -14,6 +14,12 @@ const elStatus = $("#status");
 const btnGerar = $("#btnGerar");
 const btnLimpar = $("#btnLimpar");
 
+const elProgress = document.querySelector("#progressBar");
+function setProgress(pct) {
+  if (!elProgress) return;
+  elProgress.style.width = `${Math.max(0, Math.min(100, pct))}%`;
+}
+
 function log(msg) {
   elLog.textContent += msg + "\n";
   elLog.scrollTop = elLog.scrollHeight;
@@ -55,7 +61,7 @@ btnGerar.addEventListener("click", async () => {
 
   try {
     // transportadorasMap: { "Loggi": { header, rows[] }, "Correios": { ... } ... }
-    const transportadorasMap = new Map();
+    const transportadorasMap = new Map(); // transp -> { header, byPedido: Map(), rows: [] }
 
     for (let id = inicio; id <= fim; id++) {
       await new Promise((r) => setTimeout(r, 150));
@@ -68,6 +74,15 @@ btnGerar.addEventListener("click", async () => {
       } catch (e) {
         log(`⚠️ Falha no fetch ${id}: ${e?.message || e}`);
         continue;
+      }
+
+      const total = fim - inicio + 1;
+      let done = 0;
+
+      for (let id = inicio; id <= fim; id++) {
+        // ...
+        done++;
+        setProgress(Math.round((done / total) * 100));
       }
 
       const parsed = parseRemessaHtml(html);
@@ -91,11 +106,26 @@ btnGerar.addEventListener("click", async () => {
             endereco: parsed.endereco || "",
             dataColeta: parsed.dataColeta || "",
           },
-          rows: [],
+          byPedido: new Map(),
         });
       }
 
-      transportadorasMap.get(transp).rows.push(...parsed.rows);
+      const bucket = transportadorasMap.get(transp);
+
+      for (const row of parsed.rows) {
+        const pedidoKey = String(row?.pedido || "").trim();
+        if (!pedidoKey) continue;
+
+        const existente = bucket.byPedido.get(pedidoKey);
+        if (!existente) {
+          bucket.byPedido.set(pedidoKey, row);
+        } else {
+          bucket.byPedido.set(
+            pedidoKey,
+            escolherMaisAntigoPorRemessa(existente, row),
+          );
+        }
+      }
 
       log(
         `✅ OK ${id}: ${parsed.rows.length} itens • transp=${transp} • exemplo método=${
@@ -113,12 +143,20 @@ btnGerar.addEventListener("click", async () => {
 
     // Gera 1 PDF por transportadora (download automático)
     for (const [transportadora, pack] of transportadorasMap.entries()) {
-      log(`📄 Gerando PDF: ${transportadora} (${pack.rows.length} itens)`);
+      const rows = Array.from(pack.byPedido.values());
+
+      // ordena por remessa asc e depois pedido
+      rows.sort(
+        (a, b) =>
+          toInt(a.remessa) - toInt(b.remessa) ||
+          toInt(a.pedido) - toInt(b.pedido),
+      );
+
       gerarPDFManifestoTransportadora({
         transportadora,
         endereco: pack.header.endereco,
         dataColeta: pack.header.dataColeta,
-        rows: pack.rows,
+        rows,
       });
     }
 
@@ -277,8 +315,33 @@ function gerarPDFManifestoTransportadora({
       ],
     ],
     body,
-    styles: { fontSize: 7, cellPadding: 3, overflow: "linebreak" },
-    headStyles: { fontStyle: "bold" },
+    theme: "grid",
+    styles: {
+      fontSize: 7,
+      cellPadding: 3,
+      overflow: "linebreak",
+      lineWidth: 0.2,
+    },
+    headStyles: {
+      fontStyle: "bold",
+      fillColor: [240, 240, 240],
+      textColor: 20,
+    },
+    alternateRowStyles: {
+      fillColor: [250, 250, 250],
+    },
+    didDrawPage: function () {
+      const pageCount = doc.internal.getNumberOfPages();
+      const pageNumber = doc.internal.getCurrentPageInfo().pageNumber;
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "normal");
+      doc.text(
+        `Página ${pageNumber} de ${pageCount}`,
+        doc.internal.pageSize.getWidth() - 40,
+        doc.internal.pageSize.getHeight() - 18,
+        { align: "right" },
+      );
+    },
     columnStyles: {
       0: { cellWidth: 120 },
       1: { cellWidth: 55 },
@@ -337,4 +400,24 @@ function gerarPDFManifestoTransportadora({
       .toLowerCase();
 
   doc.save(filename);
+}
+
+function toInt(v) {
+  const n = Number(String(v ?? "").replace(/[^\d]/g, ""));
+  return Number.isFinite(n) ? n : Infinity;
+}
+
+function escolherMaisAntigoPorRemessa(a, b) {
+  // retorna o registro com menor remessa (mais antigo)
+  const ra = toInt(a?.remessa);
+  const rb = toInt(b?.remessa);
+
+  if (ra !== rb) return ra < rb ? a : b;
+
+  // fallback se remessa empatar/ausente: usa menor pedido numérico (ou mantém a)
+  const pa = toInt(a?.pedido);
+  const pb = toInt(b?.pedido);
+  if (pa !== pb) return pa < pb ? a : b;
+
+  return a;
 }
