@@ -232,20 +232,22 @@ function gerarPDFManifestoTransportadora({
   const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
 
-  const vdNum = parseBRL(r.vd);
-
   // normaliza linhas
-  const safeRows = (rows || []).map((r) => ({
-    destinatario: r.destinatario || "",
-    cep: r.cep || "",
-    rastreio: r.rastreio || "",
-    peso: r.peso || "",
-    pedido: r.pedido || "",
-    vd: vdNum ? fmtBRL(vdNum) : r.vd || "",
-    metodo: inferMetodo(r, transportadora),
-    remessa: r.remessa || "",
-    operador: r.operador || "",
-  }));
+  const safeRows = (rows || []).map((r) => {
+    const vdNum = parseBRL(r.vd);
+
+    return {
+      destinatario: r.destinatario || "",
+      cep: r.cep || "",
+      rastreio: r.rastreio || "",
+      peso: r.peso || "",
+      pedido: r.pedido || "",
+      vd: fmtBRL(vdNum),
+      metodo: inferMetodo(r, transportadora),
+      remessa: r.remessa || "",
+      operador: r.operador || "",
+    };
+  });
 
   // Totais
   const resumo = new Map(); // metodo -> { qtd, peso, vd }
