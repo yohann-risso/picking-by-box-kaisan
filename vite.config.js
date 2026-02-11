@@ -1,22 +1,23 @@
 // vite.config.js
-import { defineConfig } from 'vite'
-import { resolve } from 'path'
+import { defineConfig } from "vite";
+import { resolve } from "path";
 
 export default defineConfig({
-  root: 'src',
-  base: './',
+  root: "src",
+  base: "./",
   build: {
-    outDir: '../dist',
+    outDir: "../dist",
     emptyOutDir: true,
     rollupOptions: {
       input: {
-        main: resolve(__dirname, 'src/index.html'),
-        consulta: resolve(__dirname, 'src/consulta.html'),
-        admin: resolve(__dirname, 'src/admin.html')
-      }
-    }
+        main: resolve(__dirname, "src/index.html"),
+        consulta: resolve(__dirname, "src/consulta.html"),
+        manifesto: resolve(__dirname, "src/manifesto.html"),
+        admin: resolve(__dirname, "src/admin.html"),
+      },
+    },
   },
   server: {
     port: 3000,
   },
-})
+});

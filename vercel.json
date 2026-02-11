@@ -10,6 +10,10 @@
       "destination": "/consulta.html"
     },
     {
+      "source": "/manifesto",
+      "destination": "/manifesto.html"
+    },
+    {
       "source": "/((?!admin).*)",
       "destination": "/index.html"
     }
