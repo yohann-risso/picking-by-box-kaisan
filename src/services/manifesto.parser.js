@@ -197,25 +197,21 @@ function normalizeLabel(s) {
   return String(s || "")
     .toLowerCase()
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "") // remove acentos
+    .replace(/[\u0300-\u036f]/g, "")
     .replace(/\s+/g, " ")
     .trim();
 }
 
 function getCabecalhoValue(doc, label) {
-  // label: "usuario", "dt coleta", "transportadora", "telefone", etc.
   const want = normalizeLabel(label);
-
   const table = doc.querySelector("table.tb_cabecalho");
   if (!table) return "";
 
   const tds = Array.from(table.querySelectorAll("td"));
   for (let i = 0; i < tds.length; i++) {
     const txt = normalizeLabel(tds[i].textContent);
-    // casa por "usuario:" ou "usuario"
     if (txt.includes(want)) {
-      const next = tds[i + 1];
-      return (next?.textContent || "").replace(/\s+/g, " ").trim();
+      return (tds[i + 1]?.textContent || "").replace(/\s+/g, " ").trim();
     }
   }
   return "";

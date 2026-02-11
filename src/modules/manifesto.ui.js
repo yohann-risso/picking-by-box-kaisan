@@ -36,9 +36,6 @@ btnLimpar.addEventListener("click", () => {
   elCookie.value = "";
 });
 
-const total = fim - inicio + 1;
-let done = 0;
-
 btnGerar.addEventListener("click", async () => {
   elLog.textContent = "";
   const inicio = Number(String(elInicio.value).trim());
@@ -79,6 +76,10 @@ btnGerar.addEventListener("click", async () => {
         continue;
       }
 
+      const total = fim - inicio + 1;
+      let done = 0;
+      setProgress(0);
+
       done++;
       setProgress(Math.round((done / total) * 100));
 
@@ -89,6 +90,14 @@ btnGerar.addEventListener("click", async () => {
         );
         continue;
       }
+
+      const operadorPadrao = String(
+        parsed.usuario || parsed.operador || "",
+      ).trim(); // operador = usuário
+
+      const remessaPadrao = String(parsed.remessaFromTitle || id || "").trim();
+
+      const metodoPadrao = String(parsed.transportadoraDetalhe || "").trim(); // CorreiosPAC / CorreiosSEDEX etc
 
       // normaliza e agrupa
       const transp = normalizarTransportadora(
@@ -114,6 +123,10 @@ btnGerar.addEventListener("click", async () => {
         if (!pedidoKey) continue;
 
         const existente = bucket.byPedido.get(pedidoKey);
+        if (!row.operador) row.operador = operadorPadrao;
+        if (!row.remessa) row.remessa = remessaPadrao;
+        if (!row.metodo_envio) row.metodo_envio = metodoPadrao;
+
         if (!existente) {
           bucket.byPedido.set(pedidoKey, row);
         } else {
@@ -250,7 +263,7 @@ async function gerarPDFManifestoTransportadora({
   const pageW = doc.internal.pageSize.getWidth();
 
   // ================= LOGO =================
-  const logoUrl = "../public/img/logo.png"; // ajuste o caminho se necessário
+  const logoUrl = "/img/logo.png";
 
   const img = await loadImageBase64(logoUrl);
   if (img) {
