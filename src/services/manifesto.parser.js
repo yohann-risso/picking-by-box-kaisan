@@ -2,16 +2,13 @@ const BASE_URL =
   "https://ge.kaisan.com.br/index2.php?_show_csv=1&_show_pdf=1&func=class__nfe_arquivo_remessa__gera_pdf_romaneio_remessa&html=1";
 
 export async function fetchRemessaHtml(ctr_cod_arquivo_remessa, cookie = "") {
-  // Passa pelo proxy do Vercel pra evitar CORS
   const url = `/api/ge-remessa?ctr_cod_arquivo_remessa=${encodeURIComponent(
     ctr_cod_arquivo_remessa,
   )}`;
 
   const res = await fetch(url, {
     method: "POST",
-    headers: {
-      "content-type": "application/json",
-    },
+    headers: { "content-type": "application/json" },
     body: JSON.stringify({ cookie }),
   });
 
@@ -26,89 +23,167 @@ export function parseRemessaHtml(html) {
   const doc = new DOMParser().parseFromString(html, "text/html");
   const textAll = doc.body?.innerText || "";
 
+  const remessaFromTitle =
+    (textAll.match(/Pedidos da remessa\s*\((\d+)\)/i) || [])[1] || "";
+
   const endereco = findAfter(textAll, "Endereço:");
-  const transportadora = findAfter(textAll, "Transportadora:");
-  const dataColeta = findAfter(textAll, "Data da Coleta:");
+  const transportadoraDetalhe = findAfter(textAll, "Transportadora:"); // CorreiosPAC / CorreiosSEDEX / Loggi...
+  const dataColeta =
+    findAfter(textAll, "Dt coleta:") || findAfter(textAll, "Data da Coleta:");
+  const usuario = findAfter(textAll, "Usuário:");
+
+  // tenta inferir nome “macro” da transportadora (Correios/Loggi/etc)
+  let transportadora = "";
+  if (
+    /correios/i.test(transportadoraDetalhe) ||
+    /pac|sedex/i.test(transportadoraDetalhe)
+  ) {
+    transportadora = "Correios";
+  } else if (/loggi/i.test(transportadoraDetalhe) || /loggi/i.test(textAll)) {
+    transportadora = "Loggi";
+  } else {
+    // fallback: tenta pelo h1 (ex: "Correios" aparece no h1)
+    const h1 = Array.from(doc.querySelectorAll("h1"))
+      .map((h) => (h.textContent || "").trim())
+      .filter(Boolean)
+      .join(" ");
+    if (/correios/i.test(h1)) transportadora = "Correios";
+    else if (/loggi/i.test(h1)) transportadora = "Loggi";
+  }
 
   // pega a maior tabela “de itens”
   const tables = Array.from(doc.querySelectorAll("table"));
   const table = pickBestItemsTable(tables);
 
-  if (!table) return { endereco, transportadora, dataColeta, rows: [] };
+  if (!table) {
+    return {
+      endereco,
+      transportadora,
+      transportadoraDetalhe,
+      dataColeta,
+      usuario,
+      remessaFromTitle,
+      rows: [],
+    };
+  }
 
   const rows = [];
   const trs = Array.from(table.querySelectorAll("tr"));
 
-  // tenta achar linha de header
-  const headerIdx = trs.findIndex((tr) => {
-    const ths = tr.querySelectorAll("th");
-    return ths.length >= 6;
-  });
+  function normHeader(s) {
+    return String(s || "")
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
 
-  const dataTrs = trs.slice(Math.max(0, headerIdx + 1));
+  function buildHeaderMap(tr) {
+    const cells = Array.from(tr.querySelectorAll("th,td")).map((c) =>
+      normHeader(c.textContent),
+    );
+
+    const idx = (keys) => {
+      for (const k of keys) {
+        const i = cells.findIndex((h) => h.includes(k));
+        if (i >= 0) return i;
+      }
+      return -1;
+    };
+
+    return {
+      destinatario: idx(["destinat"]),
+      cep: idx(["cep"]),
+      rastreio: idx([
+        "rastre",
+        "codigo de rastreio",
+        "rastreamento",
+        "codigo",
+        "objeto",
+      ]),
+      peso: idx(["peso"]),
+      pedido: idx(["pedido"]),
+      vd: idx(["v.d", "vd", "valor declarado", "valor da mercadoria", "valor"]),
+      // normalmente não existe em Correios por linha
+      metodo_envio: idx(["metodo", "servico", "envio"]),
+      remessa: idx(["remessa"]),
+      operador: idx(["operador", "usuario"]),
+    };
+  }
+
+  function getBy(map, tds, key) {
+    const i = map[key];
+    return i >= 0 && i < tds.length ? tds[i] : "";
+  }
+
+  const headerIdx = trs.findIndex(
+    (tr) => tr.querySelectorAll("th").length >= 4,
+  );
+  if (headerIdx < 0) {
+    return {
+      endereco,
+      transportadora,
+      transportadoraDetalhe,
+      dataColeta,
+      usuario,
+      remessaFromTitle,
+      rows: [],
+    };
+  }
+
+  const headerMap = buildHeaderMap(trs[headerIdx]);
+  const dataTrs = trs.slice(headerIdx + 1);
 
   for (const tr of dataTrs) {
     const tds = Array.from(tr.querySelectorAll("td")).map((td) =>
       (td.textContent || "").replace(/\s+/g, " ").trim(),
     );
-    if (tds.length < 6) continue;
+    if (tds.length < 3) continue;
 
-    // Heurística: layout do seu PDF final tem essas colunas:
-    // Destinatário | CEP | Rastreio | Peso | Pedido | V.D. | Método | Remessa | Operador
-    // Alguns htmls podem vir sem operador ou sem método; tratamos com fallback.
-    const [
-      destinatario,
-      cep,
-      rastreio,
-      peso,
-      pedido,
-      vd,
-      metodo_envio,
-      remessa,
-      operador,
-    ] = normalizeCellsTo9(tds);
+    // ignora linhas de resumo do GE (colspan)
+    if (tr.querySelector("[colspan]")) continue;
 
-    // evita linhas “TOTAL/RESUMO”
-    if (
-      String(destinatario).toUpperCase() === "TOTAL" ||
-      String(destinatario).toUpperCase().includes("RESUMO")
-    ) {
-      continue;
-    }
+    const row = {
+      destinatario: getBy(headerMap, tds, "destinatario"),
+      cep: getBy(headerMap, tds, "cep"),
+      rastreio: getBy(headerMap, tds, "rastreio"),
+      peso: getBy(headerMap, tds, "peso"),
+      pedido: getBy(headerMap, tds, "pedido"),
+      vd: getBy(headerMap, tds, "vd"),
 
-    rows.push({
-      destinatario,
-      cep,
-      rastreio,
-      peso,
-      pedido,
-      vd,
-      metodo_envio,
-      remessa,
-      operador,
-    });
+      // se não tiver por linha, usamos o cabeçalho
+      metodo_envio:
+        getBy(headerMap, tds, "metodo_envio") || transportadoraDetalhe || "",
+      remessa: getBy(headerMap, tds, "remessa") || remessaFromTitle || "",
+      operador: getBy(headerMap, tds, "operador") || usuario || "",
+    };
+
+    if (!row.pedido && !row.rastreio) continue;
+    if (String(row.destinatario).toUpperCase() === "TOTAL") continue;
+
+    rows.push(row);
   }
 
-  return { endereco, transportadora, dataColeta, rows };
+  return {
+    endereco,
+    transportadora,
+    transportadoraDetalhe,
+    dataColeta,
+    usuario,
+    remessaFromTitle,
+    rows,
+  };
 }
 
 export function normalizarTransportadora(transportadoraRaw, rows = []) {
   const t = String(transportadoraRaw || "")
     .trim()
     .toLowerCase();
-
-  // regra pedida: Correios PAC + SEDEX = Correios
-  // (no seu modelo de manifesto dos Correios, a transportadora no topo é "Correios"
-  // e no resumo embaixo quebra PAC/SEDEX) :contentReference[oaicite:3]{index=3}
   if (t.includes("correios") || /pac|sedex/i.test(t)) return "Correios";
-
-  // fallback: se método contém PAC/SEDEX e transportadora veio vazia/estranha
   const anyMetodo = rows.find((r) => /pac|sedex/i.test(r.metodo_envio || ""));
   if (anyMetodo) return "Correios";
-
   if (t.includes("loggi")) return "Loggi";
-
-  // default: devolve capitalizado
   return transportadoraRaw
     ? capitalizeWords(transportadoraRaw)
     : "Transportadora";
@@ -120,12 +195,10 @@ function findAfter(textAll, label) {
   const idx = textAll.indexOf(label);
   if (idx < 0) return "";
   const chunk = textAll.slice(idx + label.length).trim();
-  // pega até quebra de linha
   return (chunk.split("\n")[0] || "").trim();
 }
 
 function pickBestItemsTable(tables) {
-  // escolhe a tabela com mais linhas e que contenha "CEP" e "Código" ou "Rastreio"
   let best = null;
   let bestScore = -1;
 
@@ -135,7 +208,7 @@ function pickBestItemsTable(tables) {
     const score =
       rows +
       (txt.includes("cep") ? 20 : 0) +
-      (txt.includes("código") || txt.includes("rastre") ? 20 : 0) +
+      (txt.includes("rastre") || txt.includes("rastreamento") ? 20 : 0) +
       (txt.includes("destinat") ? 10 : 0);
 
     if (score > bestScore) {
@@ -144,27 +217,6 @@ function pickBestItemsTable(tables) {
     }
   }
   return best;
-}
-
-function normalizeCellsTo9(tds) {
-  // se já tem 9, ok
-  if (tds.length >= 9) return tds.slice(0, 9);
-
-  // se tem 8, assume sem operador
-  if (tds.length === 8) return [...tds, ""];
-
-  // se tem 7, assume sem operador e sem remessa (ou método)
-  if (tds.length === 7)
-    return [tds[0], tds[1], tds[2], tds[3], tds[4], tds[5], tds[6], "", ""];
-
-  // se tem 6, assume mínimo
-  if (tds.length === 6)
-    return [tds[0], tds[1], tds[2], tds[3], tds[4], tds[5], "", "", ""];
-
-  // fallback geral
-  const out = Array(9).fill("");
-  for (let i = 0; i < Math.min(9, tds.length); i++) out[i] = tds[i];
-  return out;
 }
 
 function capitalizeWords(s) {

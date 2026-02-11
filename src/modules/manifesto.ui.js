@@ -36,6 +36,9 @@ btnLimpar.addEventListener("click", () => {
   elCookie.value = "";
 });
 
+const total = fim - inicio + 1;
+let done = 0;
+
 btnGerar.addEventListener("click", async () => {
   elLog.textContent = "";
   const inicio = Number(String(elInicio.value).trim());
@@ -76,14 +79,8 @@ btnGerar.addEventListener("click", async () => {
         continue;
       }
 
-      const total = fim - inicio + 1;
-      let done = 0;
-
-      for (let id = inicio; id <= fim; id++) {
-        // ...
-        done++;
-        setProgress(Math.round((done / total) * 100));
-      }
+      done++;
+      setProgress(Math.round((done / total) * 100));
 
       const parsed = parseRemessaHtml(html);
       if (!parsed?.rows?.length) {
@@ -203,9 +200,9 @@ function inferMetodo(row, transportadora) {
   if (transportadora === "Correios") {
     const m = String(row.metodo_envio || "").toUpperCase();
     if (m.includes("SEDEX")) return "SEDEX";
-    return "PAC";
+    if (m.includes("PAC")) return "PAC";
+    return "Correios";
   }
-  // Loggi: mantém o "método de envio" original (ex: Loggi Express Cross Dock) :contentReference[oaicite:5]{index=5}
   return row.metodo_envio || transportadora;
 }
 
@@ -235,6 +232,8 @@ function gerarPDFManifestoTransportadora({
   const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
 
+  const vdNum = parseBRL(r.vd);
+
   // normaliza linhas
   const safeRows = (rows || []).map((r) => ({
     destinatario: r.destinatario || "",
@@ -242,7 +241,7 @@ function gerarPDFManifestoTransportadora({
     rastreio: r.rastreio || "",
     peso: r.peso || "",
     pedido: r.pedido || "",
-    vd: r.vd || "",
+    vd: vdNum ? fmtBRL(vdNum) : r.vd || "",
     metodo: inferMetodo(r, transportadora),
     remessa: r.remessa || "",
     operador: r.operador || "",
