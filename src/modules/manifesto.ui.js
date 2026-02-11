@@ -209,6 +209,23 @@ function inferMetodo(row, transportadora) {
   return row.metodo_envio || transportadora;
 }
 
+function trunc(s, max = 26) {
+  s = String(s ?? "")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (s.length <= max) return s;
+  return s.slice(0, Math.max(0, max - 1)) + "…";
+}
+
+function ellipsize(s, max = 28) {
+  s = String(s ?? "")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (s.length <= max) return s;
+  if (max <= 1) return "…";
+  return s.slice(0, max - 1) + "…";
+}
+
 function gerarPDFManifestoTransportadora({
   transportadora,
   endereco,
@@ -288,15 +305,15 @@ function gerarPDFManifestoTransportadora({
 
   // Tabela principal
   const body = safeRows.map((r) => [
-    r.destinatario,
+    ellipsize(r.destinatario, 28),
     r.cep,
-    r.rastreio,
+    trunc(r.rastreio, 22),
     r.peso,
     r.pedido,
     r.vd,
-    r.metodo,
+    trunc(r.metodo, 18),
     r.remessa,
-    r.operador,
+    trunc(r.operador, 14),
   ]);
 
   doc.autoTable({
@@ -305,21 +322,26 @@ function gerarPDFManifestoTransportadora({
       [
         "Destinatário",
         "CEP",
-        "Código de Rastreio",
+        "Rastreio",
         "Peso",
         "Pedido",
         "V.D.",
-        "Método de Envio",
-        "Remessa",
-        "Operador",
+        "Método",
+        "Rem.",
+        "Op.",
       ],
     ],
     body,
+
     theme: "grid",
+    tableWidth: "auto",
+    margin: { left: 18, right: 18 },
+
     styles: {
-      fontSize: 7,
-      cellPadding: 3,
-      overflow: "linebreak",
+      fontSize: 6.5,
+      cellPadding: 1.6,
+      overflow: "ellipsize", // NÃO quebra linha; corta com “...”
+      valign: "middle",
       lineWidth: 0.2,
     },
     headStyles: {
@@ -327,33 +349,20 @@ function gerarPDFManifestoTransportadora({
       fillColor: [240, 240, 240],
       textColor: 20,
     },
-    alternateRowStyles: {
-      fillColor: [250, 250, 250],
-    },
-    didDrawPage: function () {
-      const pageCount = doc.internal.getNumberOfPages();
-      const pageNumber = doc.internal.getCurrentPageInfo().pageNumber;
-      doc.setFontSize(8);
-      doc.setFont("helvetica", "normal");
-      doc.text(
-        `Página ${pageNumber} de ${pageCount}`,
-        doc.internal.pageSize.getWidth() - 40,
-        doc.internal.pageSize.getHeight() - 18,
-        { align: "right" },
-      );
-    },
+
+    // 👇 aqui está o “pulo do gato”: colunas longas com width fixo curto,
+    // e colunas curtas com wrap (conteúdo).
     columnStyles: {
-      0: { cellWidth: 120 },
-      1: { cellWidth: 55 },
-      2: { cellWidth: 110 },
-      3: { cellWidth: 45, halign: "right" },
-      4: { cellWidth: 70 },
-      5: { cellWidth: 55, halign: "right" },
-      6: { cellWidth: 90 },
-      7: { cellWidth: 45 },
-      8: { cellWidth: 60 },
+      0: { cellWidth: 112 }, // Destinatário (truncado)
+      1: { cellWidth: 50 }, // CEP
+      2: { cellWidth: 92 }, // Rastreio (truncado)
+      3: { cellWidth: "wrap", halign: "right" }, // Peso (conteúdo)
+      4: { cellWidth: 66 }, // Pedido
+      5: { cellWidth: 44, halign: "right" }, // V.D.
+      6: { cellWidth: 62 }, // Método (truncado)
+      7: { cellWidth: 34 }, // Rem.
+      8: { cellWidth: 48 }, // Op. (truncado)
     },
-    margin: { left: 40, right: 40 },
   });
 
   // Resumo de coleta
