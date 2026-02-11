@@ -223,7 +223,24 @@ function ellipsize(s, max = 28) {
   return s.slice(0, max - 1) + "…";
 }
 
-function gerarPDFManifestoTransportadora({
+function loadImageBase64(url) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0);
+      resolve(canvas.toDataURL("image/png"));
+    };
+    img.onerror = () => resolve(null);
+    img.src = url;
+  });
+}
+
+async function gerarPDFManifestoTransportadora({
   transportadora,
   endereco,
   dataColeta,
@@ -231,6 +248,14 @@ function gerarPDFManifestoTransportadora({
 }) {
   const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
+
+  // ================= LOGO =================
+  const logoUrl = "../public/img/logo.png"; // ajuste o caminho se necessário
+
+  const img = await loadImageBase64(logoUrl);
+  if (img) {
+    doc.addImage(img, "PNG", 20, 18, 110, 35); // x, y, largura, altura
+  }
 
   // normaliza linhas
   const safeRows = (rows || []).map((r) => {
@@ -273,17 +298,16 @@ function gerarPDFManifestoTransportadora({
   // Header
   doc.setFont("helvetica", "bold");
   doc.setFontSize(14);
-  doc.text("MANIFESTO DE COLETA", pageW / 2, 42, { align: "center" });
+  doc.text("MANIFESTO DE COLETA", pageW / 2, 60, { align: "center" });
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
 
-  doc.text(`Endereço: ${endereco || "-"}`, 40, 60);
-  doc.text(`Transportadora: ${transportadora}`, pageW - 40, 60, {
+  doc.text(`Endereço: ${endereco || "-"}`, 40, 78);
+  doc.text(`Transportadora: ${transportadora}`, pageW - 40, 78, {
     align: "right",
   });
-
-  doc.text(`Data da Coleta: ${dataColeta || "-"}`, 40, 74);
+  doc.text(`Data da Coleta: ${dataColeta || "-"}`, 40, 92);
 
   // Se quiser, você pode computar "Remessas de X a Y" pegando min/max de remessa (se vier preenchido)
   const remessasNum = safeRows
@@ -366,8 +390,8 @@ function gerarPDFManifestoTransportadora({
     },
   });
 
-  // Resumo de coleta
-  const endY = doc.lastAutoTable.finalY + 18;
+  // ================= RESUMO =================
+  const endY = doc.lastAutoTable.finalY + 20;
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(10);
@@ -382,6 +406,8 @@ function gerarPDFManifestoTransportadora({
       fmtBRL(acc.vd),
     ]);
   }
+
+  // linha total geral
   resumoBody.push([
     "TOTAL",
     String(totalQtd),
@@ -391,18 +417,50 @@ function gerarPDFManifestoTransportadora({
 
   doc.autoTable({
     startY: endY + 10,
-    head: [["Método de Envio", "Quantidade de objetos", "Peso", "V.D."]],
+    head: [["Método", "Qtd", "Peso", "V.D."]],
     body: resumoBody,
-    styles: { fontSize: 8, cellPadding: 3 },
-    headStyles: { fontStyle: "bold" },
-    columnStyles: {
-      0: { cellWidth: 160 },
-      1: { cellWidth: 140, halign: "right" },
-      2: { cellWidth: 110, halign: "right" },
-      3: { cellWidth: 110, halign: "right" },
+    theme: "grid",
+    tableWidth: 320,
+    margin: { left: (pageW - 320) / 2 },
+    styles: {
+      fontSize: 8,
+      cellPadding: 3,
+      valign: "middle",
     },
-    margin: { left: 120, right: 120 },
+    headStyles: {
+      fontStyle: "bold",
+      fillColor: [230, 230, 230],
+    },
+    columnStyles: {
+      0: { cellWidth: 100 },
+      1: { cellWidth: 50, halign: "right" },
+      2: { cellWidth: 80, halign: "right" },
+      3: { cellWidth: 90, halign: "right" },
+    },
   });
+
+  // ================= ASSINATURA =================
+  const afterResumoY = doc.lastAutoTable.finalY + 50;
+
+  // linha
+  doc.setLineWidth(0.5);
+  doc.line(pageW / 2 - 180, afterResumoY, pageW / 2 + 180, afterResumoY);
+
+  // texto "Assinatura"
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.text("Assinatura", pageW / 2, afterResumoY + 15, {
+    align: "center",
+  });
+
+  // OBS
+  doc.setFontSize(9);
+  doc.text(
+    "OBS: 1a via da unidade de postagem e 2a via do cliente",
+    pageW / 2,
+    afterResumoY + 32,
+    { align: "center" },
+  );
 
   const filename =
     `manifesto_${transportadora}_${new Date().toISOString().slice(0, 10)}.pdf`
