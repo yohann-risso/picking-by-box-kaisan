@@ -27,11 +27,12 @@ export function parseRemessaHtml(html) {
     (textAll.match(/Pedidos da remessa\s*\((\d+)\)/i) || [])[1] || "";
 
   const endereco = findAfter(textAll, "Endereço:");
-  const usuario = getCabecalhoValue(doc, "Usuário");
+  const usuario = getCabecalhoValue(doc, "Usuário", textAll);
   const dataColeta =
-    getCabecalhoValue(doc, "Dt coleta") || findAfter(textAll, "Dt coleta:");
+    getCabecalhoValue(doc, "Dt coleta", textAll) ||
+    findAfter(textAll, "Dt coleta:");
   const transportadoraDetalhe =
-    getCabecalhoValue(doc, "Transportadora") ||
+    getCabecalhoValue(doc, "Transportadora", textAll) ||
     findAfter(textAll, "Transportadora:");
 
   // tenta inferir nome “macro” da transportadora (Correios/Loggi/etc)
@@ -182,10 +183,30 @@ export function normalizarTransportadora(transportadoraRaw, rows = []) {
   const t = String(transportadoraRaw || "")
     .trim()
     .toLowerCase();
-  if (t.includes("correios") || /pac|sedex/i.test(t)) return "Correios";
-  const anyMetodo = rows.find((r) => /pac|sedex/i.test(r.metodo_envio || ""));
+
+  // ===== 1. Retirada Local primeiro (mais específico) =====
+  if (t.includes("retirar") || t.includes("retirada") || t.includes("local")) {
+    return "Retirada Local";
+  }
+
+  // ===== 2. Loggi =====
+  if (t.includes("loggi")) {
+    return "Loggi";
+  }
+
+  // ===== 3. Correios =====
+  if (t.includes("correios") || /pac|sedex/i.test(t)) {
+    return "Correios";
+  }
+
+  // fallback por método das linhas
+  const anyMetodo = rows.find((r) =>
+    /pac|sedex/i.test(String(r.metodo_envio || "")),
+  );
+
   if (anyMetodo) return "Correios";
-  if (t.includes("loggi")) return "Loggi";
+
+  // ===== default =====
   return transportadoraRaw
     ? capitalizeWords(transportadoraRaw)
     : "Transportadora";
@@ -202,18 +223,56 @@ function normalizeLabel(s) {
     .trim();
 }
 
-function getCabecalhoValue(doc, label) {
+function getCabecalhoValue(doc, label, textAllFallback = "") {
   const want = normalizeLabel(label);
-  const table = doc.querySelector("table.tb_cabecalho");
-  if (!table) return "";
 
-  const tds = Array.from(table.querySelectorAll("td"));
-  for (let i = 0; i < tds.length; i++) {
-    const txt = normalizeLabel(tds[i].textContent);
-    if (txt.includes(want)) {
-      return (tds[i + 1]?.textContent || "").replace(/\s+/g, " ").trim();
+  // 1) tenta pela tabela de cabeçalho (mais confiável)
+  const table = doc.querySelector("table.tb_cabecalho");
+  if (table) {
+    const tds = Array.from(table.querySelectorAll("td"));
+
+    for (let i = 0; i < tds.length; i++) {
+      const raw = (tds[i].textContent || "").replace(/\s+/g, " ").trim();
+      const txt = normalizeLabel(raw);
+
+      // match "usuario" ou "usuario:"
+      if (txt.includes(want)) {
+        // (a) caso clássico: label em um td e valor no próximo td
+        const next = (tds[i + 1]?.textContent || "")
+          .replace(/\s+/g, " ")
+          .trim();
+        if (next) return next;
+
+        // (b) caso alternativo: label e valor no MESMO td
+        // ex: "Usuário: Gabriel Lagoa"
+        const cleaned = raw.replace(/^[^:]*:\s*/i, "").trim();
+        if (cleaned && normalizeLabel(cleaned) !== want) return cleaned;
+      }
     }
   }
+
+  // 2) fallback: procurar em qualquer TD do documento
+  const allTds = Array.from(doc.querySelectorAll("td"));
+  for (let i = 0; i < allTds.length; i++) {
+    const raw = (allTds[i].textContent || "").replace(/\s+/g, " ").trim();
+    const txt = normalizeLabel(raw);
+    if (txt.startsWith(want + ":") || txt === want) {
+      const next = (allTds[i + 1]?.textContent || "")
+        .replace(/\s+/g, " ")
+        .trim();
+      if (next) return next;
+
+      const cleaned = raw.replace(/^[^:]*:\s*/i, "").trim();
+      if (cleaned && normalizeLabel(cleaned) !== want) return cleaned;
+    }
+  }
+
+  // 3) fallback final: regex no textAll
+  if (textAllFallback) {
+    const m = textAllFallback.match(/Usu[aá]rio:\s*([^\n]+)/i);
+    if (m && m[1]) return String(m[1]).trim();
+  }
+
   return "";
 }
 

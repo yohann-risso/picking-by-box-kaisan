@@ -428,21 +428,92 @@ async function gerarPDFManifestoTransportadora({
   rows,
 }) {
   const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
-  const pageW = doc.internal.pageSize.getWidth();
 
-  // ================= LOGO =================
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+
+  const M = 36; // margem
+  const headerTop = 28;
+
+  // ================= LOGO (canto superior esquerdo) =================
   const logoUrl =
     "https://www.kaisan.com.br/skin/frontend/ultimo/default/images/nova/logo-2020-new.png";
 
   const img = await loadImageBase64(logoUrl);
+
+  // Logo menor e sem invadir header
   if (img) {
-    doc.addImage(img, "PNG", 20, 18, 110, 35); // x, y, largura, altura
+    doc.addImage(img, "PNG", M, headerTop, 90, 28); // x,y,w,h
   }
 
-  // normaliza linhas
+  // ================= TÍTULO CENTRAL =================
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(14);
+  doc.text("MANIFESTO DE COLETA", pageW / 2, headerTop + 18, {
+    align: "center",
+  });
+
+  // ================= META NO CANTO DIREITO =================
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+
+  const remessasNum = (rows || [])
+    .map((r) => Number(String(r.remessa || "").replace(/[^\d]/g, "")))
+    .filter((n) => Number.isFinite(n) && n > 0);
+
+  const remessaRange = remessasNum.length
+    ? `${Math.min(...remessasNum)}–${Math.max(...remessasNum)}`
+    : "-";
+
+  const operadorTop =
+    (rows || []).find((r) => String(r.operador || "").trim())?.operador || "—";
+
+  doc.text(`Transportadora: ${transportadora}`, pageW - M, headerTop + 10, {
+    align: "right",
+  });
+  doc.text(`Data: ${dataColeta || "-"}`, pageW - M, headerTop + 22, {
+    align: "right",
+  });
+  doc.text(`Remessas: ${remessaRange}`, pageW - M, headerTop + 34, {
+    align: "right",
+  });
+
+  // ================= BLOCO INFO (sem sobreposição) =================
+  const infoTop = headerTop + 46;
+  const infoH = 64;
+
+  // caixa
+  doc.setDrawColor(0);
+  doc.setLineWidth(0.8);
+  doc.rect(M, infoTop, pageW - M * 2, infoH);
+
+  // textos dentro
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9);
+  doc.text("Endereço:", M + 8, infoTop + 16);
+  doc.text("Operador:", M + 8, infoTop + 36);
+
+  doc.setFont("helvetica", "normal");
+  // endereço pode ser grande -> quebra manual
+  const enderecoTxt = String(endereco || "-")
+    .replace(/\s+/g, " ")
+    .trim();
+  const enderecoLines = doc.splitTextToSize(enderecoTxt, pageW - M * 2 - 90);
+  doc.text(enderecoLines.slice(0, 2), M + 72, infoTop + 16); // no máx 2 linhas
+
+  doc.text(String(operadorTop || "—"), M + 72, infoTop + 36);
+
+  // linha divisória horizontal dentro do box (separador)
+  doc.setLineWidth(0.4);
+  doc.line(M, infoTop + 46, pageW - M, infoTop + 46);
+
+  // total no rodapé do box
+  doc.setFont("helvetica", "bold");
+  doc.text("TOTAL:", M + 8, infoTop + 60);
+
+  // ================= NORMALIZA LINHAS + TOTAIS =================
   const safeRows = (rows || []).map((r) => {
     const vdNum = parseBRL(r.vd);
-
     return {
       destinatario: r.destinatario || "",
       cep: r.cep || "",
@@ -456,8 +527,7 @@ async function gerarPDFManifestoTransportadora({
     };
   });
 
-  // Totais
-  const resumo = new Map(); // metodo -> { qtd, peso, vd }
+  const resumo = new Map();
   let totalQtd = 0;
   let totalPeso = 0;
   let totalVD = 0;
@@ -465,6 +535,7 @@ async function gerarPDFManifestoTransportadora({
   for (const r of safeRows) {
     const pesoG = parsePesoToGramas(r.peso);
     const vd = parseBRL(r.vd);
+
     totalQtd += 1;
     totalPeso += pesoG;
     totalVD += vd;
@@ -477,40 +548,12 @@ async function gerarPDFManifestoTransportadora({
     acc.vd += vd;
   }
 
-  // Header
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(14);
-  doc.text("MANIFESTO DE COLETA", pageW / 2, 60, { align: "center" });
-
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(9);
+  doc.text(`${totalQtd} objetos`, M + 56, infoTop + 60);
+  doc.text(`${fmtGramas(totalPeso)}`, M + 140, infoTop + 60);
+  doc.text(`${fmtBRL(totalVD)}`, M + 240, infoTop + 60);
 
-  doc.text(`Endereço: ${endereco || "-"}`, 40, 78);
-  doc.text(`Transportadora: ${transportadora}`, pageW - 40, 78, {
-    align: "right",
-  });
-  doc.text(`Data da Coleta: ${dataColeta || "-"}`, 40, 92);
-
-  // Se quiser, você pode computar "Remessas de X a Y" pegando min/max de remessa (se vier preenchido)
-  const remessasNum = safeRows
-    .map((r) => Number(String(r.remessa).replace(/[^\d]/g, "")))
-    .filter((n) => Number.isFinite(n) && n > 0);
-
-  if (remessasNum.length) {
-    const minR = Math.min(...remessasNum);
-    const maxR = Math.max(...remessasNum);
-    doc.text(`Remessas de ${minR} a ${maxR}`, 40, 88);
-  }
-
-  // Linha de totais (como no manifesto dos Correios) :contentReference[oaicite:6]{index=6}
-  doc.setFont("helvetica", "bold");
-  doc.text(`TOTAL`, 40, 108);
-  doc.setFont("helvetica", "normal");
-  doc.text(`${totalQtd} objetos`, 90, 108);
-  doc.text(`${fmtGramas(totalPeso)}`, 170, 108);
-  doc.text(`${fmtBRL(totalVD)}`, 260, 108);
-
-  // Tabela principal
+  // ================= TABELA PRINCIPAL (P&B PRO) =================
   const body = safeRows.map((r) => [
     ellipsize(r.destinatario, 28),
     r.cep,
@@ -518,13 +561,15 @@ async function gerarPDFManifestoTransportadora({
     r.peso,
     r.pedido,
     r.vd,
-    trunc(r.metodo, 18),
+    trunc(r.metodo, 12),
     r.remessa,
     trunc(r.operador, 14),
   ]);
 
+  const tableStartY = infoTop + infoH + 14;
+
   doc.autoTable({
-    startY: 118,
+    startY: tableStartY,
     head: [
       [
         "Destinatário",
@@ -533,7 +578,7 @@ async function gerarPDFManifestoTransportadora({
         "Peso",
         "Pedido",
         "V.D.",
-        "Método",
+        "Mét.",
         "Rem.",
         "Op.",
       ],
@@ -541,39 +586,53 @@ async function gerarPDFManifestoTransportadora({
     body,
 
     theme: "grid",
+    margin: { left: M, right: M },
     tableWidth: "auto",
-    margin: { left: 18, right: 18 },
 
     styles: {
-      fontSize: 6.5,
+      fontSize: 6.6,
       cellPadding: 1.6,
-      overflow: "ellipsize", // NÃO quebra linha; corta com “...”
+      overflow: "ellipsize",
       valign: "middle",
-      lineWidth: 0.2,
-    },
-    headStyles: {
-      fontStyle: "bold",
-      fillColor: [240, 240, 240],
-      textColor: 20,
+      lineWidth: 0.4,
+      lineColor: 0, // preto
+      textColor: 0, // preto
     },
 
-    // 👇 aqui está o “pulo do gato”: colunas longas com width fixo curto,
-    // e colunas curtas com wrap (conteúdo).
+    headStyles: {
+      fillColor: 0, // preto
+      textColor: 255, // branco
+      fontStyle: "bold",
+      lineWidth: 0.6,
+      lineColor: 0,
+    },
+
     columnStyles: {
-      0: { cellWidth: 112 }, // Destinatário (truncado)
+      0: { cellWidth: 112 }, // Dest
       1: { cellWidth: 50 }, // CEP
-      2: { cellWidth: 92 }, // Rastreio (truncado)
-      3: { cellWidth: "wrap", halign: "right" }, // Peso (conteúdo)
+      2: { cellWidth: 92 }, // Rastreio
+      3: { cellWidth: "wrap", halign: "right" }, // Peso
       4: { cellWidth: 66 }, // Pedido
-      5: { cellWidth: 44, halign: "right" }, // V.D.
-      6: { cellWidth: 62 }, // Método (truncado)
+      5: { cellWidth: 54, halign: "right" }, // VD um pouco maior
+      6: { cellWidth: 40 }, // Método
       7: { cellWidth: 34 }, // Rem.
-      8: { cellWidth: 48 }, // Op. (truncado)
+      8: { cellWidth: 58 }, // Op.
+    },
+
+    didDrawPage: () => {
+      const pageCount = doc.internal.getNumberOfPages();
+      const pageNumber = doc.internal.getCurrentPageInfo().pageNumber;
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.text(`Página ${pageNumber} / ${pageCount}`, pageW - M, pageH - 16, {
+        align: "right",
+      });
     },
   });
 
-  // ================= RESUMO =================
-  const endY = doc.lastAutoTable.finalY + 20;
+  // ================= RESUMO (P&B, central) =================
+  let endY = doc.lastAutoTable.finalY + 18;
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(10);
@@ -588,8 +647,6 @@ async function gerarPDFManifestoTransportadora({
       fmtBRL(acc.vd),
     ]);
   }
-
-  // linha total geral
   resumoBody.push([
     "TOTAL",
     String(totalQtd),
@@ -601,46 +658,58 @@ async function gerarPDFManifestoTransportadora({
     startY: endY + 10,
     head: [["Método", "Qtd", "Peso", "V.D."]],
     body: resumoBody,
+
     theme: "grid",
-    tableWidth: 320,
-    margin: { left: (pageW - 320) / 2 },
+    tableWidth: 340,
+    margin: { left: (pageW - 340) / 2 },
+
     styles: {
       fontSize: 8,
       cellPadding: 3,
-      valign: "middle",
+      lineWidth: 0.5,
+      lineColor: 0,
+      textColor: 0,
     },
+
     headStyles: {
+      fillColor: 0,
+      textColor: 255,
       fontStyle: "bold",
-      fillColor: [230, 230, 230],
+      lineWidth: 0.6,
+      lineColor: 0,
     },
+
     columnStyles: {
-      0: { cellWidth: 100 },
+      0: { cellWidth: 110 },
       1: { cellWidth: 50, halign: "right" },
       2: { cellWidth: 80, halign: "right" },
-      3: { cellWidth: 90, halign: "right" },
+      3: { cellWidth: 100, halign: "right" },
     },
   });
 
-  // ================= ASSINATURA =================
-  const afterResumoY = doc.lastAutoTable.finalY + 50;
+  // ================= ASSINATURA (sempre no final da página, sem colidir) =================
+  // Se o resumo ficou muito embaixo, joga pra próxima página
+  const minSpaceForSign = 90;
+  let signY = doc.lastAutoTable.finalY + 40;
 
-  // linha
-  doc.setLineWidth(0.5);
-  doc.line(pageW / 2 - 180, afterResumoY, pageW / 2 + 180, afterResumoY);
+  if (signY > pageH - minSpaceForSign) {
+    doc.addPage();
+    signY = 120;
+  }
 
-  // texto "Assinatura"
+  doc.setDrawColor(0);
+  doc.setLineWidth(0.8);
+  doc.line(pageW / 2 - 180, signY, pageW / 2 + 180, signY);
+
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
-  doc.text("Assinatura", pageW / 2, afterResumoY + 15, {
-    align: "center",
-  });
+  doc.text("Assinatura", pageW / 2, signY + 16, { align: "center" });
 
-  // OBS
   doc.setFontSize(9);
   doc.text(
     "OBS: 1a via da unidade de postagem e 2a via do cliente",
     pageW / 2,
-    afterResumoY + 32,
+    signY + 34,
     { align: "center" },
   );
 
