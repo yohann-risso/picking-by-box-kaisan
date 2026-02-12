@@ -227,21 +227,35 @@ function renderPreview() {
   const items = Array.from(state.packs.values()).map((p) => {
     const qtd = p.byPedido.size;
     const checked = state.selected.has(p.transportadora);
-    const operador = p.operador || "-";
-    const metodo = p.metodoHint || "";
-    const sub = [operador, metodo].filter(Boolean).join(" • ");
+
+    const operador = p.operador && p.operador.trim() ? p.operador.trim() : "—";
+    const metodo =
+      p.metodoHint && p.metodoHint.trim() ? p.metodoHint.trim() : "";
 
     return `
-      <label class="preview-item">
-        <input type="checkbox" data-transp="${escapeHtml(p.transportadora)}" ${checked ? "checked" : ""}/>
-        <div class="preview-main">
-          <div class="preview-title">
+      <label class="manifesto-preview-item">
+        <input
+          type="checkbox"
+          data-transp="${escapeHtml(p.transportadora)}"
+          ${checked ? "checked" : ""}
+        />
+
+        <div class="manifesto-preview-main">
+          <div class="manifesto-preview-title">
             ${escapeHtml(p.transportadora)}
-            <span class="pill">${qtd}</span>
+            <span class="manifesto-pill">${qtd}</span>
           </div>
-          <div class="muted">
-            <span class="pill pill-muted">${escapeHtml(operador)}</span>
-            ${metodo ? ` <span class="pill pill-muted">${escapeHtml(metodo)}</span>` : ""}
+
+          <div class="muted" style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+            <span class="manifesto-pill manifesto-pill-muted">
+              ${escapeHtml(operador)}
+            </span>
+
+            ${
+              metodo
+                ? `<span class="manifesto-pill manifesto-pill-muted">${escapeHtml(metodo)}</span>`
+                : ""
+            }
           </div>
         </div>
       </label>
@@ -256,6 +270,7 @@ function renderPreview() {
       el.addEventListener("change", (e) => {
         const t = e.target.getAttribute("data-transp");
         if (!t) return;
+
         if (e.target.checked) state.selected.add(t);
         else state.selected.delete(t);
       });
