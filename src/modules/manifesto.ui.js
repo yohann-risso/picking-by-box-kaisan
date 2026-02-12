@@ -630,11 +630,6 @@ async function gerarPDFManifestoTransportadora({
   doc.save(filename);
 }
 
-function toInt(v) {
-  const n = Number(String(v ?? "").replace(/[^\d]/g, ""));
-  return Number.isFinite(n) ? n : Infinity;
-}
-
 function escolherMaisAntigoPorRemessa(a, b) {
   // retorna o registro com menor remessa (mais antigo)
   const ra = toInt(a?.remessa);
