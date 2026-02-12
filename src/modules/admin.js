@@ -488,86 +488,108 @@ if (!__ADMIN_ACTIVE__) {
     }
   }
 
-  // ===== Métricas principais =====
+  // ===== Métricas principais (FIX: usar HOJE SP + janela diária por timestamp) =====
   async function carregarMetricas() {
-    const hoje = new Date().toISOString().slice(0, 10);
+    // ✅ sempre SP
+    const hojeISO = getHojeSPISO(); // YYYY-MM-DD
+    const amanhaISO = addDiasISO(hojeISO, 1);
 
-    const { count: usuarios } = await supabase
-      .from("operadores_em_uso")
-      .select("operador", { count: "exact", head: true, distinct: true });
+    try {
+      // roda tudo em paralelo
+      const [usuariosRes, pedidosRes, pendentesRes, pecasRes, romsRes] =
+        await Promise.all([
+          supabase
+            .from("operadores_em_uso")
+            .select("operador", { count: "exact", head: true }),
 
-    animarNumero(document.getElementById("usuariosAtivosCount"), usuarios ?? 0);
+          // 🔎 Se "pedidos.data" for DATE:
+          // .eq("data", hojeISO)
+          // Se for TIMESTAMPTZ/TS: usa janela [hoje, amanhã)
+          supabase
+            .from("pedidos")
+            .select("id", { count: "exact", head: true })
+            .gte("data", `${hojeISO}T00:00:00-03:00`)
+            .lt("data", `${amanhaISO}T00:00:00-03:00`),
 
-    const { count: pedidos } = await supabase
-      .from("pedidos")
-      .select("id", { count: "exact", head: true })
-      .gte("data", hoje);
-    animarNumero(document.getElementById("pedidosHojeCount"), pedidos ?? 0);
+          supabase
+            .from("pedidos")
+            .select("id", { count: "exact", head: true })
+            .eq("status", "pendente"),
 
-    const { count: pendentes } = await supabase
-      .from("pedidos")
-      .select("id", { count: "exact", head: true })
-      .eq("status", "pendente");
-    animarNumero(
-      document.getElementById("pedidosPendentesCount"),
-      pendentes ?? 0,
-    );
+          // pesagens geralmente é timestamp
+          supabase
+            .from("pesagens")
+            .select("qtde_pecas")
+            .gte("data", `${hojeISO}T00:00:00-03:00`)
+            .lt("data", `${amanhaISO}T00:00:00-03:00`),
 
-    const { data: pecas } = await supabase
-      .from("pesagens")
-      .select("qtde_pecas")
-      .gte("data", `${hoje}T00:00:00`);
-    animarNumero(
-      document.getElementById("pecasHojeCount"),
-      pecas?.reduce((a, p) => a + p.qtde_pecas, 0) ?? 0,
-    );
+          supabase
+            .from("romaneios_em_uso")
+            .select("*", { count: "exact", head: true }),
+        ]);
 
-    const { count: romaneios } = await supabase
-      .from("romaneios_em_uso")
-      .select("*", { count: "exact", head: true });
-    animarNumero(
-      document.getElementById("romaneiosAbertosCount"),
-      romaneios ?? 0,
-    );
+      const usuarios = usuariosRes?.count ?? 0;
+      const pedidos = pedidosRes?.count ?? 0;
+      const pendentes = pendentesRes?.count ?? 0;
+      const pecasTotal =
+        pecasRes?.data?.reduce((a, p) => a + Number(p?.qtde_pecas || 0), 0) ??
+        0;
+      const romaneios = romsRes?.count ?? 0;
+
+      animarNumero(document.getElementById("usuariosAtivosCount"), usuarios);
+      animarNumero(document.getElementById("pedidosHojeCount"), pedidos);
+      animarNumero(document.getElementById("pedidosPendentesCount"), pendentes);
+      animarNumero(document.getElementById("pecasHojeCount"), pecasTotal);
+      animarNumero(document.getElementById("romaneiosAbertosCount"), romaneios);
+    } catch (err) {
+      console.error("Erro carregarMetricas:", err);
+    }
   }
 
-  // ===== Métricas Expedição =====
+  // ===== Métricas Expedição (FIX: SP) =====
   async function carregarMetricaExpedicao() {
-    const hoje = new Date().toISOString().slice(0, 10);
+    try {
+      const hojeISO = getHojeSPISO(); // ✅ SP
 
-    const { data: pendentesData } = await supabase.rpc(
-      "contar_pecas_pendentes",
-    );
-    const totalPendentes = pendentesData?.[0]?.total_pedidos ?? 0;
-    const totalPecasPendentes = pendentesData?.[0]?.total_pecas ?? 0;
+      const [
+        { data: pendentesData },
+        { data: pesadosHojeData },
+        { data: metaGeral },
+      ] = await Promise.all([
+        supabase.rpc("contar_pecas_pendentes"),
+        supabase.rpc("contar_pedidos_pesados_hoje", { data: hojeISO }),
+        supabase.rpc("contar_pedidos_nao_pesados"),
+      ]);
 
-    const { data: pesadosHojeData } = await supabase.rpc(
-      "contar_pedidos_pesados_hoje",
-      { data: hoje },
-    );
-    const totalPesadosHoje = pesadosHojeData?.[0]?.total_pedidos ?? 0;
-    const totalPecasPesadasHoje = pesadosHojeData?.[0]?.total_pecas ?? 0;
+      const totalPendentes = pendentesData?.[0]?.total_pedidos ?? 0;
+      const totalPecasPendentes = pendentesData?.[0]?.total_pecas ?? 0;
 
-    const { data: metaGeral } = await supabase.rpc(
-      "contar_pedidos_nao_pesados",
-    );
-    const meta80 = Math.round((metaGeral ?? 0) * 0.8);
-    const percMeta = metaGeral
-      ? Math.round((totalPesadosHoje / metaGeral) * 100)
-      : 0;
+      const totalPesadosHoje = pesadosHojeData?.[0]?.total_pedidos ?? 0;
+      const totalPecasPesadasHoje = pesadosHojeData?.[0]?.total_pecas ?? 0;
 
-    document.getElementById("totalPendentes").textContent =
-      `${totalPendentes} pedidos`;
-    document.getElementById("totalPendentesPecas").textContent =
-      `${totalPecasPendentes} peças`;
-    document.getElementById("totalPesadosHoje").textContent =
-      `${totalPesadosHoje} pedidos`;
-    document.getElementById("totalPesadosHojePecas").textContent =
-      `${totalPecasPesadasHoje} peças`;
-    document.getElementById("metaGeral").textContent = metaGeral ?? 0;
-    document.getElementById("meta80").textContent = meta80;
-    document.getElementById("percMeta").textContent = `${percMeta}%`;
-    document.getElementById("percMetaBar").style.width = `${percMeta}%`;
+      const meta = Number(metaGeral ?? 0);
+      const meta80 = Math.round(meta * 0.8);
+      const percMeta = meta ? Math.round((totalPesadosHoje / meta) * 100) : 0;
+
+      document.getElementById("totalPendentes").textContent =
+        `${totalPendentes} pedidos`;
+      document.getElementById("totalPendentesPecas").textContent =
+        `${totalPecasPendentes} peças`;
+
+      document.getElementById("totalPesadosHoje").textContent =
+        `${totalPesadosHoje} pedidos`;
+      document.getElementById("totalPesadosHojePecas").textContent =
+        `${totalPecasPesadasHoje} peças`;
+
+      document.getElementById("metaGeral").textContent = meta || 0;
+      document.getElementById("meta80").textContent = meta80;
+
+      document.getElementById("percMeta").textContent = `${percMeta}%`;
+      document.getElementById("percMetaBar").style.width =
+        `${Math.min(100, percMeta)}%`;
+    } catch (err) {
+      console.error("Erro carregarMetricaExpedicao:", err);
+    }
   }
 
   // ===== Resumo Operadores =====
@@ -975,10 +997,43 @@ if (!__ADMIN_ACTIVE__) {
     }
   });
 
+  let __REFRESH_RUNNING__ = false;
+
+  async function tickAdmin() {
+    if (__REFRESH_RUNNING__) return;
+    __REFRESH_RUNNING__ = true;
+
+    try {
+      await Promise.all([
+        carregarMetricas(),
+        carregarResumoOperadores(),
+        carregarRomaneios(),
+        carregarMetricaExpedicao(),
+        carregarRelatorioErros(),
+        carregarTempoMedioExpedicao(),
+        carregarMiniWMSExpedicao(),
+        (async () => {
+          const tipo = document.getElementById("slaPeriodo")?.value || "mes";
+          await carregarSLAResumoEAnalisePorPeriodo(tipo);
+        })(),
+      ]);
+
+      // ByBox depende de filtros e pode rodar depois (ou junto)
+      await atualizarByboxEficiencia();
+    } catch (err) {
+      console.error("Erro tickAdmin:", err);
+    } finally {
+      __REFRESH_RUNNING__ = false;
+    }
+  }
+
   // ===== Init =====
   async function initAdmin() {
     const operador = localStorage.getItem("operador1");
-    if (!operador || !["yohann risso", "deygles matos"].includes(operador.toLowerCase())) {
+    if (
+      !operador ||
+      !["yohann risso", "deygles matos"].includes(operador.toLowerCase())
+    ) {
       document.body.innerHTML = `
       <div class="d-flex vh-100 justify-content-center align-items-center bg-dark text-white">
         <div class="alert alert-danger text-center shadow-lg">
@@ -1004,37 +1059,19 @@ if (!__ADMIN_ACTIVE__) {
     atualizarByboxEficiencia();
 
     await ensureChart();
-    carregarMetricas();
-    carregarResumoOperadores();
-    carregarRomaneios();
-    carregarMetricaExpedicao();
-    carregarRelatorioErros();
-    carregarOperadoresDropdown();
-    carregarSLAs();
-    bindPeriodoSLA();
-    await carregarSLAResumoEAnalisePorPeriodo("mes");
-    carregarTempoMedioExpedicao();
-    carregarMiniWMSExpedicao();
 
-    // 👉 setar data de hoje (fuso SP) no input e carregar pivot só uma vez
+    // 1ª carga
+    await tickAdmin();
+
+    // pivot 1x
     const pivotInput = document.getElementById("pivotData");
     if (pivotInput) {
-      pivotInput.value = hojeISO; // formato YYYY-MM-DD
+      pivotInput.value = hojeISO;
       carregarPivotHoras(hojeISO);
     }
 
-    autoRefresh = setInterval(() => {
-      carregarMetricas();
-      carregarResumoOperadores();
-      carregarRomaneios();
-      carregarMetricaExpedicao();
-      carregarRelatorioErros();
-      const tipo = document.getElementById("slaPeriodo")?.value || "mes";
-      carregarSLAResumoEAnalisePorPeriodo(tipo);
-      carregarTempoMedioExpedicao();
-      carregarMiniWMSExpedicao();
-      atualizarByboxEficiencia();
-    }, 30000);
+    // refresh com lock
+    autoRefresh = setInterval(tickAdmin, 30000);
   }
 
   async function carregarOperadoresDropdown() {

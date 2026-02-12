@@ -63,6 +63,10 @@ btnGerar.addEventListener("click", async () => {
     // transportadorasMap: { "Loggi": { header, rows[] }, "Correios": { ... } ... }
     const transportadorasMap = new Map(); // transp -> { header, byPedido: Map(), rows: [] }
 
+    const total = fim - inicio + 1;
+    let done = 0;
+    setProgress(0);
+
     for (let id = inicio; id <= fim; id++) {
       await new Promise((r) => setTimeout(r, 150));
       status(`Buscando ${id}...`);
@@ -75,10 +79,6 @@ btnGerar.addEventListener("click", async () => {
         log(`⚠️ Falha no fetch ${id}: ${e?.message || e}`);
         continue;
       }
-
-      const total = fim - inicio + 1;
-      let done = 0;
-      setProgress(0);
 
       done++;
       setProgress(Math.round((done / total) * 100));
@@ -187,16 +187,60 @@ function parsePesoToGramas(pesoStr) {
   const n = Number(s.replace(/[^\d.]/g, ""));
   return Number.isFinite(n) ? n : 0;
 }
-function parseBRL(vdStr) {
-  // "R$ 11.042,45"
-  const s = String(vdStr || "")
-    .replace(/\s/g, "")
-    .replace("R$", "")
-    .replace(/\./g, "")
-    .replace(",", ".");
+function parseBRL(v) {
+  if (v == null) return 0;
+
+  let s = String(v).trim();
+
+  // remove moeda e espaços
+  s = s.replace(/\s/g, "").replace(/^R\$/i, "");
+
+  // mantém só dígitos, vírgula, ponto e sinal
+  s = s.replace(/[^\d.,-]/g, "");
+
+  if (!s) return 0;
+
+  const hasDot = s.includes(".");
+  const hasComma = s.includes(",");
+
+  // Caso 1: tem ponto E vírgula -> assume BR: 1.234,56
+  if (hasDot && hasComma) {
+    s = s.replace(/\./g, "").replace(",", ".");
+    const n = Number(s);
+    return Number.isFinite(n) ? n : 0;
+  }
+
+  // Caso 2: só vírgula -> assume decimal BR: 1234,56
+  if (hasComma && !hasDot) {
+    s = s.replace(",", ".");
+    const n = Number(s);
+    return Number.isFinite(n) ? n : 0;
+  }
+
+  // Caso 3: só ponto -> precisa decidir se é decimal (31.10) ou milhar (1.234)
+  if (hasDot && !hasComma) {
+    const parts = s.split(".");
+    // se última parte tem 2 dígitos -> decimal (31.10)
+    if (parts.length === 2 && parts[1].length === 2) {
+      const n = Number(s);
+      return Number.isFinite(n) ? n : 0;
+    }
+    // se última parte tem 3 dígitos e tem mais de 1 grupo -> provável milhar
+    if (parts.length > 1 && parts[parts.length - 1].length === 3) {
+      s = s.replace(/\./g, "");
+      const n = Number(s);
+      return Number.isFinite(n) ? n : 0;
+    }
+    // fallback: trata como número normal com ponto decimal
+    const n = Number(s);
+    return Number.isFinite(n) ? n : 0;
+  }
+
+  // Caso 4: só dígitos
   const n = Number(s);
   return Number.isFinite(n) ? n : 0;
 }
+
 function fmtGramas(g) {
   // 17030 => "17.030g"
   const n = Math.round(g);
