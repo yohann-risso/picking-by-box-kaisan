@@ -30,6 +30,8 @@ export function parseRemessaHtml(html) {
     findAfter(textAll, "Endereço:") ||
     "RUA RUFINO SIQUEIRA, 1 - CONSELHEIRO PAULINO - NOVA FRIBURGO/RJ - 28635-500";
   const usuario =
+    getCabecalhoValueLikeSheets(doc, "Usuário") ||
+    getCabecalhoValueLikeSheets(doc, "Operador") ||
     getCabecalhoValue(doc, "Usuário", textAll) ||
     getCabecalhoValue(doc, "Operador", textAll);
 
@@ -226,6 +228,36 @@ function normalizeLabel(s) {
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/\s+/g, " ")
     .trim();
+}
+function getCabecalhoValueLikeSheets(doc, label) {
+  const want = normalizeLabel(label);
+
+  // 1) tenta a tb_cabecalho primeiro
+  const table =
+    doc.querySelector("table.tb_cabecalho") || doc.querySelectorAll("table")[0]; // fallback: primeira tabela
+
+  if (!table) return "";
+
+  const rows = Array.from(table.querySelectorAll("tr"));
+  for (const tr of rows) {
+    const cells = Array.from(tr.querySelectorAll("td,th")).map((c) =>
+      String(c.textContent || "")
+        .replace(/\s+/g, " ")
+        .trim(),
+    );
+
+    // varre as células e procura o label ("Usuário", "Operador", etc)
+    for (let i = 0; i < cells.length; i++) {
+      const cellNorm = normalizeLabel(cells[i]).replace(/:$/, "");
+      if (cellNorm === want || cellNorm.includes(want)) {
+        // pega a célula seguinte (Col4 se o label estiver em Col3)
+        const next = (cells[i + 1] || "").trim();
+        if (next) return next;
+      }
+    }
+  }
+
+  return "";
 }
 
 function getCabecalhoValue(doc, label, textAllFallback = "") {

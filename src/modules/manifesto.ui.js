@@ -493,7 +493,6 @@ async function gerarPDFManifestoTransportadora({
   doc.setFont("helvetica", "bold");
   doc.setFontSize(9);
   doc.text("Endereço:", M + 8, infoTop + 16);
-  doc.text("Operador:", M + 8, infoTop + 36);
 
   doc.setFont("helvetica", "normal");
   // endereço pode ser grande -> quebra manual
