@@ -416,7 +416,8 @@ async function gerarPDFManifestoTransportadora({
   const pageW = doc.internal.pageSize.getWidth();
 
   // ================= LOGO =================
-  const logoUrl = "/img/logo.png";
+  const logoUrl =
+    "https://www.kaisan.com.br/skin/frontend/ultimo/default/images/nova/logo-2020-new.png";
 
   const img = await loadImageBase64(logoUrl);
   if (img) {
