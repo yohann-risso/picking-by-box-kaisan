@@ -978,11 +978,11 @@ if (!__ADMIN_ACTIVE__) {
   // ===== Init =====
   async function initAdmin() {
     const operador = localStorage.getItem("operador1");
-    if (!operador || operador.toLowerCase() !== "yohann risso") {
+    if (!operador || !["yohann risso", "deygles matos"].includes(operador.toLowerCase())) {
       document.body.innerHTML = `
       <div class="d-flex vh-100 justify-content-center align-items-center bg-dark text-white">
         <div class="alert alert-danger text-center shadow-lg">
-          ❌ Acesso restrito. Somente Yohann pode visualizar este painel.
+          ❌ Acesso restrito. Somente Yohann ou Deygles podem visualizar este painel.
         </div>
       </div>`;
       return;
