@@ -629,18 +629,3 @@ async function gerarPDFManifestoTransportadora({
 
   doc.save(filename);
 }
-
-function escolherMaisAntigoPorRemessa(a, b) {
-  // retorna o registro com menor remessa (mais antigo)
-  const ra = toInt(a?.remessa);
-  const rb = toInt(b?.remessa);
-
-  if (ra !== rb) return ra < rb ? a : b;
-
-  // fallback se remessa empatar/ausente: usa menor pedido numérico (ou mantém a)
-  const pa = toInt(a?.pedido);
-  const pb = toInt(b?.pedido);
-  if (pa !== pb) return pa < pb ? a : b;
-
-  return a;
-}
