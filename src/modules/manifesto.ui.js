@@ -4,22 +4,33 @@ import {
   normalizarTransportadora,
 } from "../services/manifesto.parser.js";
 
+// ===== DOM =====
 const $ = (q) => document.querySelector(q);
-
 const elInicio = $("#inicio");
 const elFim = $("#fim");
-const elCookie = $("#cookie");
 const elLog = $("#log");
 const elStatus = $("#status");
-const btnGerar = $("#btnGerar");
+const elProgress = $("#progressBar");
+
+const btnAnalisar = $("#btnAnalisar");
 const btnLimpar = $("#btnLimpar");
 
-const elProgress = document.querySelector("#progressBar");
+const previewCard = $("#previewCard");
+const previewList = $("#previewList");
+const btnMarcarTudo = $("#btnMarcarTudo");
+const btnDesmarcarTudo = $("#btnDesmarcarTudo");
+const btnGerarSelecionados = $("#btnGerarSelecionados");
+
+// ===== state =====
+const state = {
+  packs: new Map(), // transportadora -> pack
+  selected: new Set(),
+};
+
 function setProgress(pct) {
   if (!elProgress) return;
   elProgress.style.width = `${Math.max(0, Math.min(100, pct))}%`;
 }
-
 function log(msg) {
   elLog.textContent += msg + "\n";
   elLog.scrollTop = elLog.scrollHeight;
@@ -31,16 +42,31 @@ function status(msg) {
 btnLimpar.addEventListener("click", () => {
   elLog.textContent = "";
   status("Pronto.");
+  setProgress(0);
+  previewCard.style.display = "none";
+  previewList.innerHTML = "";
+  state.packs.clear();
+  state.selected.clear();
   elInicio.value = "";
   elFim.value = "";
-  elCookie.value = "";
 });
 
-btnGerar.addEventListener("click", async () => {
+btnMarcarTudo?.addEventListener("click", () => {
+  state.selected = new Set(state.packs.keys());
+  renderPreview();
+});
+
+btnDesmarcarTudo?.addEventListener("click", () => {
+  state.selected.clear();
+  renderPreview();
+});
+
+btnAnalisar.addEventListener("click", async () => {
   elLog.textContent = "";
+  setProgress(0);
+
   const inicio = Number(String(elInicio.value).trim());
   const fim = Number(String(elFim.value).trim());
-  const cookie = String(elCookie.value || "").trim();
 
   if (
     !Number.isFinite(inicio) ||
@@ -56,126 +82,203 @@ btnGerar.addEventListener("click", async () => {
     return;
   }
 
-  btnGerar.disabled = true;
-  status("Processando...");
+  btnAnalisar.disabled = true;
+  status("Analisando...");
 
   try {
-    // transportadorasMap: { "Loggi": { header, rows[] }, "Correios": { ... } ... }
-    const transportadorasMap = new Map(); // transp -> { header, byPedido: Map(), rows: [] }
+    state.packs.clear();
+    state.selected.clear();
 
     const total = fim - inicio + 1;
     let done = 0;
-    setProgress(0);
 
     for (let id = inicio; id <= fim; id++) {
-      await new Promise((r) => setTimeout(r, 150));
+      await new Promise((r) => setTimeout(r, 120));
       status(`Buscando ${id}...`);
       log(`▶️ Fetch remessa/arquivo ${id}...`);
 
       let html;
       try {
-        html = await fetchRemessaHtml(id, cookie);
+        html = await fetchRemessaHtml(id /* sem cookie na UI */);
       } catch (e) {
         log(`⚠️ Falha no fetch ${id}: ${e?.message || e}`);
+        done++;
+        setProgress(Math.round((done / total) * 100));
         continue;
       }
-
-      done++;
-      setProgress(Math.round((done / total) * 100));
 
       const parsed = parseRemessaHtml(html);
+
       if (!parsed?.rows?.length) {
-        log(
-          `⚠️ Sem linhas encontradas em ${id} (talvez vazio / layout mudou / sem permissão).`,
-        );
+        log(`⚠️ Sem linhas encontradas em ${id}.`);
+        done++;
+        setProgress(Math.round((done / total) * 100));
         continue;
       }
 
-      const operadorPadrao = String(
-        parsed.usuario || parsed.operador || "",
-      ).trim(); // operador = usuário
-
-      const remessaPadrao = String(parsed.remessaFromTitle || id || "").trim();
-
-      const metodoPadrao = String(parsed.transportadoraDetalhe || "").trim(); // CorreiosPAC / CorreiosSEDEX etc
-
-      // normaliza e agrupa
       const transp = normalizarTransportadora(
         parsed.transportadora,
         parsed.rows,
       );
-      parsed.transportadora = transp;
 
-      if (!transportadorasMap.has(transp)) {
-        transportadorasMap.set(transp, {
-          header: {
-            endereco: parsed.endereco || "",
-            dataColeta: parsed.dataColeta || "",
-          },
+      // defaults por remessa
+      const remessaPadrao = String(parsed.remessaFromTitle || id).trim();
+      const metodoPadrao = String(parsed.transportadoraDetalhe || "").trim();
+      const operadorPadrao = String(parsed.usuario || "").trim() || "—";
+
+      // cria pack
+      if (!state.packs.has(transp)) {
+        state.packs.set(transp, {
+          transportadora: transp,
+          endereco: parsed.endereco || "",
+          dataColeta: parsed.dataColeta || "",
+          operador: operadorPadrao,
+          metodoHint: metodoPadrao || "",
           byPedido: new Map(),
         });
       }
 
-      const bucket = transportadorasMap.get(transp);
+      const pack = state.packs.get(transp);
 
+      // atualiza header se vier vazio
+      if (
+        (!pack.operador || pack.operador === "—") &&
+        operadorPadrao &&
+        operadorPadrao !== "—"
+      ) {
+        pack.operador = operadorPadrao;
+      }
+      if (!pack.dataColeta && parsed.dataColeta)
+        pack.dataColeta = parsed.dataColeta;
+      if (!pack.endereco && parsed.endereco) pack.endereco = parsed.endereco;
+      if (!pack.metodoHint && metodoPadrao) pack.metodoHint = metodoPadrao;
+
+      // dedup por pedido (mantém remessa menor)
       for (const row of parsed.rows) {
-        const pedidoKey = String(row?.pedido || "").trim();
-        if (!pedidoKey) continue;
-
-        const existente = bucket.byPedido.get(pedidoKey);
-        if (!row.operador) row.operador = operadorPadrao;
+        if (!row.operador || row.operador === "—")
+          row.operador = pack.operador || operadorPadrao;
         if (!row.remessa) row.remessa = remessaPadrao;
         if (!row.metodo_envio) row.metodo_envio = metodoPadrao;
 
-        if (!existente) {
-          bucket.byPedido.set(pedidoKey, row);
-        } else {
-          bucket.byPedido.set(
+        const pedidoKey = String(row?.pedido || "").trim();
+        if (!pedidoKey) continue;
+
+        const existente = pack.byPedido.get(pedidoKey);
+        if (!existente) pack.byPedido.set(pedidoKey, row);
+        else
+          pack.byPedido.set(
             pedidoKey,
             escolherMaisAntigoPorRemessa(existente, row),
           );
-        }
       }
 
-      log(
-        `✅ OK ${id}: ${parsed.rows.length} itens • transp=${transp} • exemplo método=${
-          parsed.rows[0]?.metodo_envio || "-"
-        }`,
-      );
+      log(`✅ OK ${id}: ${parsed.rows.length} itens • transp=${transp}`);
+      done++;
+      setProgress(Math.round((done / total) * 100));
     }
 
-    status("Gerando PDFs...");
-
-    if (!transportadorasMap.size) {
+    if (!state.packs.size) {
+      status("Nenhum dado encontrado.");
       log("❌ Nenhum dado coletado no intervalo.");
+      previewCard.style.display = "none";
       return;
     }
 
-    // Gera 1 PDF por transportadora (download automático)
-    for (const [transportadora, pack] of transportadorasMap.entries()) {
-      const rows = Array.from(pack.byPedido.values());
+    // por padrão: marca tudo
+    state.selected = new Set(state.packs.keys());
 
-      // ordena por remessa asc e depois pedido
-      rows.sort(
-        (a, b) =>
-          toInt(a.remessa) - toInt(b.remessa) ||
-          toInt(a.pedido) - toInt(b.pedido),
-      );
-
-      gerarPDFManifestoTransportadora({
-        transportadora,
-        endereco: pack.header.endereco,
-        dataColeta: pack.header.dataColeta,
-        rows,
-      });
-    }
-
-    status("Concluído.");
-    log("✅ Finalizado.");
+    previewCard.style.display = "block";
+    renderPreview();
+    status("Selecione e gere.");
   } finally {
-    btnGerar.disabled = false;
+    btnAnalisar.disabled = false;
   }
 });
+
+btnGerarSelecionados.addEventListener("click", async () => {
+  if (!state.selected.size) {
+    log("⚠️ Nenhuma transportadora selecionada.");
+    return;
+  }
+
+  status("Gerando PDFs...");
+  for (const transp of state.selected) {
+    const pack = state.packs.get(transp);
+    if (!pack) continue;
+
+    const rows = Array.from(pack.byPedido.values()).sort(
+      (a, b) =>
+        toInt(a.remessa) - toInt(b.remessa) ||
+        toInt(a.pedido) - toInt(b.pedido),
+    );
+
+    await gerarPDFManifestoTransportadora({
+      transportadora: transp,
+      endereco: pack.endereco,
+      dataColeta: pack.dataColeta,
+      rows,
+    });
+  }
+  status("Concluído.");
+  log("✅ PDFs gerados.");
+});
+
+function renderPreview() {
+  const items = Array.from(state.packs.values()).map((p) => {
+    const qtd = p.byPedido.size;
+    const checked = state.selected.has(p.transportadora);
+    const operador = p.operador || "-";
+    const metodo = p.metodoHint || "";
+    const sub = [operador, metodo].filter(Boolean).join(" • ");
+
+    return `
+      <label class="list-item">
+        <input type="checkbox" data-transp="${escapeHtml(p.transportadora)}" ${checked ? "checked" : ""}/>
+        <div class="list-item-content">
+          <div class="title">${escapeHtml(p.transportadora)} <span class="badge">${qtd}</span></div>
+          <div class="muted small">${escapeHtml(sub)}</div>
+        </div>
+      </label>
+    `;
+  });
+
+  previewList.innerHTML = items.join("");
+
+  previewList
+    .querySelectorAll('input[type="checkbox"][data-transp]')
+    .forEach((el) => {
+      el.addEventListener("change", (e) => {
+        const t = e.target.getAttribute("data-transp");
+        if (!t) return;
+        if (e.target.checked) state.selected.add(t);
+        else state.selected.delete(t);
+      });
+    });
+}
+
+function escapeHtml(s) {
+  return String(s ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+// ===== util: dedup =====
+function toInt(v) {
+  const n = Number(String(v ?? "").replace(/[^\d]/g, ""));
+  return Number.isFinite(n) ? n : Infinity;
+}
+function escolherMaisAntigoPorRemessa(a, b) {
+  const ra = toInt(a?.remessa);
+  const rb = toInt(b?.remessa);
+  if (ra !== rb) return ra < rb ? a : b;
+  const pa = toInt(a?.pedido);
+  const pb = toInt(b?.pedido);
+  if (pa !== pb) return pa < pb ? a : b;
+  return a;
+}
 
 const { jsPDF } = window.jspdf;
 
@@ -327,7 +430,7 @@ async function gerarPDFManifestoTransportadora({
       vd: fmtBRL(vdNum),
       metodo: inferMetodo(r, transportadora),
       remessa: r.remessa || "",
-      operador: r.operador || "",
+      operador: r.operador || "—",
     };
   });
 
