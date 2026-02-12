@@ -5,82 +5,223 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Manifesto por Transportadora</title>
 
+    <link rel="icon" type="image/png" href="/img/logo.png" />
     <link rel="stylesheet" href="./css/style.css" />
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.3/dist/jspdf.plugin.autotable.min.js"></script>
+
+    <style>
+      /* Apenas o mínimo para esta tela (sem brigar com o style.css) */
+      .wrap {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 16px;
+      }
+
+      .card-block {
+        background: var(--color-white);
+        border: 1px solid var(--color-info-border);
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-sm);
+        padding: 14px;
+        margin-bottom: 12px;
+      }
+
+      .row {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: end;
+      }
+
+      .col {
+        flex: 1;
+        min-width: 180px;
+      }
+
+      .label {
+        font-size: var(--font-size-sm);
+        font-weight: 600;
+        display: block;
+        margin-bottom: 6px;
+        opacity: 0.9;
+      }
+
+      .input {
+        width: 100%;
+        padding: 10px 12px;
+        border-radius: 8px;
+        border: 1px solid var(--color-info-border);
+        background: var(--color-white);
+        font-family: var(--font-default);
+      }
+
+      .muted {
+        opacity: 0.75;
+        font-size: var(--font-size-sm);
+      }
+
+      .actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+
+      .progress-wrap {
+        margin-top: 12px;
+      }
+
+      .historico-container {
+        max-height: 360px;
+        overflow: auto;
+      }
+
+      .preview-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px;
+        border-radius: 10px;
+        border: 1px solid var(--color-info-border);
+        background: rgb(255 255 255 / 70%);
+        margin-bottom: 8px;
+      }
+
+      .preview-main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+
+      .preview-title {
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .pill {
+        background: var(--color-primary);
+        color: var(--color-white);
+        border-radius: 999px;
+        padding: 3px 10px;
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .pill-muted {
+        background: var(--color-info-bg);
+        color: var(--color-primary-dark);
+        border: 1px solid var(--color-info-border);
+      }
+
+      pre#log {
+        margin: 0;
+        white-space: pre-wrap;
+        word-break: break-word;
+        font:
+          13px/1.45 ui-monospace,
+          SFMono-Regular,
+          Menlo,
+          Consolas,
+          monospace;
+      }
+    </style>
   </head>
 
   <body>
-    <main class="container">
-      <header class="page-header">
-        <h1>Manifesto por transportadora</h1>
-        <p class="muted">
-          Informe o intervalo de remessas/arquivos. O sistema vai analisar e te
-          mostrar as transportadoras encontradas para você escolher quais gerar.
-        </p>
-      </header>
+    <div class="wrap">
+      <!-- Header padrão do app -->
+      <div class="header-container">
+        <img class="app-logo" src="/img/logo.png" alt="Picking by Box" />
+        <h1 class="app-title">Manifesto por transportadora</h1>
+        <div class="muted">
+          Informe o intervalo. O sistema analisa e você seleciona quais PDFs
+          gerar.
+        </div>
+      </div>
 
-      <section class="card">
-        <div class="grid">
-          <div class="field">
-            <label for="inicio">Início</label>
+      <!-- Card: intervalo -->
+      <div class="card-block">
+        <div class="row">
+          <div class="col">
+            <label class="label" for="inicio">Remessa/Arquivo início</label>
             <input
               id="inicio"
-              class="form-control"
+              class="input"
               inputmode="numeric"
               placeholder="ex: 11305"
             />
           </div>
-          <div class="field">
-            <label for="fim">Fim</label>
+
+          <div class="col">
+            <label class="label" for="fim">Remessa/Arquivo fim</label>
             <input
               id="fim"
-              class="form-control"
+              class="input"
               inputmode="numeric"
               placeholder="ex: 11330"
             />
           </div>
 
           <div class="actions">
-            <button id="btnAnalisar" class="btn btn-primary">
-              Analisar intervalo
+            <button id="btnAnalisar" class="btn btn-primary">Analisar</button>
+            <button id="btnLimpar" class="btn btn-outline-secondary">
+              Limpar
             </button>
-            <button id="btnLimpar" class="btn btn-ghost">Limpar</button>
           </div>
         </div>
 
-        <div class="progress-wrap" aria-hidden="true">
-          <div class="progress">
+        <div class="progress-wrap">
+          <div class="progress progress-container" style="height: 14px">
             <div id="progressBar" class="progress-bar" style="width: 0%"></div>
           </div>
-          <div id="status" class="muted small">Pronto.</div>
+          <div id="status" class="muted" style="margin-top: 6px">Pronto.</div>
         </div>
-      </section>
+      </div>
 
-      <section class="card" id="previewCard" style="display: none">
-        <div class="card-header">
-          <h2>Selecione o que gerar</h2>
-          <div class="row">
-            <button id="btnMarcarTudo" class="btn btn-ghost btn-sm">
+      <!-- Card: preview -->
+      <div class="card-block" id="previewCard" style="display: none">
+        <div
+          class="row"
+          style="align-items: center; justify-content: space-between"
+        >
+          <div>
+            <div style="font-weight: 800; font-size: 1.1rem">
+              Selecione o que gerar
+            </div>
+            <div class="muted">Marque as transportadoras desejadas.</div>
+          </div>
+
+          <div class="actions">
+            <button id="btnMarcarTudo" class="btn btn-outline-secondary">
               Marcar tudo
             </button>
-            <button id="btnDesmarcarTudo" class="btn btn-ghost btn-sm">
+            <button id="btnDesmarcarTudo" class="btn btn-outline-secondary">
               Desmarcar
             </button>
-            <button id="btnGerarSelecionados" class="btn btn-primary btn-sm">
-              Gerar PDFs selecionados
+            <button id="btnGerarSelecionados" class="btn btn-success">
+              Gerar PDFs
             </button>
           </div>
         </div>
 
-        <div id="previewList" class="list"></div>
-      </section>
+        <div class="historico-container" style="margin-top: 12px">
+          <div id="previewList"></div>
+        </div>
+      </div>
 
-      <section class="card">
-        <h2>Log</h2>
-        <pre id="log" class="log"></pre>
-      </section>
-    </main>
+      <!-- Card: log -->
+      <div class="card-block">
+        <div style="font-weight: 800; margin-bottom: 8px">Log</div>
+        <div class="historico-container">
+          <pre id="log"></pre>
+        </div>
+      </div>
+    </div>
 
     <script type="module" src="./modules/manifesto.ui.js"></script>
   </body>

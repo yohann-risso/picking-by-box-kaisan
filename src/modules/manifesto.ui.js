@@ -232,11 +232,17 @@ function renderPreview() {
     const sub = [operador, metodo].filter(Boolean).join(" • ");
 
     return `
-      <label class="list-item">
+      <label class="preview-item">
         <input type="checkbox" data-transp="${escapeHtml(p.transportadora)}" ${checked ? "checked" : ""}/>
-        <div class="list-item-content">
-          <div class="title">${escapeHtml(p.transportadora)} <span class="badge">${qtd}</span></div>
-          <div class="muted small">${escapeHtml(sub)}</div>
+        <div class="preview-main">
+          <div class="preview-title">
+            ${escapeHtml(p.transportadora)}
+            <span class="pill">${qtd}</span>
+          </div>
+          <div class="muted">
+            <span class="pill pill-muted">${escapeHtml(operador)}</span>
+            ${metodo ? ` <span class="pill pill-muted">${escapeHtml(metodo)}</span>` : ""}
+          </div>
         </div>
       </label>
     `;
