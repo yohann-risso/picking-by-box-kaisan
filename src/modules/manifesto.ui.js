@@ -108,6 +108,9 @@ btnAnalisar.addEventListener("click", async () => {
       }
 
       const parsed = parseRemessaHtml(html);
+      log(
+        `DEBUG remessa=${parsed.remessaFromTitle || id} usuario="${parsed.usuario || ""}"`,
+      );
       const operadorDaRemessa = String(parsed.usuario || "").trim();
 
       if (!parsed?.rows?.length) {

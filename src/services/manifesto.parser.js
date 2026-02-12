@@ -30,6 +30,7 @@ export function parseRemessaHtml(html) {
     findAfter(textAll, "Endereço:") ||
     "RUA RUFINO SIQUEIRA, 1 - CONSELHEIRO PAULINO - NOVA FRIBURGO/RJ - 28635-500";
   const usuario =
+    getUsuarioFromGeHeader(doc, textAll) ||
     getCabecalhoValueLikeSheets(doc, "Usuário") ||
     getCabecalhoValueLikeSheets(doc, "Operador") ||
     getCabecalhoValue(doc, "Usuário", textAll) ||
@@ -229,6 +230,91 @@ function normalizeLabel(s) {
     .replace(/\s+/g, " ")
     .trim();
 }
+
+function getUsuarioFromGeHeader(doc, textAll = "") {
+  const wantKeys = ["usuario", "usuário", "operador"];
+
+  const clean = (s) =>
+    String(s || "")
+      .replace(/\s+/g, " ")
+      .trim();
+  const norm = (s) => normalizeLabel(clean(s)).replace(/:$/, "");
+
+  // A) Busca por tb_cabecalho (quando existe)
+  const tb = doc.querySelector("table.tb_cabecalho");
+  if (tb) {
+    const v = findLabelValueInTable(tb, wantKeys);
+    if (v) return v;
+  }
+
+  // B) Busca por QUALQUER tabela (Sheets IMPORTHTML "table";N)
+  const tables = Array.from(doc.querySelectorAll("table"));
+  for (const t of tables) {
+    const v = findLabelValueInTable(t, wantKeys);
+    if (v) return v;
+  }
+
+  // C) Busca por <b>/<strong> "Usuário:" e pega td/linha vizinha
+  const bolds = Array.from(doc.querySelectorAll("b,strong"));
+  for (const b of bolds) {
+    const k = norm(b.textContent);
+    if (wantKeys.includes(k)) {
+      const td = b.closest("td");
+      const tr = td?.closest("tr");
+      if (tr) {
+        const tds = Array.from(tr.querySelectorAll("td"));
+        const idx = td ? tds.indexOf(td) : -1;
+        const next = idx >= 0 ? clean(tds[idx + 1]?.textContent) : "";
+        if (next) return next;
+      }
+
+      // fallback: "Usuário: Fulano" no mesmo td
+      const tdRaw = clean(td?.textContent);
+      const same = tdRaw.replace(/^[^:]*:\s*/i, "").trim();
+      if (same) return same;
+    }
+  }
+
+  // D) Regex no texto total
+  const m =
+    textAll.match(/Usu[aá]rio:\s*([^\n]+)/i) ||
+    textAll.match(/Operador:\s*([^\n]+)/i);
+  if (m && m[1]) return clean(m[1]);
+
+  return "";
+}
+
+function findLabelValueInTable(tableEl, wantKeys) {
+  const clean = (s) =>
+    String(s || "")
+      .replace(/\s+/g, " ")
+      .trim();
+  const norm = (s) => normalizeLabel(clean(s)).replace(/:$/, "");
+
+  const rows = Array.from(tableEl.querySelectorAll("tr"));
+  for (const tr of rows) {
+    const cells = Array.from(tr.querySelectorAll("th,td")).map((c) =>
+      clean(c.textContent),
+    );
+
+    for (let i = 0; i < cells.length; i++) {
+      const k = norm(cells[i]);
+      if (!k) continue;
+
+      // pega "usuario"/"operador" mesmo se vier colado tipo "Usuário:"
+      if (wantKeys.includes(k) || wantKeys.some((w) => k.includes(w))) {
+        const next = (cells[i + 1] || "").trim();
+        if (next) return next;
+
+        // caso "Usuário: Fulano" na mesma célula
+        const same = cells[i].replace(/^[^:]*:\s*/i, "").trim();
+        if (same && normalizeLabel(same) !== k) return same;
+      }
+    }
+  }
+  return "";
+}
+
 function getCabecalhoValueLikeSheets(doc, label) {
   const want = normalizeLabel(label);
 
