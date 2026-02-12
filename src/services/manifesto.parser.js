@@ -19,6 +19,39 @@ export async function fetchRemessaHtml(ctr_cod_arquivo_remessa, cookie = "") {
   return await res.text();
 }
 
+function getFromTbCabecalho(doc, label) {
+  const table = doc.querySelector("table.tb_cabecalho");
+  if (!table) return "";
+
+  const want = normalizeLabel(label);
+
+  const clean = (s) =>
+    String(s || "")
+      .replace(/\s+/g, " ")
+      .trim();
+  const norm = (s) => normalizeLabel(clean(s)).replace(/:$/, "");
+
+  const trs = Array.from(table.querySelectorAll("tr"));
+  for (const tr of trs) {
+    const tds = Array.from(tr.querySelectorAll("td"));
+    for (let i = 0; i < tds.length; i++) {
+      const cellTxt = norm(tds[i].textContent);
+
+      // pega tanto "usuario" quanto "usuario:" e também quando vem com <b> dentro
+      if (cellTxt === want || cellTxt.includes(want)) {
+        const next = clean(tds[i + 1]?.textContent);
+        if (next) return next;
+
+        // fallback: label e valor no mesmo td: "Usuário: Fulano"
+        const raw = clean(tds[i].textContent);
+        const same = raw.replace(/^[^:]*:\s*/i, "").trim();
+        if (same) return same;
+      }
+    }
+  }
+  return "";
+}
+
 export function parseRemessaHtml(html) {
   const doc = new DOMParser().parseFromString(html, "text/html");
   const textAll = doc.body?.innerText || "";
@@ -30,36 +63,44 @@ export function parseRemessaHtml(html) {
     findAfter(textAll, "Endereço:") ||
     "RUA RUFINO SIQUEIRA, 1 - CONSELHEIRO PAULINO - NOVA FRIBURGO/RJ - 28635-500";
   const usuario =
-    getUsuarioFromGeHeader(doc, textAll) ||
-    getCabecalhoValueLikeSheets(doc, "Usuário") ||
-    getCabecalhoValueLikeSheets(doc, "Operador") ||
-    getCabecalhoValue(doc, "Usuário", textAll) ||
-    getCabecalhoValue(doc, "Operador", textAll);
+    getFromTbCabecalho(doc, "Usuário") ||
+    getFromTbCabecalho(doc, "Operador") ||
+    "";
 
   const dataColeta =
-    getCabecalhoValue(doc, "Dt coleta", textAll) ||
-    findAfter(textAll, "Dt coleta:");
+    getFromTbCabecalho(doc, "Dt coleta") ||
+    getFromTbCabecalho(doc, "Data da Coleta") ||
+    findAfter(textAll, "Dt coleta:") ||
+    findAfter(textAll, "Data da Coleta:");
   const transportadoraDetalhe =
-    getCabecalhoValue(doc, "Transportadora", textAll) ||
+    getFromTbCabecalho(doc, "Transportadora") ||
     findAfter(textAll, "Transportadora:");
 
   // tenta inferir nome “macro” da transportadora (Correios/Loggi/etc)
   let transportadora = "";
+
+  // prioridade total: o valor do cabeçalho (Transportadora: ...)
+  const td = String(transportadoraDetalhe || "").toLowerCase();
+
   if (
-    /correios/i.test(transportadoraDetalhe) ||
-    /pac|sedex/i.test(transportadoraDetalhe)
+    td.includes("retirar") ||
+    td.includes("retirada") ||
+    td.includes("local")
   ) {
-    transportadora = "Correios";
-  } else if (/loggi/i.test(transportadoraDetalhe) || /loggi/i.test(textAll)) {
+    transportadora = "Retirada Local";
+  } else if (td.includes("loggi")) {
     transportadora = "Loggi";
+  } else if (td.includes("correios") || /pac|sedex/i.test(td)) {
+    transportadora = "Correios";
   } else {
-    // fallback: tenta pelo h1 (ex: "Correios" aparece no h1)
+    // fallback final: só se não tiver transportadoraDetalhe
     const h1 = Array.from(doc.querySelectorAll("h1"))
       .map((h) => (h.textContent || "").trim())
       .filter(Boolean)
       .join(" ");
     if (/correios/i.test(h1)) transportadora = "Correios";
     else if (/loggi/i.test(h1)) transportadora = "Loggi";
+    else transportadora = "";
   }
 
   // pega a maior tabela “de itens”

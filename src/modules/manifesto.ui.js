@@ -108,9 +108,11 @@ btnAnalisar.addEventListener("click", async () => {
       }
 
       const parsed = parseRemessaHtml(html);
+
       log(
-        `DEBUG remessa=${parsed.remessaFromTitle || id} usuario="${parsed.usuario || ""}"`,
+        `DEBUG remessa=${parsed.remessaFromTitle || id} usuario="${parsed.usuario}" transpDetalhe="${parsed.transportadoraDetalhe}" macro="${parsed.transportadora}"`,
       );
+
       const operadorDaRemessa = String(parsed.usuario || "").trim();
 
       if (!parsed?.rows?.length) {
