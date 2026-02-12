@@ -161,3 +161,99 @@
     word-break: break-word;
     font: 13px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
+
+/* ===== Fix grid overlap (inputs sobrepostos) ===== */
+.manifesto-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+    gap: 12px;
+    align-items: end;
+}
+
+.manifesto-grid>div {
+    min-width: 0;
+    /* permite o input encolher sem estourar */
+}
+
+.manifesto-input {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+/* ===== Fix actions: não quebrar o grid ===== */
+.manifesto-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    flex-wrap: nowrap;
+    align-items: center;
+    min-width: max-content;
+}
+
+@media (max-width: 720px) {
+    .manifesto-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .manifesto-actions {
+        justify-content: stretch;
+        flex-wrap: wrap;
+        min-width: 0;
+    }
+
+    .manifesto-actions .btn {
+        width: 100%;
+    }
+}
+
+/* ===== Botões: garantir padrão visual dentro do manifesto ===== */
+/* (caso o style.css não esteja aplicando .btn corretamente nessa página) */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    padding: 10px 14px;
+    border-radius: 10px;
+    font-weight: 700;
+    border: 1px solid transparent;
+    cursor: pointer;
+    line-height: 1;
+    white-space: nowrap;
+    font-family: var(--font-default);
+}
+
+.btn-outline-secondary {
+    background: transparent;
+    border-color: #6c757d;
+    color: #6c757d;
+}
+
+.btn-outline-secondary:hover {
+    background: #6c757d;
+    color: #fff;
+}
+
+.btn-success {
+    background: var(--color-success) !important;
+    border-color: var(--color-success) !important;
+    color: #fff !important;
+}
+
+.btn-success:hover {
+    background: var(--color-success-dark) !important;
+    border-color: var(--color-success-dark) !important;
+}
+
+.btn-primary {
+    background: var(--color-primary) !important;
+    border-color: var(--color-primary) !important;
+    color: #fff !important;
+}
+
+.btn-primary:hover {
+    background: var(--color-primary-dark) !important;
+    border-color: var(--color-primary-dark) !important;
+}
