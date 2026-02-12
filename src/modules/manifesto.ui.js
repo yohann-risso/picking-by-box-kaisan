@@ -108,6 +108,7 @@ btnAnalisar.addEventListener("click", async () => {
       }
 
       const parsed = parseRemessaHtml(html);
+      const operadorDaRemessa = String(parsed.usuario || "").trim();
 
       if (!parsed?.rows?.length) {
         log(`⚠️ Sem linhas encontradas em ${id}.`);
@@ -155,9 +156,13 @@ btnAnalisar.addEventListener("click", async () => {
 
       // dedup por pedido (mantém remessa menor)
       for (const row of parsed.rows) {
-        if (!row.operador || row.operador === "—")
-          row.operador = pack.operador || operadorPadrao;
+        // garante remessa na linha
         if (!row.remessa) row.remessa = remessaPadrao;
+
+        // REGRA: operador do cabeçalho replica em todas as linhas da remessa
+        row.operador = operadorDaRemessa;
+
+        // método por remessa (CorreiosPAC/SEDEX etc)
         if (!row.metodo_envio) row.metodo_envio = metodoPadrao;
 
         const pedidoKey = String(row?.pedido || "").trim();
@@ -465,9 +470,6 @@ async function gerarPDFManifestoTransportadora({
     ? `${Math.min(...remessasNum)}–${Math.max(...remessasNum)}`
     : "-";
 
-  const operadorTop =
-    (rows || []).find((r) => String(r.operador || "").trim())?.operador || "—";
-
   doc.text(`Transportadora: ${transportadora}`, pageW - M, headerTop + 10, {
     align: "right",
   });
@@ -500,8 +502,6 @@ async function gerarPDFManifestoTransportadora({
     .trim();
   const enderecoLines = doc.splitTextToSize(enderecoTxt, pageW - M * 2 - 90);
   doc.text(enderecoLines.slice(0, 2), M + 72, infoTop + 16); // no máx 2 linhas
-
-  doc.text(String(operadorTop || "—"), M + 72, infoTop + 36);
 
   // linha divisória horizontal dentro do box (separador)
   doc.setLineWidth(0.4);

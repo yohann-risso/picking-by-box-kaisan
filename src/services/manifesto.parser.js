@@ -26,8 +26,13 @@ export function parseRemessaHtml(html) {
   const remessaFromTitle =
     (textAll.match(/Pedidos da remessa\s*\((\d+)\)/i) || [])[1] || "";
 
-  const endereco = findAfter(textAll, "Endereço:");
-  const usuario = getCabecalhoValue(doc, "Usuário", textAll);
+  const endereco =
+    findAfter(textAll, "Endereço:") ||
+    "RUA RUFINO SIQUEIRA, 1 - CONSELHEIRO PAULINO - NOVA FRIBURGO/RJ - 28635-500";
+  const usuario =
+    getCabecalhoValue(doc, "Usuário", textAll) ||
+    getCabecalhoValue(doc, "Operador", textAll);
+
   const dataColeta =
     getCabecalhoValue(doc, "Dt coleta", textAll) ||
     findAfter(textAll, "Dt coleta:");
@@ -226,50 +231,81 @@ function normalizeLabel(s) {
 function getCabecalhoValue(doc, label, textAllFallback = "") {
   const want = normalizeLabel(label);
 
-  // 1) tenta pela tabela de cabeçalho (mais confiável)
+  const clean = (s) =>
+    String(s || "")
+      .replace(/\s+/g, " ")
+      .trim();
+
+  // 1) Tenta pela tb_cabecalho (mais comum)
   const table = doc.querySelector("table.tb_cabecalho");
   if (table) {
     const tds = Array.from(table.querySelectorAll("td"));
 
     for (let i = 0; i < tds.length; i++) {
-      const raw = (tds[i].textContent || "").replace(/\s+/g, " ").trim();
+      const raw = clean(tds[i].textContent);
       const txt = normalizeLabel(raw);
 
-      // match "usuario" ou "usuario:"
       if (txt.includes(want)) {
-        // (a) caso clássico: label em um td e valor no próximo td
-        const next = (tds[i + 1]?.textContent || "")
-          .replace(/\s+/g, " ")
-          .trim();
+        // valor no próximo td
+        const next = clean(tds[i + 1]?.textContent);
         if (next) return next;
 
-        // (b) caso alternativo: label e valor no MESMO td
-        // ex: "Usuário: Gabriel Lagoa"
-        const cleaned = raw.replace(/^[^:]*:\s*/i, "").trim();
+        // valor no mesmo td (ex: "Usuário: Gabriel")
+        const same = raw.replace(/^[^:]*:\s*/i, "").trim();
+        if (same && normalizeLabel(same) !== want) return same;
+      }
+    }
+  }
+
+  // 2) Busca por <b>/<strong> com "Usuário:" e pega o TD ao lado
+  const bolds = Array.from(doc.querySelectorAll("b,strong"));
+  for (const b of bolds) {
+    const bTxt = normalizeLabel(clean(b.textContent)).replace(/:$/, "");
+    if (!bTxt) continue;
+
+    if (bTxt === want) {
+      const td = b.closest("td");
+      if (td) {
+        const tr = td.closest("tr");
+        if (tr) {
+          const cells = Array.from(tr.querySelectorAll("td"));
+          const idx = cells.indexOf(td);
+          if (idx >= 0) {
+            const next = clean(cells[idx + 1]?.textContent);
+            if (next) return next;
+          }
+        }
+
+        // fallback: pega o texto do próprio td sem o "Usuário:"
+        const tdRaw = clean(td.textContent);
+        const cleaned = tdRaw.replace(/^[^:]*:\s*/i, "").trim();
         if (cleaned && normalizeLabel(cleaned) !== want) return cleaned;
       }
     }
   }
 
-  // 2) fallback: procurar em qualquer TD do documento
+  // 3) Busca por qualquer TD contendo "Usuário:" e tenta extrair
   const allTds = Array.from(doc.querySelectorAll("td"));
   for (let i = 0; i < allTds.length; i++) {
-    const raw = (allTds[i].textContent || "").replace(/\s+/g, " ").trim();
+    const raw = clean(allTds[i].textContent);
     const txt = normalizeLabel(raw);
-    if (txt.startsWith(want + ":") || txt === want) {
-      const next = (allTds[i + 1]?.textContent || "")
-        .replace(/\s+/g, " ")
-        .trim();
-      if (next) return next;
 
+    if (txt.startsWith(want + ":")) {
       const cleaned = raw.replace(/^[^:]*:\s*/i, "").trim();
-      if (cleaned && normalizeLabel(cleaned) !== want) return cleaned;
+      if (cleaned) return cleaned;
+
+      const next = clean(allTds[i + 1]?.textContent);
+      if (next) return next;
     }
   }
 
-  // 3) fallback final: regex no textAll
+  // 4) Regex fallback no texto geral — agora cobrindo variações
   if (textAllFallback) {
-    const m = textAllFallback.match(/Usu[aá]rio:\s*([^\n]+)/i);
+    const m =
+      textAllFallback.match(/Usu[aá]rio:\s*([^\n]+)/i) ||
+      textAllFallback.match(/Operador:\s*([^\n]+)/i) ||
+      textAllFallback.match(/Usu[aá]rio respons[aá]vel:\s*([^\n]+)/i);
+
     if (m && m[1]) return String(m[1]).trim();
   }
 
