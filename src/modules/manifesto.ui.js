@@ -761,6 +761,97 @@ async function gerarPDFManifestoTransportadora({
     { align: "center" },
   );
 
+  // ================= TERCEIRA PÁGINA - RESUMO OPERACIONAL =================
+  doc.addPage();
+
+  if (img) {
+    doc.addImage(img, "PNG", M, headerTop, 90, 28);
+  }
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(14);
+  doc.text("RESUMO OPERACIONAL", pageW / 2, headerTop + 18, {
+    align: "center",
+  });
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.text(`Transportadora: ${transportadora}`, pageW - M, headerTop + 10, {
+    align: "right",
+  });
+  doc.text(`Data: ${dataAtual}`, pageW - M, headerTop + 22, {
+    align: "right",
+  });
+  doc.text(`Remessas: ${remessaRange}`, pageW - M, headerTop + 34, {
+    align: "right",
+  });
+
+  // construir tabela detalhada
+  const resumoOperacionalBody = [];
+
+  for (const [metodo, acc] of resumo.entries()) {
+    resumoOperacionalBody.push([
+      metodo,
+      String(acc.qtd),
+      fmtGramas(acc.peso),
+      fmtBRL(acc.vd),
+    ]);
+  }
+
+  // linha total
+  resumoOperacionalBody.push([
+    "TOTAL",
+    String(totalQtd),
+    fmtGramas(totalPeso),
+    fmtBRL(totalVD),
+  ]);
+
+  doc.autoTable({
+    startY: headerTop + 60,
+    head: [["Método de envio", "Pedidos", "Peso total", "Valor total"]],
+    body: resumoOperacionalBody,
+    theme: "grid",
+    tableWidth: 360,
+    margin: { left: (pageW - 360) / 2 },
+
+    styles: {
+      fontSize: 10,
+      cellPadding: 4,
+      lineWidth: 0.5,
+      lineColor: 0,
+      textColor: 0,
+    },
+
+    headStyles: {
+      fillColor: 0,
+      textColor: 255,
+      fontStyle: "bold",
+    },
+
+    columnStyles: {
+      0: { cellWidth: 150 },
+      1: { cellWidth: 60, halign: "right" },
+      2: { cellWidth: 80, halign: "right" },
+      3: { cellWidth: 90, halign: "right" },
+    },
+  });
+
+  // assinatura final
+  const opSignY = doc.lastAutoTable.finalY + 60;
+
+  doc.line(pageW / 2 - 180, opSignY, pageW / 2 + 180, opSignY);
+
+  doc.setFontSize(10);
+  doc.text("Assinatura", pageW / 2, opSignY + 16, { align: "center" });
+
+  doc.setFontSize(9);
+  doc.text(
+    "OBS: 1a via da unidade de postagem e 2a via do cliente",
+    pageW / 2,
+    opSignY + 34,
+    { align: "center" },
+  );
+
   const filename =
     `manifesto_${transportadora}_${new Date().toISOString().slice(0, 10)}.pdf`
       .replace(/\s+/g, "_")
