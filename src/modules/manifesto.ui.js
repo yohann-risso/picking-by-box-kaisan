@@ -387,6 +387,10 @@ function fmtBRL(n) {
     .replace(/\B(?=(\d{3})+(?!\d))/g, ".")}`;
 }
 
+function fmtDataAtualBR() {
+  return new Date().toLocaleDateString("pt-BR");
+}
+
 function inferMetodo(row, transportadora) {
   if (transportadora === "Correios") {
     const m = String(row.metodo_envio || "").toUpperCase();
@@ -442,80 +446,15 @@ async function gerarPDFManifestoTransportadora({
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
 
-  const M = 36; // margem
+  const M = 36;
   const headerTop = 28;
+  const dataAtual = fmtDataAtualBR();
 
-  // ================= LOGO (canto superior esquerdo) =================
   const logoUrl =
     "https://www.kaisan.com.br/skin/frontend/ultimo/default/images/nova/logo-2020-new.png";
 
   const img = await loadImageBase64(logoUrl);
 
-  // Logo menor e sem invadir header
-  if (img) {
-    doc.addImage(img, "PNG", M, headerTop, 90, 28); // x,y,w,h
-  }
-
-  // ================= TÍTULO CENTRAL =================
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(14);
-  doc.text("MANIFESTO DE COLETA", pageW / 2, headerTop + 18, {
-    align: "center",
-  });
-
-  // ================= META NO CANTO DIREITO =================
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(9);
-
-  const remessasNum = (rows || [])
-    .map((r) => Number(String(r.remessa || "").replace(/[^\d]/g, "")))
-    .filter((n) => Number.isFinite(n) && n > 0);
-
-  const remessaRange = remessasNum.length
-    ? `${Math.min(...remessasNum)}–${Math.max(...remessasNum)}`
-    : "-";
-
-  doc.text(`Transportadora: ${transportadora}`, pageW - M, headerTop + 10, {
-    align: "right",
-  });
-  doc.text(`Data: ${dataColeta || "-"}`, pageW - M, headerTop + 22, {
-    align: "right",
-  });
-  doc.text(`Remessas: ${remessaRange}`, pageW - M, headerTop + 34, {
-    align: "right",
-  });
-
-  // ================= BLOCO INFO (sem sobreposição) =================
-  const infoTop = headerTop + 46;
-  const infoH = 64;
-
-  // caixa
-  doc.setDrawColor(0);
-  doc.setLineWidth(0.8);
-  doc.rect(M, infoTop, pageW - M * 2, infoH);
-
-  // textos dentro
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(9);
-  doc.text("Endereço:", M + 8, infoTop + 16);
-
-  doc.setFont("helvetica", "normal");
-  // endereço pode ser grande -> quebra manual
-  const enderecoTxt = String(endereco || "-")
-    .replace(/\s+/g, " ")
-    .trim();
-  const enderecoLines = doc.splitTextToSize(enderecoTxt, pageW - M * 2 - 90);
-  doc.text(enderecoLines.slice(0, 2), M + 72, infoTop + 16); // no máx 2 linhas
-
-  // linha divisória horizontal dentro do box (separador)
-  doc.setLineWidth(0.4);
-  doc.line(M, infoTop + 46, pageW - M, infoTop + 46);
-
-  // total no rodapé do box
-  doc.setFont("helvetica", "bold");
-  doc.text("TOTAL:", M + 8, infoTop + 60);
-
-  // ================= NORMALIZA LINHAS + TOTAIS =================
   const safeRows = (rows || []).map((r) => {
     const vdNum = parseBRL(r.vd);
     return {
@@ -527,7 +466,7 @@ async function gerarPDFManifestoTransportadora({
       vd: fmtBRL(vdNum),
       metodo: inferMetodo(r, transportadora),
       remessa: r.remessa || "",
-      operador: r.operador || "—",
+      operador: r.operador || "",
     };
   });
 
@@ -552,12 +491,66 @@ async function gerarPDFManifestoTransportadora({
     acc.vd += vd;
   }
 
+  const remessasNum = safeRows
+    .map((r) => Number(String(r.remessa || "").replace(/[^\d]/g, "")))
+    .filter((n) => Number.isFinite(n) && n > 0);
+
+  const remessaRange = remessasNum.length
+    ? `${Math.min(...remessasNum)}–${Math.max(...remessasNum)}`
+    : "-";
+
+  // ================= PÁGINA 1 =================
+  if (img) {
+    doc.addImage(img, "PNG", M, headerTop, 90, 28);
+  }
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(14);
+  doc.text("MANIFESTO DE COLETA", pageW / 2, headerTop + 18, {
+    align: "center",
+  });
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.text(`Transportadora: ${transportadora}`, pageW - M, headerTop + 10, {
+    align: "right",
+  });
+  doc.text(`Data: ${dataAtual}`, pageW - M, headerTop + 22, {
+    align: "right",
+  });
+  doc.text(`Remessas: ${remessaRange}`, pageW - M, headerTop + 34, {
+    align: "right",
+  });
+
+  const infoTop = headerTop + 46;
+  const infoH = 64;
+
+  doc.setDrawColor(0);
+  doc.setLineWidth(0.8);
+  doc.rect(M, infoTop, pageW - M * 2, infoH);
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9);
+  doc.text("Endereço:", M + 8, infoTop + 16);
+
+  doc.setFont("helvetica", "normal");
+  const enderecoTxt = String(endereco || "-")
+    .replace(/\s+/g, " ")
+    .trim();
+  const enderecoLines = doc.splitTextToSize(enderecoTxt, pageW - M * 2 - 90);
+  doc.text(enderecoLines.slice(0, 2), M + 72, infoTop + 16);
+
+  doc.setLineWidth(0.4);
+  doc.line(M, infoTop + 46, pageW - M, infoTop + 46);
+
+  doc.setFont("helvetica", "bold");
+  doc.text("TOTAL:", M + 8, infoTop + 60);
+
   doc.setFont("helvetica", "normal");
   doc.text(`${totalQtd} objetos`, M + 56, infoTop + 60);
   doc.text(`${fmtGramas(totalPeso)}`, M + 140, infoTop + 60);
   doc.text(`${fmtBRL(totalVD)}`, M + 240, infoTop + 60);
 
-  // ================= TABELA PRINCIPAL (P&B PRO) =================
   const body = safeRows.map((r) => [
     ellipsize(r.destinatario, 28),
     r.cep,
@@ -588,45 +581,39 @@ async function gerarPDFManifestoTransportadora({
       ],
     ],
     body,
-
     theme: "grid",
     margin: { left: M, right: M },
     tableWidth: "auto",
-
     styles: {
       fontSize: 6.6,
       cellPadding: 1.6,
       overflow: "ellipsize",
       valign: "middle",
       lineWidth: 0.4,
-      lineColor: 0, // preto
-      textColor: 0, // preto
+      lineColor: 0,
+      textColor: 0,
     },
-
     headStyles: {
-      fillColor: 0, // preto
-      textColor: 255, // branco
+      fillColor: 0,
+      textColor: 255,
       fontStyle: "bold",
       lineWidth: 0.6,
       lineColor: 0,
     },
-
     columnStyles: {
-      0: { cellWidth: 112 }, // Dest
-      1: { cellWidth: 50 }, // CEP
-      2: { cellWidth: 92 }, // Rastreio
-      3: { cellWidth: "wrap", halign: "right" }, // Peso
-      4: { cellWidth: 66 }, // Pedido
-      5: { cellWidth: 54, halign: "right" }, // VD um pouco maior
-      6: { cellWidth: 40 }, // Método
-      7: { cellWidth: 34 }, // Rem.
-      8: { cellWidth: 58 }, // Op.
+      0: { cellWidth: 112 },
+      1: { cellWidth: 50 },
+      2: { cellWidth: 92 },
+      3: { cellWidth: "wrap", halign: "right" },
+      4: { cellWidth: 66 },
+      5: { cellWidth: 54, halign: "right" },
+      6: { cellWidth: 40 },
+      7: { cellWidth: 34 },
+      8: { cellWidth: 58 },
     },
-
     didDrawPage: () => {
       const pageCount = doc.internal.getNumberOfPages();
       const pageNumber = doc.internal.getCurrentPageInfo().pageNumber;
-
       doc.setFont("helvetica", "normal");
       doc.setFontSize(8);
       doc.text(`Página ${pageNumber} / ${pageCount}`, pageW - M, pageH - 16, {
@@ -635,64 +622,7 @@ async function gerarPDFManifestoTransportadora({
     },
   });
 
-  // ================= RESUMO (P&B, central) =================
-  let endY = doc.lastAutoTable.finalY + 18;
-
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(10);
-  doc.text("RESUMO DE COLETA", pageW / 2, endY, { align: "center" });
-
-  const resumoBody = [];
-  for (const [metodo, acc] of resumo.entries()) {
-    resumoBody.push([
-      metodo,
-      String(acc.qtd),
-      fmtGramas(acc.peso),
-      fmtBRL(acc.vd),
-    ]);
-  }
-  resumoBody.push([
-    "TOTAL",
-    String(totalQtd),
-    fmtGramas(totalPeso),
-    fmtBRL(totalVD),
-  ]);
-
-  doc.autoTable({
-    startY: endY + 10,
-    head: [["Método", "Qtd", "Peso", "V.D."]],
-    body: resumoBody,
-
-    theme: "grid",
-    tableWidth: 340,
-    margin: { left: (pageW - 340) / 2 },
-
-    styles: {
-      fontSize: 8,
-      cellPadding: 3,
-      lineWidth: 0.5,
-      lineColor: 0,
-      textColor: 0,
-    },
-
-    headStyles: {
-      fillColor: 0,
-      textColor: 255,
-      fontStyle: "bold",
-      lineWidth: 0.6,
-      lineColor: 0,
-    },
-
-    columnStyles: {
-      0: { cellWidth: 110 },
-      1: { cellWidth: 50, halign: "right" },
-      2: { cellWidth: 80, halign: "right" },
-      3: { cellWidth: 100, halign: "right" },
-    },
-  });
-
-  // ================= ASSINATURA (sempre no final da página, sem colidir) =================
-  // Se o resumo ficou muito embaixo, joga pra próxima página
+  // assinatura na página principal
   const minSpaceForSign = 90;
   let signY = doc.lastAutoTable.finalY + 40;
 
@@ -714,6 +644,120 @@ async function gerarPDFManifestoTransportadora({
     "OBS: 1a via da unidade de postagem e 2a via do cliente",
     pageW / 2,
     signY + 34,
+    { align: "center" },
+  );
+
+  // ================= PÁGINA FINAL - RESUMO =================
+  doc.addPage();
+
+  if (img) {
+    doc.addImage(img, "PNG", M, headerTop, 90, 28);
+  }
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(14);
+  doc.text("RESUMO DE COLETA", pageW / 2, headerTop + 18, {
+    align: "center",
+  });
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.text(`Transportadora: ${transportadora}`, pageW - M, headerTop + 10, {
+    align: "right",
+  });
+  doc.text(`Data: ${dataAtual}`, pageW - M, headerTop + 22, {
+    align: "right",
+  });
+  doc.text(`Remessas: ${remessaRange}`, pageW - M, headerTop + 34, {
+    align: "right",
+  });
+
+  doc.setDrawColor(0);
+  doc.setLineWidth(0.8);
+  doc.rect(M, infoTop, pageW - M * 2, 52);
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9);
+  doc.text("Endereço:", M + 8, infoTop + 16);
+  doc.text("Resumo geral:", M + 8, infoTop + 36);
+
+  doc.setFont("helvetica", "normal");
+  doc.text(enderecoLines.slice(0, 1), M + 72, infoTop + 16);
+  doc.text(
+    `${totalQtd} objetos   •   ${fmtGramas(totalPeso)}   •   ${fmtBRL(totalVD)}`,
+    M + 72,
+    infoTop + 36,
+  );
+
+  const resumoBody = [];
+  for (const [metodo, acc] of resumo.entries()) {
+    resumoBody.push([
+      metodo,
+      String(acc.qtd),
+      fmtGramas(acc.peso),
+      fmtBRL(acc.vd),
+    ]);
+  }
+
+  resumoBody.push([
+    "TOTAL",
+    String(totalQtd),
+    fmtGramas(totalPeso),
+    fmtBRL(totalVD),
+  ]);
+
+  doc.autoTable({
+    startY: infoTop + 70,
+    head: [["Método", "Qtd", "Peso", "V.D."]],
+    body: resumoBody,
+    theme: "grid",
+    tableWidth: 340,
+    margin: { left: (pageW - 340) / 2 },
+    styles: {
+      fontSize: 9,
+      cellPadding: 4,
+      lineWidth: 0.5,
+      lineColor: 0,
+      textColor: 0,
+    },
+    headStyles: {
+      fillColor: 0,
+      textColor: 255,
+      fontStyle: "bold",
+      lineWidth: 0.6,
+      lineColor: 0,
+    },
+    columnStyles: {
+      0: { cellWidth: 110 },
+      1: { cellWidth: 50, halign: "right" },
+      2: { cellWidth: 80, halign: "right" },
+      3: { cellWidth: 100, halign: "right" },
+    },
+    didDrawPage: () => {
+      const pageCount = doc.internal.getNumberOfPages();
+      const pageNumber = doc.internal.getCurrentPageInfo().pageNumber;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.text(`Página ${pageNumber} / ${pageCount}`, pageW - M, pageH - 16, {
+        align: "right",
+      });
+    },
+  });
+
+  const resumoSignY = doc.lastAutoTable.finalY + 50;
+  doc.setDrawColor(0);
+  doc.setLineWidth(0.8);
+  doc.line(pageW / 2 - 180, resumoSignY, pageW / 2 + 180, resumoSignY);
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.text("Assinatura", pageW / 2, resumoSignY + 16, { align: "center" });
+
+  doc.setFontSize(9);
+  doc.text(
+    "OBS: 1a via da unidade de postagem e 2a via do cliente",
+    pageW / 2,
+    resumoSignY + 34,
     { align: "center" },
   );
 
