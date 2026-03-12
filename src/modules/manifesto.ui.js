@@ -622,31 +622,6 @@ async function gerarPDFManifestoTransportadora({
     },
   });
 
-  // assinatura na página principal
-  const minSpaceForSign = 90;
-  let signY = doc.lastAutoTable.finalY + 40;
-
-  if (signY > pageH - minSpaceForSign) {
-    doc.addPage();
-    signY = 120;
-  }
-
-  doc.setDrawColor(0);
-  doc.setLineWidth(0.8);
-  doc.line(pageW / 2 - 180, signY, pageW / 2 + 180, signY);
-
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(10);
-  doc.text("Assinatura", pageW / 2, signY + 16, { align: "center" });
-
-  doc.setFontSize(9);
-  doc.text(
-    "OBS: 1a via da unidade de postagem e 2a via do cliente",
-    pageW / 2,
-    signY + 34,
-    { align: "center" },
-  );
-
   // ================= PÁGINA FINAL - RESUMO =================
   doc.addPage();
 
