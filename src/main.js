@@ -416,7 +416,7 @@ async function gerarPdfResumoBlob() {
   const { jsPDF } = window.jspdf;
 
   const doc = new jsPDF({
-    orientation: "landscape",
+    orientation: "portrait",
     unit: "mm",
     format: "a4",
   });
@@ -486,10 +486,11 @@ async function gerarPdfResumoBlob() {
     head: [["Pedido", "Qtd.", "Status", "", "Pedido", "Qtd.", "Status"]],
     body: bodyBoxes,
     theme: "grid",
-    styles: { fontSize: 8, halign: "center" },
+    styles: { fontSize: 7 },
     headStyles: { fillColor: [0, 0, 0] },
+    tableWidth: "auto",
     columnStyles: {
-      3: { cellWidth: 6, fillColor: [255, 255, 255], lineWidth: 0 },
+      3: { cellWidth: 4 },
     },
   });
 
@@ -524,97 +525,10 @@ async function gerarPdfResumoBlob() {
 
   doc.autoTable({
     startY: 20,
-    head: [
-      [
-        "Pedido",
-        "Cliente",
-        "Desc. Produto",
-        "SKU",
-        "Qtde.",
-        "Completo",
-        "Finalizando",
-      ],
-    ],
-    body: bodyNL.length ? bodyNL : [["-", "-", "-", "-", "-", "-", "-"]],
-    theme: "grid",
-    styles: { fontSize: 8 },
-    headStyles: { fillColor: [0, 0, 0] },
-  });
-
-  // =========================
-  // PÁGINA 3 - CRONÔMETRO
-  // =========================
-  doc.addPage();
-
-  function converterSegundosParaString(totalSegundos) {
-    const horas = Math.floor(totalSegundos / 3600);
-    const minutos = Math.floor((totalSegundos % 3600) / 60);
-    const segundos = totalSegundos % 60;
-    const pad2 = (n) => String(n).padStart(2, "0");
-    return `${pad2(horas)}:${pad2(minutos)}:${pad2(segundos)}`;
-  }
-
-  function calcularTempoTotalCronometro(listaResumo) {
-    if (!Array.isArray(listaResumo)) return 0;
-    return listaResumo.reduce((acc, etapa) => {
-      if (!etapa.tempo) return acc;
-      const partes = etapa.tempo.split(":").map(Number);
-      if (partes.length !== 3) return acc;
-      const [h, m, s] = partes;
-      return acc + (h * 3600 + m * 60 + s);
-    }, 0);
-  }
-
-  const tempoRealSegundos = calcularTempoTotalCronometro(window.resumo || []);
-  const tempoReal = converterSegundosParaString(tempoRealSegundos);
-
-  const tempo80Map = { "003": 2.42, "005": 13.376, "006": 17.778 };
-  const idealSegundos =
-    tempo80Map["003"] * (window.pecas || 0) +
-    tempo80Map["005"] * (window.pedidos || 0) +
-    tempo80Map["006"] * (window.pedidos || 0);
-  const tempoIdeal = converterSegundosParaString(Math.round(idealSegundos));
-
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(16);
-  doc.text("Resumo do Cronômetro", 14, 14);
-
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(10);
-  doc.text(`Operador: ${operadorLogado}`, 14, 22);
-  doc.text(`Romaneio: ${romaneioAtivo}`, 14, 27);
-  doc.text(`Data: ${dataHoraAtual}`, 14, 32);
-  doc.text(`Pedidos: ${window.pedidos || "-"}`, 14, 37);
-  doc.text(`Peças: ${window.pecas || "-"}`, 14, 42);
-  doc.text(`Tempo Ideal Total: ${tempoIdeal}`, 14, 47);
-  doc.text(`Tempo Real Total: ${tempoReal}`, 14, 52);
-
-  const bodyCronometro = [];
-  document.querySelectorAll("#tbodyTempoIdeal tr").forEach((tr) => {
-    const tds = tr.querySelectorAll("td");
-    if (tds.length >= 6) {
-      bodyCronometro.push([
-        tds[0].textContent || "",
-        tds[1].textContent || "",
-        tds[2].textContent || "",
-        tds[3].textContent || "",
-        tds[4].textContent || "",
-        tds[5].textContent || "",
-      ]);
-    }
-  });
-
-  doc.autoTable({
-    startY: 58,
-    head: [
-      ["Etapa", "Tempo Ideal", "Início", "Fim", "Executado", "Eficiência"],
-    ],
-    body: bodyCronometro.length
-      ? bodyCronometro
-      : [["-", "-", "-", "-", "-", "-"]],
-    theme: "grid",
-    styles: { fontSize: 8, halign: "center" },
-    headStyles: { fillColor: [0, 0, 0] },
+    head: [["Pedido", "Cliente", "Desc.", "SKU", "Qtd", "Compl.", "Final"]],
+    body: bodyNL,
+    styles: { fontSize: 7 },
+    tableWidth: "auto",
   });
 
   const blob = doc.output("blob");
