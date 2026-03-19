@@ -413,6 +413,14 @@ async function salvarPdfNoDrive() {
 }
 
 async function gerarPdfResumoBlob() {
+  const { jsPDF } = window.jspdf;
+
+  const doc = new jsPDF({
+    orientation: "landscape",
+    unit: "mm",
+    format: "a4",
+  });
+
   const operadorLogado =
     operador2 && operador2.length
       ? `${operador1} e ${operador2}`
@@ -421,11 +429,26 @@ async function gerarPdfResumoBlob() {
   const romaneioAtivo = romaneio || "Não informado";
   const dataHoraAtual = new Date().toLocaleString("pt-BR");
 
+  const nomeArquivo = montarNomePdfRomaneio();
+
+  // =========================
+  // PÁGINA 1 - RESUMO DE BOXES
+  // =========================
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(16);
+  doc.text("Resumo de Boxes", 14, 14);
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.text(`Operador: ${operadorLogado}`, 14, 22);
+  doc.text(`Romaneio: ${romaneioAtivo}`, 14, 27);
+  doc.text(`Data: ${dataHoraAtual}`, 14, 32);
+
   const boxList = Object.entries(caixas)
     .filter(([_, info]) => info?.box && info.total > 0)
     .map(([pedido, info]) => ({
-      box: info.box,
       pedido,
+      box: info.box,
       bipado: info.bipado ?? 0,
       total: info.total ?? 0,
       status: info.pesado
@@ -435,30 +458,49 @@ async function gerarPdfResumoBlob() {
         : info.bipado >= info.total
           ? "Completo"
           : "Incompleto",
-    }));
-
-  const ordenados = boxList
+    }))
     .sort((a, b) => Number(a.box) - Number(b.box))
     .slice(0, 50);
 
-  const colEsq = ordenados.slice(0, 25);
-  const colDir = ordenados.slice(25, 50);
+  const colEsq = boxList.slice(0, 25);
+  const colDir = boxList.slice(25, 50);
 
-  let boxRows = "";
+  const bodyBoxes = [];
   for (let i = 0; i < 25; i++) {
     const b1 = colEsq[i];
     const b2 = colDir[i];
 
-    const col1 = b1
-      ? `<td><strong>${b1.pedido}</strong></td><td><strong>${b1.bipado}/${b1.total}</strong></td><td>${b1.status}</td>`
-      : "<td></td><td></td><td></td>";
-
-    const col2 = b2
-      ? `<td><strong>${b2.pedido}</strong></td><td><strong>${b2.bipado}/${b2.total}</strong></td><td>${b2.status}</td>`
-      : "<td></td><td></td><td></td>";
-
-    boxRows += `<tr>${col1}<td class="spacer"></td>${col2}</tr>`;
+    bodyBoxes.push([
+      b1 ? b1.pedido : "",
+      b1 ? `${b1.bipado}/${b1.total}` : "",
+      b1 ? b1.status : "",
+      "",
+      b2 ? b2.pedido : "",
+      b2 ? `${b2.bipado}/${b2.total}` : "",
+      b2 ? b2.status : "",
+    ]);
   }
+
+  doc.autoTable({
+    startY: 38,
+    head: [["Pedido", "Qtd.", "Status", "", "Pedido", "Qtd.", "Status"]],
+    body: bodyBoxes,
+    theme: "grid",
+    styles: { fontSize: 8, halign: "center" },
+    headStyles: { fillColor: [0, 0, 0] },
+    columnStyles: {
+      3: { cellWidth: 6, fillColor: [255, 255, 255], lineWidth: 0 },
+    },
+  });
+
+  // =========================
+  // PÁGINA 2 - RELATÓRIO NL
+  // =========================
+  doc.addPage();
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(16);
+  doc.text("Relatório de NL", 14, 14);
 
   const { data: pedidosData } = await supabase
     .from("pedidos")
@@ -466,28 +508,43 @@ async function gerarPdfResumoBlob() {
     .eq("romaneio", romaneio);
 
   const clienteMap = {};
-  pedidosData?.forEach((p) => {
+  (pedidosData || []).forEach((p) => {
     clienteMap[p.id] = p.cliente || "-";
   });
 
-  const pedidosMap = {};
-  pendentes.forEach((p) => {
-    const cliente = clienteMap[p.pedido] || "-";
-    const linha = `
-      <tr>
-        <td>${p.pedido}</td>
-        <td>${cliente}</td>
-        <td>${p.descricao || "-"}</td>
-        <td>${p.sku}</td>
-        <td>${p.qtd}</td>
-        <td></td>
-        <td></td>
-      </tr>`;
-    if (!pedidosMap[p.pedido]) pedidosMap[p.pedido] = [];
-    pedidosMap[p.pedido].push(linha);
+  const bodyNL = pendentes.map((p) => [
+    p.pedido || "",
+    clienteMap[p.pedido] || "-",
+    p.descricao || "-",
+    p.sku || "-",
+    p.qtd || 0,
+    "",
+    "",
+  ]);
+
+  doc.autoTable({
+    startY: 20,
+    head: [
+      [
+        "Pedido",
+        "Cliente",
+        "Desc. Produto",
+        "SKU",
+        "Qtde.",
+        "Completo",
+        "Finalizando",
+      ],
+    ],
+    body: bodyNL.length ? bodyNL : [["-", "-", "-", "-", "-", "-", "-"]],
+    theme: "grid",
+    styles: { fontSize: 8 },
+    headStyles: { fillColor: [0, 0, 0] },
   });
 
-  const linhasNL = Object.values(pedidosMap).flat().join("");
+  // =========================
+  // PÁGINA 3 - CRONÔMETRO
+  // =========================
+  doc.addPage();
 
   function converterSegundosParaString(totalSegundos) {
     const horas = Math.floor(totalSegundos / 3600);
@@ -497,9 +554,9 @@ async function gerarPdfResumoBlob() {
     return `${pad2(horas)}:${pad2(minutos)}:${pad2(segundos)}`;
   }
 
-  function calcularTempoTotalCronometro(resumo) {
-    if (!Array.isArray(resumo)) return 0;
-    return resumo.reduce((acc, etapa) => {
+  function calcularTempoTotalCronometro(listaResumo) {
+    if (!Array.isArray(listaResumo)) return 0;
+    return listaResumo.reduce((acc, etapa) => {
       if (!etapa.tempo) return acc;
       const partes = etapa.tempo.split(":").map(Number);
       if (partes.length !== 3) return acc;
@@ -516,150 +573,55 @@ async function gerarPdfResumoBlob() {
     tempo80Map["003"] * (window.pecas || 0) +
     tempo80Map["005"] * (window.pedidos || 0) +
     tempo80Map["006"] * (window.pedidos || 0);
-
   const tempoIdeal = converterSegundosParaString(Math.round(idealSegundos));
 
-  let cronometroRows = "";
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(16);
+  doc.text("Resumo do Cronômetro", 14, 14);
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.text(`Operador: ${operadorLogado}`, 14, 22);
+  doc.text(`Romaneio: ${romaneioAtivo}`, 14, 27);
+  doc.text(`Data: ${dataHoraAtual}`, 14, 32);
+  doc.text(`Pedidos: ${window.pedidos || "-"}`, 14, 37);
+  doc.text(`Peças: ${window.pecas || "-"}`, 14, 42);
+  doc.text(`Tempo Ideal Total: ${tempoIdeal}`, 14, 47);
+  doc.text(`Tempo Real Total: ${tempoReal}`, 14, 52);
+
+  const bodyCronometro = [];
   document.querySelectorAll("#tbodyTempoIdeal tr").forEach((tr) => {
     const tds = tr.querySelectorAll("td");
     if (tds.length >= 6) {
-      cronometroRows += `
-        <tr>
-          <td>${tds[0].textContent}</td>
-          <td>${tds[1].textContent}</td>
-          <td>${tds[2].textContent}</td>
-          <td>${tds[3].textContent}</td>
-          <td>${tds[4].textContent}</td>
-          <td>${tds[5].textContent}</td>
-        </tr>
-      `;
+      bodyCronometro.push([
+        tds[0].textContent || "",
+        tds[1].textContent || "",
+        tds[2].textContent || "",
+        tds[3].textContent || "",
+        tds[4].textContent || "",
+        tds[5].textContent || "",
+      ]);
     }
   });
 
-  const wrapper = document.createElement("div");
-  wrapper.style.width = "1120px";
-  wrapper.style.padding = "20px";
-  wrapper.style.background = "#fff";
-  wrapper.style.color = "#000";
-  wrapper.style.position = "fixed";
-  wrapper.style.left = "0";
-  wrapper.style.top = "0";
-  wrapper.style.zIndex = "-1";
-  wrapper.style.opacity = "1";
-  wrapper.style.pointerEvents = "none";
-  wrapper.style.overflow = "visible";
+  doc.autoTable({
+    startY: 58,
+    head: [
+      ["Etapa", "Tempo Ideal", "Início", "Fim", "Executado", "Eficiência"],
+    ],
+    body: bodyCronometro.length
+      ? bodyCronometro
+      : [["-", "-", "-", "-", "-", "-"]],
+    theme: "grid",
+    styles: { fontSize: 8, halign: "center" },
+    headStyles: { fillColor: [0, 0, 0] },
+  });
 
-  wrapper.innerHTML = `
-    <style>
-      .pdf-root { font-family: Arial, sans-serif; }
-      .pdf-root h2 { margin-bottom: 10px; }
-      .pdf-root .info { margin-bottom: 16px; }
-      .pdf-root table { width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 16px; }
-      .pdf-root th, .pdf-root td { border: 1px solid #ccc; padding: 6px; text-align: center; }
-      .pdf-root th { background-color: #000; color: white; font-weight: bold; }
-      .pdf-root td.spacer { border: none; width: 24px; }
-      .page-break { page-break-before: always; break-before: page; }
-    </style>
-
-    <div class="pdf-root">
-      <h2>Resumo de Boxes</h2>
-      <div class="info">
-        <strong>Operador:</strong> ${operadorLogado}<br/>
-        <strong>Romaneio:</strong> ${romaneioAtivo}<br/>
-        <strong>Data:</strong> ${dataHoraAtual}
-      </div>
-
-      <table>
-        <thead>
-          <tr>
-            <th>Pedido</th><th>Qtd.</th><th>Status</th>
-            <td class="spacer"></td>
-            <th>Pedido</th><th>Qtd.</th><th>Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${boxRows}
-        </tbody>
-      </table>
-
-      <div class="page-break"></div>
-
-      <h2>Relatório de NL</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Pedido</th>
-            <th>Cliente</th>
-            <th>Desc. Produto</th>
-            <th>SKU</th>
-            <th>Qtde.</th>
-            <th>Completo</th>
-            <th>Finalizando</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${linhasNL}
-        </tbody>
-      </table>
-
-      <div class="page-break"></div>
-
-      <h2>Resumo do Cronômetro</h2>
-      <div class="info">
-        <strong>Operador:</strong> ${operadorLogado}<br/>
-        <strong>Romaneio:</strong> ${romaneioAtivo}<br/>
-        <strong>Data:</strong> ${dataHoraAtual}<br/>
-        <strong>Pedidos:</strong> ${window.pedidos || "-"}<br/>
-        <strong>Peças:</strong> ${window.pecas || "-"}<br/>
-        <strong>Tempo Ideal Total:</strong> ${tempoIdeal}<br/>
-        <strong>Tempo Real Total:</strong> ${tempoReal}<br/>
-      </div>
-
-      <table>
-        <thead>
-          <tr>
-            <th>Etapa</th>
-            <th>Tempo Ideal</th>
-            <th>Início</th>
-            <th>Fim</th>
-            <th>Executado</th>
-            <th>Eficiência</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${cronometroRows}
-        </tbody>
-      </table>
-    </div>
-  `;
-
-  document.body.appendChild(wrapper);
-
-  await new Promise((resolve) => requestAnimationFrame(resolve));
-  await new Promise((resolve) => setTimeout(resolve, 150));
-
-  const opt = {
-    margin: 5,
-    filename: montarNomePdfRomaneio(),
-    image: { type: "jpeg", quality: 0.98 },
-    html2canvas: { scale: 2, useCORS: true, backgroundColor: "#ffffff" },
-    jsPDF: { unit: "mm", format: "a4", orientation: "landscape" },
-    pagebreak: { mode: ["css", "legacy"] },
-  };
-
-  const pdfBlob = await window
-    .html2pdf()
-    .set(opt)
-    .from(wrapper)
-    .toPdf()
-    .get("pdf")
-    .then((pdf) => pdf.output("blob"));
-
-  document.body.removeChild(wrapper);
+  const blob = doc.output("blob");
 
   return {
-    blob: pdfBlob,
-    filename: montarNomePdfRomaneio(),
+    blob,
+    filename: nomeArquivo,
   };
 }
 
