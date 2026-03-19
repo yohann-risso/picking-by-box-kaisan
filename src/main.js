@@ -541,9 +541,13 @@ async function gerarPdfResumoBlob() {
   wrapper.style.padding = "20px";
   wrapper.style.background = "#fff";
   wrapper.style.color = "#000";
-  wrapper.style.position = "absolute";
-  wrapper.style.left = "-99999px";
+  wrapper.style.position = "fixed";
+  wrapper.style.left = "0";
   wrapper.style.top = "0";
+  wrapper.style.zIndex = "-1";
+  wrapper.style.opacity = "1";
+  wrapper.style.pointerEvents = "none";
+  wrapper.style.overflow = "visible";
 
   wrapper.innerHTML = `
     <style>
@@ -631,6 +635,9 @@ async function gerarPdfResumoBlob() {
 
   document.body.appendChild(wrapper);
 
+  await new Promise((resolve) => requestAnimationFrame(resolve));
+  await new Promise((resolve) => setTimeout(resolve, 150));
+
   const opt = {
     margin: 5,
     filename: montarNomePdfRomaneio(),
@@ -640,8 +647,13 @@ async function gerarPdfResumoBlob() {
     pagebreak: { mode: ["css", "legacy"] },
   };
 
-  const worker = window.html2pdf().set(opt).from(wrapper);
-  const pdfBlob = await worker.outputPdf("blob");
+  const pdfBlob = await window
+    .html2pdf()
+    .set(opt)
+    .from(wrapper)
+    .toPdf()
+    .get("pdf")
+    .then((pdf) => pdf.output("blob"));
 
   document.body.removeChild(wrapper);
 
