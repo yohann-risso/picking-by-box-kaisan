@@ -5374,5 +5374,5 @@ function montarNomePdfRomaneio() {
 
   partes.push(gerarTimestampNomeArquivo());
 
-  return `${partes.map(sanitizarNomeArquivo).filter(Boolean).join("_")}.pdf`;
+  return `ROMANEIO_${partes.map(sanitizarNomeArquivo).filter(Boolean).join("_")}.pdf`;
 }
