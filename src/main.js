@@ -330,6 +330,327 @@ function nowInBrazilISO() {
   );
 }
 
+function perguntarSalvarNoDrive() {
+  return new Promise((resolve) => {
+    const modalEl = document.getElementById("modalSalvarDrive");
+    const modal = new bootstrap.Modal(modalEl);
+
+    const btnSim = document.getElementById("btnSimSalvarDrive");
+    const btnNao = document.getElementById("btnNaoSalvarDrive");
+
+    let resolvido = false;
+
+    const limpar = () => {
+      btnSim.onclick = null;
+      btnNao.onclick = null;
+      modalEl.removeEventListener("hidden.bs.modal", onHidden);
+    };
+
+    const finalizar = (valor) => {
+      if (resolvido) return;
+      resolvido = true;
+      limpar();
+      resolve(valor);
+    };
+
+    const onHidden = () => {
+      finalizar(false);
+    };
+
+    btnSim.onclick = () => {
+      finalizar(true);
+      modal.hide();
+    };
+
+    btnNao.onclick = () => {
+      finalizar(false);
+      modal.hide();
+    };
+
+    modalEl.addEventListener("hidden.bs.modal", onHidden);
+    modal.show();
+  });
+}
+
+function blobToBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64 = reader.result.split(",")[1];
+      resolve(base64);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function salvarPdfNoDrive() {
+  const { blob, filename } = await gerarPdfResumoBlob();
+  const base64 = await blobToBase64(blob);
+
+  const response = await fetch("/api/salvar-pdf-drive", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      filename,
+      base64,
+      romaneio,
+      operador1,
+      operador2: operador2 || null,
+      mimeType: "application/pdf",
+    }),
+  });
+
+  const json = await response.json();
+
+  if (!response.ok || json?.status !== "ok") {
+    throw new Error(json?.message || "Falha ao salvar PDF no Drive.");
+  }
+
+  return json;
+}
+
+async function gerarPdfResumoBlob() {
+  const operadorLogado =
+    operador2 && operador2.length
+      ? `${operador1} e ${operador2}`
+      : operador1 || "Desconhecido";
+
+  const romaneioAtivo = romaneio || "Não informado";
+  const dataHoraAtual = new Date().toLocaleString("pt-BR");
+
+  const boxList = Object.entries(caixas)
+    .filter(([_, info]) => info?.box && info.total > 0)
+    .map(([pedido, info]) => ({
+      box: info.box,
+      pedido,
+      bipado: info.bipado ?? 0,
+      total: info.total ?? 0,
+      status: info.pesado
+        ? info.bipado < info.total
+          ? "Pesado Incompleto"
+          : "Pesado"
+        : info.bipado >= info.total
+          ? "Completo"
+          : "Incompleto",
+    }));
+
+  const ordenados = boxList
+    .sort((a, b) => Number(a.box) - Number(b.box))
+    .slice(0, 50);
+
+  const colEsq = ordenados.slice(0, 25);
+  const colDir = ordenados.slice(25, 50);
+
+  let boxRows = "";
+  for (let i = 0; i < 25; i++) {
+    const b1 = colEsq[i];
+    const b2 = colDir[i];
+
+    const col1 = b1
+      ? `<td><strong>${b1.pedido}</strong></td><td><strong>${b1.bipado}/${b1.total}</strong></td><td>${b1.status}</td>`
+      : "<td></td><td></td><td></td>";
+
+    const col2 = b2
+      ? `<td><strong>${b2.pedido}</strong></td><td><strong>${b2.bipado}/${b2.total}</strong></td><td>${b2.status}</td>`
+      : "<td></td><td></td><td></td>";
+
+    boxRows += `<tr>${col1}<td class="spacer"></td>${col2}</tr>`;
+  }
+
+  const { data: pedidosData } = await supabase
+    .from("pedidos")
+    .select("id, cliente")
+    .eq("romaneio", romaneio);
+
+  const clienteMap = {};
+  pedidosData?.forEach((p) => {
+    clienteMap[p.id] = p.cliente || "-";
+  });
+
+  const pedidosMap = {};
+  pendentes.forEach((p) => {
+    const cliente = clienteMap[p.pedido] || "-";
+    const linha = `
+      <tr>
+        <td>${p.pedido}</td>
+        <td>${cliente}</td>
+        <td>${p.descricao || "-"}</td>
+        <td>${p.sku}</td>
+        <td>${p.qtd}</td>
+        <td></td>
+        <td></td>
+      </tr>`;
+    if (!pedidosMap[p.pedido]) pedidosMap[p.pedido] = [];
+    pedidosMap[p.pedido].push(linha);
+  });
+
+  const linhasNL = Object.values(pedidosMap).flat().join("");
+
+  function converterSegundosParaString(totalSegundos) {
+    const horas = Math.floor(totalSegundos / 3600);
+    const minutos = Math.floor((totalSegundos % 3600) / 60);
+    const segundos = totalSegundos % 60;
+    const pad2 = (n) => String(n).padStart(2, "0");
+    return `${pad2(horas)}:${pad2(minutos)}:${pad2(segundos)}`;
+  }
+
+  function calcularTempoTotalCronometro(resumo) {
+    if (!Array.isArray(resumo)) return 0;
+    return resumo.reduce((acc, etapa) => {
+      if (!etapa.tempo) return acc;
+      const partes = etapa.tempo.split(":").map(Number);
+      if (partes.length !== 3) return acc;
+      const [h, m, s] = partes;
+      return acc + (h * 3600 + m * 60 + s);
+    }, 0);
+  }
+
+  const tempoRealSegundos = calcularTempoTotalCronometro(window.resumo || []);
+  const tempoReal = converterSegundosParaString(tempoRealSegundos);
+
+  const tempo80Map = { "003": 2.42, "005": 13.376, "006": 17.778 };
+  const idealSegundos =
+    tempo80Map["003"] * (window.pecas || 0) +
+    tempo80Map["005"] * (window.pedidos || 0) +
+    tempo80Map["006"] * (window.pedidos || 0);
+
+  const tempoIdeal = converterSegundosParaString(Math.round(idealSegundos));
+
+  let cronometroRows = "";
+  document.querySelectorAll("#tbodyTempoIdeal tr").forEach((tr) => {
+    const tds = tr.querySelectorAll("td");
+    if (tds.length >= 6) {
+      cronometroRows += `
+        <tr>
+          <td>${tds[0].textContent}</td>
+          <td>${tds[1].textContent}</td>
+          <td>${tds[2].textContent}</td>
+          <td>${tds[3].textContent}</td>
+          <td>${tds[4].textContent}</td>
+          <td>${tds[5].textContent}</td>
+        </tr>
+      `;
+    }
+  });
+
+  const wrapper = document.createElement("div");
+  wrapper.style.width = "1120px";
+  wrapper.style.padding = "20px";
+  wrapper.style.background = "#fff";
+  wrapper.style.color = "#000";
+  wrapper.style.position = "absolute";
+  wrapper.style.left = "-99999px";
+  wrapper.style.top = "0";
+
+  wrapper.innerHTML = `
+    <style>
+      .pdf-root { font-family: Arial, sans-serif; }
+      .pdf-root h2 { margin-bottom: 10px; }
+      .pdf-root .info { margin-bottom: 16px; }
+      .pdf-root table { width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 16px; }
+      .pdf-root th, .pdf-root td { border: 1px solid #ccc; padding: 6px; text-align: center; }
+      .pdf-root th { background-color: #000; color: white; font-weight: bold; }
+      .pdf-root td.spacer { border: none; width: 24px; }
+      .page-break { page-break-before: always; break-before: page; }
+    </style>
+
+    <div class="pdf-root">
+      <h2>Resumo de Boxes</h2>
+      <div class="info">
+        <strong>Operador:</strong> ${operadorLogado}<br/>
+        <strong>Romaneio:</strong> ${romaneioAtivo}<br/>
+        <strong>Data:</strong> ${dataHoraAtual}
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Pedido</th><th>Qtd.</th><th>Status</th>
+            <td class="spacer"></td>
+            <th>Pedido</th><th>Qtd.</th><th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${boxRows}
+        </tbody>
+      </table>
+
+      <div class="page-break"></div>
+
+      <h2>Relatório de NL</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Pedido</th>
+            <th>Cliente</th>
+            <th>Desc. Produto</th>
+            <th>SKU</th>
+            <th>Qtde.</th>
+            <th>Completo</th>
+            <th>Finalizando</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${linhasNL}
+        </tbody>
+      </table>
+
+      <div class="page-break"></div>
+
+      <h2>Resumo do Cronômetro</h2>
+      <div class="info">
+        <strong>Operador:</strong> ${operadorLogado}<br/>
+        <strong>Romaneio:</strong> ${romaneioAtivo}<br/>
+        <strong>Data:</strong> ${dataHoraAtual}<br/>
+        <strong>Pedidos:</strong> ${window.pedidos || "-"}<br/>
+        <strong>Peças:</strong> ${window.pecas || "-"}<br/>
+        <strong>Tempo Ideal Total:</strong> ${tempoIdeal}<br/>
+        <strong>Tempo Real Total:</strong> ${tempoReal}<br/>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Etapa</th>
+            <th>Tempo Ideal</th>
+            <th>Início</th>
+            <th>Fim</th>
+            <th>Executado</th>
+            <th>Eficiência</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${cronometroRows}
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  document.body.appendChild(wrapper);
+
+  const opt = {
+    margin: 5,
+    filename: montarNomePdfRomaneio(),
+    image: { type: "jpeg", quality: 0.98 },
+    html2canvas: { scale: 2, useCORS: true, backgroundColor: "#ffffff" },
+    jsPDF: { unit: "mm", format: "a4", orientation: "landscape" },
+    pagebreak: { mode: ["css", "legacy"] },
+  };
+
+  const worker = window.html2pdf().set(opt).from(wrapper);
+  const pdfBlob = await worker.outputPdf("blob");
+
+  document.body.removeChild(wrapper);
+
+  return {
+    blob: pdfBlob,
+    filename: montarNomePdfRomaneio(),
+  };
+}
+
 async function gerarPdfResumo() {
   const operadorLogado =
     operador2 && operador2.length
@@ -2209,8 +2530,18 @@ document.getElementById("btnFinalizar").addEventListener("click", async () => {
     }
   }
 
-  // 🧾 PDF resumo
-  await gerarPdfResumo();
+  const desejaSalvarNoDrive = await perguntarSalvarNoDrive();
+
+  if (desejaSalvarNoDrive) {
+    try {
+      mostrarToast("⏳ Gerando PDF e salvando no Drive...", "info");
+      await salvarPdfNoDrive();
+      mostrarToast("✅ PDF salvo no Google Drive com sucesso!", "success");
+    } catch (err) {
+      console.error("Erro ao salvar PDF no Drive:", err);
+      mostrarToast("❌ Não foi possível salvar o PDF no Drive.", "error");
+    }
+  }
 
   // ⏱️ Atualiza hora de finalização do romaneio
   await supabase
@@ -5120,3 +5451,40 @@ document
 
     win.document.close();
   });
+
+function pad2(n) {
+  return String(n).padStart(2, "0");
+}
+
+function gerarTimestampNomeArquivo() {
+  const agora = new Date();
+
+  const dia = pad2(agora.getDate());
+  const mes = pad2(agora.getMonth() + 1);
+  const ano = agora.getFullYear();
+
+  const hora = pad2(agora.getHours());
+  const minuto = pad2(agora.getMinutes());
+
+  return `${dia}${mes}${ano}_${hora}_${minuto}`;
+}
+
+function sanitizarNomeArquivo(texto = "") {
+  return String(texto)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^\w\s-]/g, "")
+    .replace(/\s+/g, "_")
+    .replace(/_+/g, "_")
+    .trim();
+}
+
+function montarNomePdfRomaneio() {
+  const partes = [romaneio, operador1];
+
+  if (operador2) partes.push(operador2);
+
+  partes.push(gerarTimestampNomeArquivo());
+
+  return `${partes.map(sanitizarNomeArquivo).filter(Boolean).join("_")}.pdf`;
+}

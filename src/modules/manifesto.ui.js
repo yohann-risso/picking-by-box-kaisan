@@ -715,6 +715,7 @@ async function gerarPDFManifestoTransportadora({
 
   // ================= PÁGINA FINAL - RESUMO =================
   doc.addPage();
+  doc.addPage();
 
   if (img) {
     doc.addImage(img, "PNG", M, headerTop, 90, 28);
