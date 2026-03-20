@@ -2098,9 +2098,6 @@ function bindPeriodoSLA() {
   });
 }
 
-const SYNC_SHEET_URL =
-  "https://script.google.com/macros/s/AKfycbymQwy2XDKVGYQF0Cc1QNqVSdfLQ1ThC5mtogO3v_Ayde1d-Eb-ObvizSarMMWQlFCP/exec";
-
 async function acionarSyncSheetToSupabase() {
   const btn = document.getElementById("btnSyncSheet");
   const loader = document.getElementById("syncSheetLoader");
@@ -2111,27 +2108,21 @@ async function acionarSyncSheetToSupabase() {
   if (status) status.textContent = "Sincronização em andamento...";
 
   try {
-    const resp = await fetch(SYNC_SHEET_URL, {
+    const resp = await fetch(`${supabaseFunctionsUrl}/sync-sheet-to-supabase`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        Authorization: `Bearer ${supabaseKey}`,
       },
       body: JSON.stringify({
         action: "syncSheetToSupabase",
       }),
     });
 
-    const raw = await resp.text();
+    const data = await resp.json();
 
-    let data;
-    try {
-      data = JSON.parse(raw);
-    } catch {
-      data = { ok: resp.ok, raw };
-    }
-
-    if (!resp.ok) {
-      throw new Error(data?.error || data?.message || `HTTP ${resp.status}`);
+    if (!resp.ok || data?.status !== "ok") {
+      throw new Error(data?.message || `HTTP ${resp.status}`);
     }
 
     const agora = new Date().toLocaleString("pt-BR", {
