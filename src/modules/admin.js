@@ -1055,6 +1055,10 @@ if (!__ADMIN_ACTIVE__) {
       .getElementById("btnByboxFiltrar")
       ?.addEventListener("click", atualizarByboxEficiencia);
 
+    document
+      .getElementById("btnSyncSheet")
+      ?.addEventListener("click", acionarSyncSheetToSupabase);
+
     // carrega 1x
     atualizarByboxEficiencia();
 
@@ -2092,6 +2096,63 @@ function bindPeriodoSLA() {
     const tipo = sel.value || "mes";
     await carregarSLAResumoEAnalisePorPeriodo(tipo);
   });
+}
+
+const SYNC_SHEET_URL =
+  "https://script.google.com/macros/s/AKfycbymQwy2XDKVGYQF0Cc1QNqVSdfLQ1ThC5mtogO3v_Ayde1d-Eb-ObvizSarMMWQlFCP/exec";
+
+async function acionarSyncSheetToSupabase() {
+  const btn = document.getElementById("btnSyncSheet");
+  const loader = document.getElementById("syncSheetLoader");
+  const status = document.getElementById("syncSheetStatus");
+
+  if (btn) btn.disabled = true;
+  if (loader) loader.classList.remove("d-none");
+  if (status) status.textContent = "Sincronização em andamento...";
+
+  try {
+    const resp = await fetch(SYNC_SHEET_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        action: "syncSheetToSupabase",
+      }),
+    });
+
+    const raw = await resp.text();
+
+    let data;
+    try {
+      data = JSON.parse(raw);
+    } catch {
+      data = { ok: resp.ok, raw };
+    }
+
+    if (!resp.ok) {
+      throw new Error(data?.error || data?.message || `HTTP ${resp.status}`);
+    }
+
+    const agora = new Date().toLocaleString("pt-BR", {
+      timeZone: "America/Sao_Paulo",
+    });
+
+    if (status) {
+      status.textContent =
+        data?.message || `✅ Sincronização concluída em ${agora}`;
+    }
+
+    alert(data?.message || "✅ Sync executado com sucesso!");
+    await tickAdmin();
+  } catch (err) {
+    console.error("Erro ao sincronizar planilha:", err);
+    if (status) status.textContent = `❌ Erro ao sincronizar: ${err.message}`;
+    alert(`❌ Erro ao sincronizar planilha: ${err.message}`);
+  } finally {
+    if (btn) btn.disabled = false;
+    if (loader) loader.classList.add("d-none");
+  }
 }
 
 renderAdminConsultaBase();

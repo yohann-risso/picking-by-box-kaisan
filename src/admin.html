@@ -29,13 +29,31 @@
         <h2 class="h4 fw-bold m-0">
           <i class="bi bi-truck"></i> Dashboard Expedição
         </h2>
-        <button
-          class="btn btn-outline-light"
-          data-bs-toggle="modal"
-          data-bs-target="#erroModal"
-        >
-          <i class="bi bi-bug"></i> Registrar Erro de Expedição
-        </button>
+        <div class="d-flex gap-2">
+          <button id="btnSyncSheet" class="btn btn-warning" type="button">
+            <i class="bi bi-arrow-repeat"></i> Sync Planilha
+          </button>
+
+          <div id="syncSheetStatusWrap" class="container-fluid mb-3">
+            <div class="d-flex align-items-center gap-2">
+              <div
+                id="syncSheetLoader"
+                class="spinner-border spinner-border-sm text-warning d-none"
+                role="status"
+                aria-hidden="true"
+              ></div>
+              <span id="syncSheetStatus" class="small text-muted"></span>
+            </div>
+          </div>
+
+          <button
+            class="btn btn-outline-light"
+            data-bs-toggle="modal"
+            data-bs-target="#erroModal"
+          >
+            <i class="bi bi-bug"></i> Registrar Erro de Expedição
+          </button>
+        </div>
       </div>
     </header>
 
