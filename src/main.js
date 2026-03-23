@@ -1380,95 +1380,146 @@ async function fetchComTimeout(url, options = {}, timeoutMs = 10000) {
   }
 }
 
+let registrandoNL = false;
+
 async function registrarTodosPendentesNL() {
-  const agrupadoPorPedido = {};
+  if (registrandoNL) return;
 
-  // Agrupa SKUs pendentes por pedido
-  for (const p of pendentes) {
-    if (!agrupadoPorPedido[p.pedido]) {
-      agrupadoPorPedido[p.pedido] = [];
-    }
-    agrupadoPorPedido[p.pedido].push({ sku: p.sku, qtd: p.qtd });
-  }
+  registrandoNL = true;
 
-  const pedidos = Object.keys(agrupadoPorPedido);
-  if (pedidos.length === 0) {
-    mostrarToast("Nenhum pedido pendente para registrar.", "info");
-    return;
-  }
-
-  // 🧺 Solicita o cesto via modal
-  const cesto = await solicitarCestoNL();
-  if (!cesto) return;
-
-  // 🔎 Busca dados de cliente (para etiquetas)
-  const { data: dadosPedido, error } = await supabase
-    .from("pedidos")
-    .select("id, cliente")
-    .in("id", pedidos);
-
-  if (error) {
-    console.warn("Erro ao buscar clientes:", error);
-    mostrarToast("⚠️ Não foi possível obter os nomes dos clientes.", "warning");
-  }
-
-  // 🧾 Gera dados para etiquetas NL
-  const etiquetas = pedidos.map((pedido) => {
-    const cliente = dadosPedido?.find((p) => p.id == pedido)?.cliente || "—";
-    const produtosNL = agrupadoPorPedido[pedido];
-    const qtdeNL = produtosNL.reduce((acc, p) => acc + p.qtd, 0);
-    const qtdeTotal = caixas[pedido]?.total ?? qtdeNL;
-    const qtdeConferida = Math.max(0, qtdeTotal - qtdeNL);
-
-    return {
-      pedido,
-      romaneio,
-      cliente,
-      cesto,
-      operador1,
-      operador2,
-      produtosNL,
-      qtdeTotal,
-      qtdeNL,
-      qtdePreVenda: 0,
-      qtdeConferida,
-    };
-  });
-
-  // 🖨️ Mostra imediatamente o modal com etiquetas
-  abrirMultiplasEtiquetasNL(etiquetas);
-
-  // ⏳ Mostra status de envio
-  mostrarToast("⏳ Enviando registros NL...", "info");
-
-  // ⏱️ Envio com proteção contra congelamento (timeout de 10s)
   try {
+    const agrupadoPorPedido = {};
+
+    for (const p of pendentes) {
+      const pedido = String(p.pedido || "").trim();
+      const sku = String(p.sku || "").trim();
+      const qtd = Number(p.qtd || 0);
+
+      if (!pedido || !sku || !qtd) continue;
+
+      if (!agrupadoPorPedido[pedido]) {
+        agrupadoPorPedido[pedido] = [];
+      }
+
+      agrupadoPorPedido[pedido].push({ sku, qtd });
+    }
+
+    const pedidos = Object.keys(agrupadoPorPedido);
+
+    if (pedidos.length === 0) {
+      mostrarToast("Nenhum pedido pendente para registrar.", "info");
+      return;
+    }
+
+    const totalItensNL = pedidos.reduce((acc, pedido) => {
+      return acc + (agrupadoPorPedido[pedido]?.length || 0);
+    }, 0);
+
+    if (!totalItensNL) {
+      mostrarToast("Nenhum item NL válido para registrar.", "warning");
+      return;
+    }
+
+    const cestoInformado = await solicitarCestoNL();
+    const cesto = String(cestoInformado || "").trim();
+
+    if (!cesto) return;
+
+    const { data: dadosPedido, error } = await supabase
+      .from("pedidos")
+      .select("id, cliente")
+      .in("id", pedidos);
+
+    if (error) {
+      console.warn("Erro ao buscar clientes:", error);
+      mostrarToast(
+        "⚠️ Não foi possível obter os nomes dos clientes.",
+        "warning",
+      );
+    }
+
+    const etiquetas = pedidos.map((pedido) => {
+      const cliente =
+        dadosPedido?.find((p) => String(p.id) === String(pedido))?.cliente ||
+        "—";
+
+      const produtosNL = agrupadoPorPedido[pedido] || [];
+      const qtdeNL = produtosNL.reduce(
+        (acc, item) => acc + Number(item.qtd || 0),
+        0,
+      );
+
+      const qtdeTotal = Number(caixas?.[pedido]?.total || qtdeNL);
+      const qtdeConferida = Math.max(0, qtdeTotal - qtdeNL);
+
+      return {
+        pedido,
+        romaneio,
+        cliente,
+        cesto,
+        operador1,
+        operador2,
+        produtosNL,
+        qtdeTotal,
+        qtdeNL,
+        qtdePreVenda: 0,
+        qtdeConferida,
+      };
+    });
+
+    abrirMultiplasEtiquetasNL(etiquetas);
+    mostrarToast("⏳ Enviando registros NL...", "info");
+
+    const payload = {
+      func: "registrarMultiplos",
+      pedidos,
+      cesto,
+      produtosPorPedido: agrupadoPorPedido,
+    };
+
+    console.log("📤 Payload enviado para /api/gas:", payload);
+
     const res = await fetchComTimeout(
       "/api/gas",
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          func: "registrarMultiplos",
-          pedidos,
-          cesto,
-          produtosPorPedido: agrupadoPorPedido,
-        }),
+        body: JSON.stringify(payload),
       },
-      10000,
-    ); // timeout de 10s
+      20000,
+    );
 
     const json = await res.json();
 
+    console.log("📥 Resposta /api/gas:", json);
+
+    if (!res.ok) {
+      throw new Error(json?.message || `HTTP ${res.status}`);
+    }
+
     if (json?.status === "ok") {
-      mostrarToast("✅ Registros NL enviados com sucesso!", "success");
+      const linhasControle = json?.resumo?.linhasControleInseridas ?? 0;
+      const linhasNL = json?.resumo?.linhasNLInseridas ?? 0;
+
+      mostrarToast(
+        `✅ NL registrada com sucesso! Controle: ${linhasControle} | NL: ${linhasNL}`,
+        "success",
+      );
     } else {
       console.warn("❌ Erro no backend ao registrar NL:", json);
-      mostrarToast("❌ Falha no registro de pedidos NL.", "error");
+      mostrarToast(
+        `❌ Falha no registro NL: ${json?.message || "erro desconhecido"}`,
+        "error",
+      );
     }
   } catch (err) {
     console.error("❌ Erro ao enviar registros NL:", err);
-    mostrarToast("❌ Tempo limite excedido ou erro de conexão.", "error");
+    mostrarToast(
+      `❌ Tempo limite excedido ou erro de conexão: ${err.message}`,
+      "error",
+    );
+  } finally {
+    registrandoNL = false;
   }
 }
 

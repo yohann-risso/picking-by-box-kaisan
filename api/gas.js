@@ -11,14 +11,28 @@ export default async function handler(req, res) {
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(req.body),
-      }
+        body: JSON.stringify(req.body || {}),
+      },
     );
 
-    const data = await response.json();
-    res.status(200).json(data);
+    const text = await response.text();
+
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = {
+        status: "error",
+        message: "Resposta do GAS não é JSON válido.",
+        raw: text,
+      };
+    }
+
+    return res.status(response.ok ? 200 : response.status).json(data);
   } catch (err) {
     console.error("Erro no proxy GAS:", err);
-    res.status(500).json({ status: "error", message: err.message });
+    return res
+      .status(500)
+      .json({ status: "error", message: err.message || "Erro interno" });
   }
 }
